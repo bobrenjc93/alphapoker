@@ -27,6 +27,8 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
 
 
 def train_network(strategy: dict[str, dict[str, float]], out_dir: Path, epochs: int) -> dict[str, Any]:
+    import copy
+
     import torch
     import torch.nn.functional as F
 
@@ -43,6 +45,8 @@ def train_network(strategy: dict[str, dict[str, float]], out_dir: Path, epochs: 
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-3, weight_decay=1e-4)
 
     last_loss = 0.0
+    best_loss = float("inf")
+    best_state = copy.deepcopy(model.state_dict())
     for _ in range(epochs):
         logits, values = model(features)
         masked_logits = logits.masked_fill(~masks, -1e9)
@@ -54,11 +58,14 @@ def train_network(strategy: dict[str, dict[str, float]], out_dir: Path, epochs: 
         loss.backward()
         optimizer.step()
         last_loss = float(loss.detach().cpu())
+        if last_loss < best_loss:
+            best_loss = last_loss
+            best_state = copy.deepcopy(model.state_dict())
 
     checkpoint_path = out_dir / "kuhn_policy_value.pt"
     torch.save(
         {
-            "model_state_dict": model.state_dict(),
+            "model_state_dict": best_state,
             "infosets": [example.infoset for example in examples],
             "canonical_actions": ["check", "bet", "call", "fold"],
         },
@@ -67,6 +74,7 @@ def train_network(strategy: dict[str, dict[str, float]], out_dir: Path, epochs: 
     return {
         "network_epochs": epochs,
         "network_final_loss": last_loss,
+        "network_best_loss": best_loss,
         "checkpoint": str(checkpoint_path),
     }
 
