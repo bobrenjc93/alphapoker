@@ -1,6 +1,11 @@
 import math
 
-from alphapoker.leduc_cfr import LeducCFRTrainer, expected_leduc_utility
+from alphapoker.leduc_cfr import (
+    LeducCFRTrainer,
+    best_response_leduc,
+    expected_leduc_utility,
+    leduc_exploitability,
+)
 
 
 def test_leduc_cfr_smoke_trains_public_and_private_infosets() -> None:
@@ -15,3 +20,17 @@ def test_leduc_cfr_smoke_trains_public_and_private_infosets() -> None:
     assert any("public=-" in key for key in strategy)
     assert any("public=J" in key or "public=Q" in key or "public=K" in key for key in strategy)
 
+
+def test_leduc_best_response_improves_against_uniform_policy() -> None:
+    uniform_strategy = {}
+    value_p0 = expected_leduc_utility(uniform_strategy, player=0)
+    value_p1 = expected_leduc_utility(uniform_strategy, player=1)
+
+    br0 = best_response_leduc(0, uniform_strategy)
+    br1 = best_response_leduc(1, uniform_strategy)
+
+    assert br0.value >= value_p0
+    assert br1.value >= value_p1
+    assert br0.policy
+    assert br1.policy
+    assert leduc_exploitability(uniform_strategy) > 0.0

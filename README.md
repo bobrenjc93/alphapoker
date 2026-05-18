@@ -39,12 +39,13 @@ uv run --extra train python -m alphapoker.train \
 - Optional PyTorch policy/value model for distillation from the CFR average
   strategy.
 - Limit Leduc poker rules for the next imperfect-information benchmark.
-- Tabular Leduc CFR trainer with exact expected-value evaluation.
+- Tabular Leduc CFR trainer with exact expected-value and best-response
+  exploitability evaluation.
 
 ## Research Roadmap
 
 1. Keep Kuhn as the fast correctness harness.
-2. Add exact or sampled Leduc best-response evaluation.
+2. Track Leduc exploitability over longer training runs.
 3. Move from full-tree Leduc CFR to external-sampling MCCFR and neural regret/policy
    approximation.
 4. Add distributed self-play and GPU jobs through `gpu-dev submit`.
