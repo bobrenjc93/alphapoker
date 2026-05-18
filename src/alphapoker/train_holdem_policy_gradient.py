@@ -30,6 +30,30 @@ def parse_policy_mix(value: str) -> tuple[str, ...]:
     return policies
 
 
+def parse_policy_weights(value: str) -> tuple[float, ...]:
+    try:
+        weights = tuple(float(item.strip()) for item in value.split(",") if item.strip())
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("opponent policy weights must be numeric") from error
+    if not weights:
+        raise argparse.ArgumentTypeError("at least one opponent policy weight is required")
+    if any(weight < 0.0 for weight in weights):
+        raise argparse.ArgumentTypeError("opponent policy weights must be non-negative")
+    if sum(weights) <= 0.0:
+        raise argparse.ArgumentTypeError("at least one opponent policy weight must be positive")
+    return weights
+
+
+def choose_weighted_index(rng: random.Random, weights: tuple[float, ...]) -> int:
+    draw = rng.random() * sum(weights)
+    cumulative = 0.0
+    for index, weight in enumerate(weights):
+        cumulative += weight
+        if draw <= cumulative:
+            return index
+    return len(weights) - 1
+
+
 def sample_model_action(model, state: FixedLimitHoldemState):
     import torch
 
@@ -55,6 +79,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     deal_rng = random.Random(args.seed + 1)
     opponent_selector_rng = random.Random(args.seed + 2)
     opponent_policy_names = args.opponent_policies or (args.opponent_policy,)
+    opponent_policy_weights = getattr(args, "opponent_policy_weights", None)
+    if opponent_policy_weights is None:
+        opponent_policy_weights = tuple(1.0 for _ in opponent_policy_names)
+    if len(opponent_policy_weights) != len(opponent_policy_names):
+        raise ValueError("opponent policy weights must match opponent policies")
     opponent_policies = [
         make_policy(name, random.Random(args.seed + 100 + index), args.equity_sims)
         for index, name in enumerate(opponent_policy_names)
@@ -81,7 +110,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         batch_utilities = []
         for _ in range(min(args.batch_hands, args.hands - hands_played)):
             state = deal_fixed_limit_holdem(deal_rng)
-            opponent_policy = opponent_policies[opponent_selector_rng.randrange(len(opponent_policies))]
+            opponent_policy = opponent_policies[
+                choose_weighted_index(opponent_selector_rng, opponent_policy_weights)
+            ]
             log_probs = []
             entropies = []
             while not state.is_terminal():
@@ -135,6 +166,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "model_player": args.model_player,
         "opponent_policy": args.opponent_policy,
         "opponent_policies": list(opponent_policy_names),
+        "opponent_policy_weights": list(opponent_policy_weights),
         "equity_sims": args.equity_sims,
         "lr": args.lr,
         "entropy_coef": args.entropy_coef,
@@ -157,6 +189,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model-player", type=int, choices=[0, 1], default=0)
     parser.add_argument("--opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="random")
     parser.add_argument("--opponent-policies", type=parse_policy_mix)
+    parser.add_argument("--opponent-policy-weights", type=parse_policy_weights)
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--entropy-coef", type=float, default=0.01)
