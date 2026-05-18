@@ -20,6 +20,16 @@ from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES, make_policy
 from alphapoker.train import write_json
 
 
+def parse_policy_mix(value: str) -> tuple[str, ...]:
+    policies = tuple(item.strip() for item in value.split(",") if item.strip())
+    if not policies:
+        raise argparse.ArgumentTypeError("at least one opponent policy is required")
+    unknown = [policy for policy in policies if policy not in HOLDEM_SELF_PLAY_POLICIES]
+    if unknown:
+        raise argparse.ArgumentTypeError(f"unknown opponent policy: {unknown[0]}")
+    return policies
+
+
 def sample_model_action(model, state: FixedLimitHoldemState):
     import torch
 
@@ -43,8 +53,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     torch.manual_seed(args.seed)
     input_dim = len(encode_holdem_state(deal_fixed_limit_holdem(random.Random(args.seed + 3))))
     deal_rng = random.Random(args.seed + 1)
-    opponent_rng = random.Random(args.seed + 2)
-    opponent_policy = make_policy(args.opponent_policy, opponent_rng, args.equity_sims)
+    opponent_selector_rng = random.Random(args.seed + 2)
+    opponent_policy_names = args.opponent_policies or (args.opponent_policy,)
+    opponent_policies = [
+        make_policy(name, random.Random(args.seed + 100 + index), args.equity_sims)
+        for index, name in enumerate(opponent_policy_names)
+    ]
 
     model = HoldemPolicyNet(input_dim=input_dim)
     if args.init_checkpoint is not None:
@@ -67,6 +81,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         batch_utilities = []
         for _ in range(min(args.batch_hands, args.hands - hands_played)):
             state = deal_fixed_limit_holdem(deal_rng)
+            opponent_policy = opponent_policies[opponent_selector_rng.randrange(len(opponent_policies))]
             log_probs = []
             entropies = []
             while not state.is_terminal():
@@ -119,6 +134,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "batch_hands": args.batch_hands,
         "model_player": args.model_player,
         "opponent_policy": args.opponent_policy,
+        "opponent_policies": list(opponent_policy_names),
         "equity_sims": args.equity_sims,
         "lr": args.lr,
         "entropy_coef": args.entropy_coef,
@@ -140,6 +156,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--batch-hands", type=int, default=50)
     parser.add_argument("--model-player", type=int, choices=[0, 1], default=0)
     parser.add_argument("--opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="random")
+    parser.add_argument("--opponent-policies", type=parse_policy_mix)
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--entropy-coef", type=float, default=0.01)
