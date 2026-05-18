@@ -19,12 +19,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     from alphapoker.holdem_model import HoldemPolicyNet
 
+    behavior_policy = None
+    if args.behavior_checkpoint is not None:
+        from alphapoker.evaluate_holdem_model import model_policy_from_checkpoint
+
+        behavior_policy = model_policy_from_checkpoint(args.behavior_checkpoint)
+
     examples = generate_equity_policy_examples(
         hands=args.hands,
         seed=args.seed,
         equity_sims=args.equity_sims,
         expert_player=args.expert_player,
         opponent_policy=args.opponent_policy,
+        expert_behavior_policy=behavior_policy,
     )
     features = torch.tensor([example.features for example in examples], dtype=torch.float32)
     targets = torch.tensor([example.action_index for example in examples], dtype=torch.long)
@@ -73,6 +80,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "checkpoint": str(checkpoint),
         "seed": args.seed,
     }
+    if args.behavior_checkpoint is not None:
+        metrics["behavior_checkpoint"] = str(args.behavior_checkpoint)
     write_json(out_dir / "metrics.json", metrics)
     return metrics
 
@@ -83,6 +92,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--expert-player", type=int, choices=[0, 1])
     parser.add_argument("--opponent-policy", choices=["equity", "random"], default="equity")
+    parser.add_argument("--behavior-checkpoint", type=Path)
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--lr", type=float, default=3e-3)
     parser.add_argument("--seed", type=int, default=0)

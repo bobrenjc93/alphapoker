@@ -79,6 +79,20 @@ uv run --extra train --extra holdem python -m alphapoker.evaluate_holdem_model \
   --out experiments/holdem_policy_p0_vs_random_1k/metrics.json
 ```
 
+Collect DAgger-style labels from states visited by an existing policy:
+
+```bash
+uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
+  --hands 500 \
+  --equity-sims 8 \
+  --expert-player 0 \
+  --opponent-policy equity \
+  --behavior-checkpoint experiments/holdem_equity_p0_vs_random_distill_1k/holdem_policy.pt \
+  --epochs 200 \
+  --seed 44 \
+  --out experiments/holdem_dagger_p0_vs_equity_500
+```
+
 ## Current Milestone
 
 - Exact Kuhn poker environment with legal actions and zero-sum payoffs.

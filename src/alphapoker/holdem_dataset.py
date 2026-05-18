@@ -5,7 +5,12 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 
-from alphapoker.holdem import deal_fixed_limit_holdem, equity_threshold_policy, random_holdem_policy
+from alphapoker.holdem import (
+    HoldemPolicy,
+    deal_fixed_limit_holdem,
+    equity_threshold_policy,
+    random_holdem_policy,
+)
 from alphapoker.holdem_features import (
     encode_holdem_state,
     holdem_action_index,
@@ -27,6 +32,7 @@ def generate_equity_policy_examples(
     equity_sims: int,
     expert_player: int | None = None,
     opponent_policy: str = "equity",
+    expert_behavior_policy: HoldemPolicy | None = None,
 ) -> list[HoldemPolicyExample]:
     deal_rng = random.Random(seed)
     policy_rng = random.Random(seed + 1)
@@ -44,14 +50,20 @@ def generate_equity_policy_examples(
         while not state.is_terminal():
             player = state.current_player()
             use_expert = expert_player is None or player == expert_player
-            action = equity_policy(state) if use_expert else non_expert_policy(state)
+            expert_action = equity_policy(state) if use_expert else non_expert_policy(state)
             if use_expert:
                 examples.append(
                     HoldemPolicyExample(
                         features=encode_holdem_state(state),
-                        action_index=holdem_action_index(action),
+                        action_index=holdem_action_index(expert_action),
                         legal_mask=holdem_legal_action_mask(state),
                     )
                 )
+            if use_expert and expert_behavior_policy is not None:
+                action = expert_behavior_policy(state)
+                if action not in state.legal_actions():
+                    raise ValueError(f"Behavior policy selected illegal action {action!r}")
+            else:
+                action = expert_action
             state = state.apply(action)
     return examples
