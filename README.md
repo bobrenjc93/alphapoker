@@ -115,7 +115,7 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   baselines.
 - Fixed-limit Hold'em equity regression model and threshold-policy evaluation.
 - Tunable equity thresholds for learned Hold'em value-policy evaluation.
-- Threshold-sweep tooling for Hold'em equity-value policies.
+- Seat-aware Hold'em model evaluation and threshold-sweep tooling.
 
 Current exact-evaluation bests:
 

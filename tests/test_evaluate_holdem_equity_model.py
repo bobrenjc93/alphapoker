@@ -18,6 +18,8 @@ def test_equity_model_eval_parser_accepts_thresholds() -> None:
         [
             "--checkpoint",
             "model.pt",
+            "--model-player",
+            "1",
             "--bet-threshold",
             "0.6",
             "--raise-threshold",
@@ -27,6 +29,7 @@ def test_equity_model_eval_parser_accepts_thresholds() -> None:
         ]
     )
 
+    assert args.model_player == 1
     assert args.bet_threshold == 0.6
     assert args.raise_threshold == 0.8
     assert args.call_threshold == 0.4

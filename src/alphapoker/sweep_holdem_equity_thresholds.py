@@ -36,6 +36,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             seed=args.seed,
             opponent_policy=args.opponent_policy,
             equity_sims=args.equity_sims,
+            model_player=args.model_player,
             bet_threshold=bet_threshold,
             raise_threshold=raise_threshold,
             call_threshold=call_threshold,
@@ -45,13 +46,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         metrics["config_index"] = index
         results.append(metrics)
 
-    best = max(results, key=lambda item: item["avg_utility_p0"])
+    best = max(results, key=lambda item: item["avg_utility_model"])
     payload = {
         "checkpoint": str(args.checkpoint),
         "hands": args.hands,
         "seed": args.seed,
         "opponent_policy": args.opponent_policy,
         "equity_sims": args.equity_sims,
+        "model_player": args.model_player,
         "best": best,
         "results": results,
     }
@@ -67,6 +69,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--opponent-policy", choices=["random", "equity"], default="equity")
     parser.add_argument("--equity-sims", type=int, default=8)
+    parser.add_argument("--model-player", type=int, choices=[0, 1], default=0)
     parser.add_argument(
         "--configs",
         default="0.58,0.72,0.36;0.65,0.82,0.42",
@@ -82,4 +85,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

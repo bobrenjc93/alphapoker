@@ -1,6 +1,6 @@
 import pytest
 
-from alphapoker.sweep_holdem_equity_thresholds import parse_threshold_configs
+from alphapoker.sweep_holdem_equity_thresholds import build_parser, parse_threshold_configs
 
 
 def test_parse_threshold_configs() -> None:
@@ -13,3 +13,16 @@ def test_parse_threshold_configs() -> None:
 def test_parse_threshold_configs_rejects_bad_items() -> None:
     with pytest.raises(ValueError):
         parse_threshold_configs("0.1,0.2")
+
+
+def test_sweep_parser_accepts_model_player() -> None:
+    args = build_parser().parse_args(
+        [
+            "--checkpoint",
+            "model.pt",
+            "--model-player",
+            "1",
+        ]
+    )
+
+    assert args.model_player == 1

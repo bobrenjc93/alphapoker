@@ -5,18 +5,16 @@ from __future__ import annotations
 import argparse
 import json
 import random
-import statistics
 from pathlib import Path
 from typing import Any
 
 from alphapoker.holdem import (
     FixedLimitHoldemState,
     HoldemPolicy,
-    deal_fixed_limit_holdem,
     equity_threshold_policy,
-    play_fixed_limit_holdem_hand,
     random_holdem_policy,
 )
+from alphapoker.holdem_evaluation import evaluate_policy_match
 from alphapoker.holdem_features import encode_holdem_state, holdem_legal_action_mask
 from alphapoker.train import write_json
 
@@ -53,39 +51,18 @@ def make_opponent_policy(name: str, rng: random.Random, equity_sims: int) -> Hol
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    deal_rng = random.Random(args.seed)
     opponent_rng = random.Random(args.seed + 1)
-    policies = (
-        model_policy_from_checkpoint(args.checkpoint),
-        make_opponent_policy(args.opponent_policy, opponent_rng, args.equity_sims),
-    )
-
-    utilities: list[float] = []
-    total_actions = 0
-    folds = 0
-    showdowns = 0
-    for _ in range(args.hands):
-        terminal, actions = play_fixed_limit_holdem_hand(deal_fixed_limit_holdem(deal_rng), policies)
-        utilities.append(terminal.utility(0))
-        total_actions += len(actions)
-        if terminal.showdown:
-            showdowns += 1
-        else:
-            folds += 1
-
-    utility_stdev = statistics.stdev(utilities) if len(utilities) > 1 else 0.0
     metrics = {
         "checkpoint": str(args.checkpoint),
-        "hands": args.hands,
-        "avg_utility_p0": sum(utilities) / args.hands if args.hands else 0.0,
-        "utility_stdev_p0": utility_stdev,
-        "utility_stderr_p0": utility_stdev / (args.hands**0.5) if args.hands else 0.0,
-        "avg_actions": total_actions / args.hands if args.hands else 0.0,
-        "folds": folds,
-        "showdowns": showdowns,
+        **evaluate_policy_match(
+            model_policy=model_policy_from_checkpoint(args.checkpoint),
+            opponent_policy=make_opponent_policy(args.opponent_policy, opponent_rng, args.equity_sims),
+            hands=args.hands,
+            seed=args.seed,
+            model_player=args.model_player,
+        ),
         "opponent_policy": args.opponent_policy,
         "equity_sims": args.equity_sims,
-        "seed": args.seed,
     }
     if args.out is not None:
         write_json(args.out, metrics)
@@ -99,6 +76,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--opponent-policy", choices=["random", "equity"], default="random")
     parser.add_argument("--equity-sims", type=int, default=8)
+    parser.add_argument("--model-player", type=int, choices=[0, 1], default=0)
     parser.add_argument("--out", type=Path)
     return parser
 
@@ -109,4 +87,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
