@@ -16,7 +16,11 @@ from alphapoker.holdem import (
     random_holdem_policy,
 )
 from alphapoker.holdem_evaluation import evaluate_policy_match
-from alphapoker.holdem_features import encode_holdem_state, holdem_legal_action_mask
+from alphapoker.holdem_features import (
+    adapt_holdem_features,
+    encode_holdem_state,
+    holdem_legal_action_mask,
+)
 from alphapoker.train import write_json
 
 
@@ -27,12 +31,13 @@ def model_policy_from_checkpoint(checkpoint_path: Path) -> HoldemPolicy:
     from alphapoker.holdem_model import HoldemPolicyNet
 
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-    model = HoldemPolicyNet(input_dim=int(checkpoint["input_dim"]))
+    input_dim = int(checkpoint["input_dim"])
+    model = HoldemPolicyNet(input_dim=input_dim)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
     def select_action(state: FixedLimitHoldemState) -> str:
-        features = torch.tensor([encode_holdem_state(state)], dtype=torch.float32)
+        features = torch.tensor([adapt_holdem_features(encode_holdem_state(state), input_dim)], dtype=torch.float32)
         mask = torch.tensor(holdem_legal_action_mask(state), dtype=torch.bool)
         with torch.no_grad():
             logits = model(features).squeeze(0)

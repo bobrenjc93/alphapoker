@@ -7,6 +7,8 @@ from alphapoker.kuhn import BET, CALL, CHECK, FOLD
 from alphapoker.leduc import RAISE
 
 HOLDEM_CANONICAL_ACTIONS = (CHECK, BET, CALL, FOLD, RAISE)
+HOLDEM_BASE_FEATURE_DIM = 117
+HOLDEM_FEATURE_DIM = 123
 
 
 def holdem_card_index(card: str) -> int:
@@ -36,7 +38,27 @@ def encode_holdem_state(state: FixedLimitHoldemState) -> list[float]:
             sum(state.contributions) / 200.0,
         ]
     )
+    rank_indices = sorted(HOLDEM_RANKS.index(card[0]) for card in state.private_cards[player])
+    suits = [card[1] for card in state.private_cards[player]]
+    features.extend(
+        [
+            rank_indices[1] / (len(HOLDEM_RANKS) - 1),
+            rank_indices[0] / (len(HOLDEM_RANKS) - 1),
+            1.0 if rank_indices[0] == rank_indices[1] else 0.0,
+            1.0 if suits[0] == suits[1] else 0.0,
+            abs(rank_indices[1] - rank_indices[0]) / (len(HOLDEM_RANKS) - 1),
+            len(state.visible_board()) / 5.0,
+        ]
+    )
     return features
+
+
+def adapt_holdem_features(features: list[float], input_dim: int) -> list[float]:
+    if len(features) == input_dim:
+        return features
+    if len(features) > input_dim:
+        return features[:input_dim]
+    return [*features, *([0.0] * (input_dim - len(features)))]
 
 
 def holdem_legal_action_mask(state: FixedLimitHoldemState) -> list[bool]:
@@ -46,4 +68,3 @@ def holdem_legal_action_mask(state: FixedLimitHoldemState) -> list[bool]:
 
 def holdem_action_index(action: str) -> int:
     return HOLDEM_CANONICAL_ACTIONS.index(action)
-

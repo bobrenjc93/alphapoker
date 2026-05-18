@@ -14,21 +14,28 @@ from alphapoker.holdem_dataset import (  # noqa: E402
     write_policy_examples,
     write_equity_value_examples,
 )
-from alphapoker.holdem_features import encode_holdem_state, holdem_legal_action_mask  # noqa: E402
+from alphapoker.holdem_features import (  # noqa: E402
+    HOLDEM_BASE_FEATURE_DIM,
+    HOLDEM_FEATURE_DIM,
+    adapt_holdem_features,
+    encode_holdem_state,
+    holdem_legal_action_mask,
+)
 
 
 def test_holdem_features_have_fixed_shape() -> None:
     state = deal_fixed_limit_holdem()
 
-    assert len(encode_holdem_state(state)) == 117
+    assert len(encode_holdem_state(state)) == HOLDEM_FEATURE_DIM
     assert len(holdem_legal_action_mask(state)) == 5
+    assert len(adapt_holdem_features(encode_holdem_state(state), HOLDEM_BASE_FEATURE_DIM)) == HOLDEM_BASE_FEATURE_DIM
 
 
 def test_generate_equity_policy_examples_smoke() -> None:
     examples = generate_equity_policy_examples(hands=2, seed=5, equity_sims=4)
 
     assert examples
-    assert {len(example.features) for example in examples} == {117}
+    assert {len(example.features) for example in examples} == {HOLDEM_FEATURE_DIM}
     assert {len(example.legal_mask) for example in examples} == {5}
 
 
@@ -85,7 +92,7 @@ def test_generate_equity_value_examples_smoke() -> None:
     examples = generate_equity_value_examples(hands=2, seed=10, equity_sims=4)
 
     assert examples
-    assert {len(example.features) for example in examples} == {117}
+    assert {len(example.features) for example in examples} == {HOLDEM_FEATURE_DIM}
     assert all(0.0 <= example.equity <= 1.0 for example in examples)
 
 
