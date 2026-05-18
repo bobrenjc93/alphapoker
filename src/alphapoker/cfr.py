@@ -41,6 +41,21 @@ class InfoSet:
         strategy = self.current_strategy()
         return {action: strategy[index] for index, action in enumerate(self.actions)}
 
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "actions": list(self.actions),
+            "regret_sum": self.regret_sum,
+            "strategy_sum": self.strategy_sum,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> "InfoSet":
+        return cls(
+            actions=tuple(str(action) for action in payload["actions"]),  # type: ignore[index]
+            regret_sum=[float(value) for value in payload["regret_sum"]],  # type: ignore[index]
+            strategy_sum=[float(value) for value in payload["strategy_sum"]],  # type: ignore[index]
+        )
+
 
 @dataclass(frozen=True)
 class TrainingResult:
@@ -123,4 +138,3 @@ class KuhnCFRTrainer:
             key: infoset.average_strategy()
             for key, infoset in sorted(self.infosets.items())
         }
-

@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
 
 from alphapoker.cfr import InfoSet
 from alphapoker.eval import normalize_distribution
@@ -162,6 +165,38 @@ class LeducCFRTrainer:
         self.cfr_plus = cfr_plus
         self.iterations = 0
         self.infosets: dict[str, InfoSet] = {}
+
+    def state_dict(self) -> dict[str, Any]:
+        return {
+            "game": "leduc_poker",
+            "algorithm": "cfr_plus" if self.cfr_plus else "cfr",
+            "iterations": self.iterations,
+            "infosets": {
+                key: infoset.to_dict()
+                for key, infoset in sorted(self.infosets.items())
+            },
+        }
+
+    @classmethod
+    def from_state_dict(cls, payload: dict[str, Any]) -> "LeducCFRTrainer":
+        if payload.get("game") != "leduc_poker":
+            raise ValueError("Checkpoint is not for Leduc poker")
+        trainer = cls(cfr_plus=payload.get("algorithm") == "cfr_plus")
+        trainer.iterations = int(payload["iterations"])
+        trainer.infosets = {
+            key: InfoSet.from_dict(infoset_payload)
+            for key, infoset_payload in payload["infosets"].items()
+        }
+        return trainer
+
+    def save_checkpoint(self, path: str | Path) -> None:
+        checkpoint_path = Path(path)
+        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+        checkpoint_path.write_text(json.dumps(self.state_dict(), indent=2, sort_keys=True) + "\n")
+
+    @classmethod
+    def load_checkpoint(cls, path: str | Path) -> "LeducCFRTrainer":
+        return cls.from_state_dict(json.loads(Path(path).read_text()))
 
     def _infoset_for_state(self, state: LeducState) -> InfoSet:
         key = state.information_key()

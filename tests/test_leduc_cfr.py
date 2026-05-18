@@ -34,3 +34,19 @@ def test_leduc_best_response_improves_against_uniform_policy() -> None:
     assert br0.policy
     assert br1.policy
     assert leduc_exploitability(uniform_strategy) > 0.0
+
+
+def test_leduc_cfr_checkpoint_round_trip(tmp_path) -> None:
+    checkpoint = tmp_path / "leduc_checkpoint.json"
+    trainer = LeducCFRTrainer()
+    trainer.train(1)
+    strategy_before = trainer.average_strategy()
+    trainer.save_checkpoint(checkpoint)
+
+    loaded = LeducCFRTrainer.load_checkpoint(checkpoint)
+    assert loaded.iterations == 1
+    assert loaded.average_strategy() == strategy_before
+
+    result = loaded.train(1)
+    assert result.iterations == 2
+    assert result.infosets == 288

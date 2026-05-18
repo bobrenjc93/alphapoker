@@ -72,7 +72,11 @@ def train_network(
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    trainer = LeducCFRTrainer(cfr_plus=not args.vanilla_cfr)
+    if args.checkpoint_in is None:
+        trainer = LeducCFRTrainer(cfr_plus=not args.vanilla_cfr)
+    else:
+        trainer = LeducCFRTrainer.load_checkpoint(args.checkpoint_in)
+
     result = trainer.train(args.iterations, compute_exploitability=args.best_response)
     strategy = trainer.average_strategy()
 
@@ -80,6 +84,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     metrics: dict[str, Any] = result_to_dict(result)
     if args.network_epochs > 0:
         metrics.update(train_network(strategy, out_dir, args.network_epochs))
+    if args.checkpoint_out is not None:
+        trainer.save_checkpoint(args.checkpoint_out)
+        metrics["checkpoint_out"] = str(args.checkpoint_out)
 
     write_json(
         out_dir / "strategy.json",
@@ -101,6 +108,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--vanilla-cfr", action="store_true")
     parser.add_argument("--best-response", action="store_true")
     parser.add_argument("--network-epochs", type=int, default=0)
+    parser.add_argument("--checkpoint-in", type=Path)
+    parser.add_argument("--checkpoint-out", type=Path)
     return parser
 
 
