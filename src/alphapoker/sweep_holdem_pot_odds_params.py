@@ -7,6 +7,7 @@ import json
 import math
 import random
 import sys
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -89,52 +90,95 @@ def aggregate_seat_metrics(metrics: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def evaluate_param_config(
+    index: int,
+    config: tuple[float, float, float],
+    *,
+    hands: int,
+    seed: int,
+    opponent_policy: str,
+    equity_sims: int,
+    rollout_sims: int | None,
+    model_players: tuple[int, ...],
+) -> dict[str, Any]:
+    bet_threshold, raise_threshold, call_margin = config
+    seat_metrics = []
+    for model_player in model_players:
+        model_rng = random.Random(seed + index * 10_003 + model_player)
+        opponent_rng = random.Random(seed + 1_000_003 + index * 10_003 + model_player)
+        metrics = {
+            **evaluate_policy_match(
+                model_policy=pot_odds_equity_policy(
+                    model_rng,
+                    simulations=equity_sims,
+                    bet_threshold=bet_threshold,
+                    raise_threshold=raise_threshold,
+                    call_margin=call_margin,
+                ),
+                opponent_policy=make_policy(
+                    opponent_policy,
+                    opponent_rng,
+                    equity_sims,
+                    rollout_sims,
+                ),
+                hands=hands,
+                seed=seed + index * 100_003 + model_player * 1_000_003,
+                model_player=model_player,
+            ),
+            "opponent_policy": opponent_policy,
+            "equity_sims": equity_sims,
+            "bet_threshold": bet_threshold,
+            "raise_threshold": raise_threshold,
+            "call_margin": call_margin,
+        }
+        seat_metrics.append(metrics)
+    result = aggregate_seat_metrics(seat_metrics)
+    result["config_index"] = index
+    return result
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     model_players = normalize_model_players(args.model_player)
+    configs = parse_param_configs(args.configs)
+    if args.jobs < 1:
+        raise ValueError("jobs must be positive")
+
     results = []
-    for index, (bet_threshold, raise_threshold, call_margin) in enumerate(
-        parse_param_configs(args.configs)
-    ):
-        seat_metrics = []
-        for model_player in model_players:
-            model_rng = random.Random(args.seed + index * 10_003 + model_player)
-            opponent_rng = random.Random(args.seed + 1_000_003 + index * 10_003 + model_player)
-            metrics = {
-                **evaluate_policy_match(
-                    model_policy=pot_odds_equity_policy(
-                        model_rng,
-                        simulations=args.equity_sims,
-                        bet_threshold=bet_threshold,
-                        raise_threshold=raise_threshold,
-                        call_margin=call_margin,
-                    ),
-                    opponent_policy=make_policy(
-                        args.opponent_policy,
-                        opponent_rng,
-                        args.equity_sims,
-                        args.rollout_sims,
-                    ),
-                    hands=args.hands,
-                    seed=args.seed + index * 100_003 + model_player * 1_000_003,
-                    model_player=model_player,
-                ),
-                "opponent_policy": args.opponent_policy,
-                "equity_sims": args.equity_sims,
-                "bet_threshold": bet_threshold,
-                "raise_threshold": raise_threshold,
-                "call_margin": call_margin,
-            }
-            seat_metrics.append(metrics)
-        result = aggregate_seat_metrics(seat_metrics)
-        result["config_index"] = index
-        results.append(result)
-        if args.progress:
-            print(
-                f"config {index}: avg_utility_model={result['avg_utility_model']:.3f} "
-                f"stderr={result['utility_stderr_model']:.3f}",
-                file=sys.stderr,
-                flush=True,
+    if args.jobs == 1:
+        for index, config in enumerate(configs):
+            result = evaluate_param_config(
+                index,
+                config,
+                hands=args.hands,
+                seed=args.seed,
+                opponent_policy=args.opponent_policy,
+                equity_sims=args.equity_sims,
+                rollout_sims=args.rollout_sims,
+                model_players=model_players,
             )
+            results.append(result)
+            report_progress(args.progress, result)
+    else:
+        with ProcessPoolExecutor(max_workers=args.jobs) as executor:
+            futures = [
+                executor.submit(
+                    evaluate_param_config,
+                    index,
+                    config,
+                    hands=args.hands,
+                    seed=args.seed,
+                    opponent_policy=args.opponent_policy,
+                    equity_sims=args.equity_sims,
+                    rollout_sims=args.rollout_sims,
+                    model_players=model_players,
+                )
+                for index, config in enumerate(configs)
+            ]
+            for future in as_completed(futures):
+                result = future.result()
+                results.append(result)
+                report_progress(args.progress, result)
+        results.sort(key=lambda item: item["config_index"])
 
     best = max(results, key=lambda item: item["avg_utility_model"])
     payload = {
@@ -143,6 +187,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "opponent_policy": args.opponent_policy,
         "equity_sims": args.equity_sims,
         "rollout_sims": args.rollout_sims,
+        "jobs": args.jobs,
         "model_player": model_player_label(model_players),
         "best": best,
         "results": results,
@@ -150,6 +195,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if args.out is not None:
         write_json(Path(args.out), payload)
     return payload
+
+
+def report_progress(enabled: bool, result: dict[str, Any]) -> None:
+    if not enabled:
+        return
+    print(
+        f"config {result['config_index']}: "
+        f"avg_utility_model={result['avg_utility_model']:.3f} "
+        f"stderr={result['utility_stderr_model']:.3f}",
+        file=sys.stderr,
+        flush=True,
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -160,6 +217,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
+    parser.add_argument("--jobs", type=int, default=1)
     parser.add_argument("--progress", action="store_true")
     parser.add_argument(
         "--configs",

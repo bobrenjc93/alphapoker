@@ -37,5 +37,12 @@ def test_pot_odds_param_sweep_smoke() -> None:
     metrics = run(args)
 
     assert metrics["model_player"] == "both"
+    assert metrics["jobs"] == 1
     assert metrics["best"]["hands"] == 4
     assert metrics["best"]["bet_threshold"] == 0.5
+
+
+def test_pot_odds_param_sweep_parser_accepts_jobs() -> None:
+    args = build_parser().parse_args(["--jobs", "4"])
+
+    assert args.jobs == 4
