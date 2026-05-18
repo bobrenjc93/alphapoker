@@ -4,7 +4,10 @@ import pytest
 pytest.importorskip("treys")
 
 from alphapoker.holdem import deal_fixed_limit_holdem  # noqa: E402
-from alphapoker.holdem_dataset import generate_equity_policy_examples  # noqa: E402
+from alphapoker.holdem_dataset import (  # noqa: E402
+    generate_equity_policy_examples,
+    generate_equity_value_examples,
+)
 from alphapoker.holdem_features import encode_holdem_state, holdem_legal_action_mask  # noqa: E402
 
 
@@ -46,3 +49,11 @@ def test_generate_equity_policy_examples_with_behavior_policy() -> None:
     )
 
     assert examples
+
+
+def test_generate_equity_value_examples_smoke() -> None:
+    examples = generate_equity_value_examples(hands=2, seed=10, equity_sims=4)
+
+    assert examples
+    assert {len(example.features) for example in examples} == {117}
+    assert all(0.0 <= example.equity <= 1.0 for example in examples)

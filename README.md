@@ -113,6 +113,7 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Supervised fixed-limit Hold'em policy distillation from the equity baseline.
 - Fixed-limit Hold'em neural checkpoint evaluation against random/equity
   baselines.
+- Fixed-limit Hold'em equity regression model and threshold-policy evaluation.
 
 Current exact-evaluation bests:
 
