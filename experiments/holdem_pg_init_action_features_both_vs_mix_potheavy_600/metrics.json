@@ -1,0 +1,32 @@
+{
+  "batch_hands": 50,
+  "best_batch_avg_utility_model": 1.52,
+  "checkpoint": "experiments/holdem_pg_init_action_features_both_vs_mix_potheavy_600/holdem_policy.pt",
+  "entropy_coef": 0.01,
+  "equity_sims": 8,
+  "hands": 600,
+  "init_checkpoint": "experiments/holdem_pot_odds_action_features_distill_300/holdem_policy.pt",
+  "lr": 0.0005,
+  "model_player": "both",
+  "model_players": [
+    0,
+    1
+  ],
+  "opponent_policies": [
+    "random",
+    "pot-odds"
+  ],
+  "opponent_policy": "random",
+  "opponent_policy_weights": [
+    0.1,
+    0.9
+  ],
+  "seed": 132,
+  "train_avg_utility_by_model_player": {
+    "0": -0.33666666666666667,
+    "1": -1.58
+  },
+  "train_avg_utility_model": -0.9583333333333334,
+  "train_utility_stderr_model": 0.39103745383101846,
+  "train_utility_stdev_model": 9.578422322031303
+}

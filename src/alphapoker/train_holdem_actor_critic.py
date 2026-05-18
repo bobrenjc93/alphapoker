@@ -20,6 +20,9 @@ from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES, make_policy
 from alphapoker.train import write_json
 from alphapoker.train_holdem_policy_gradient import (
     choose_weighted_index,
+    model_player_label,
+    normalize_model_players,
+    parse_model_players,
     parse_policy_mix,
     parse_policy_weights,
 )
@@ -49,6 +52,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     from alphapoker.holdem_model import HoldemPolicyNet, HoldemValueNet
 
     torch.manual_seed(args.seed)
+    model_players = normalize_model_players(args.model_player)
     input_dim = len(encode_holdem_state(deal_fixed_limit_holdem(random.Random(args.seed + 3))))
     deal_rng = random.Random(args.seed + 1)
     opponent_selector_rng = random.Random(args.seed + 2)
@@ -79,6 +83,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         weight_decay=1e-4,
     )
     utilities: list[float] = []
+    utilities_by_model_player: dict[int, list[float]] = {player: [] for player in model_players}
     best_batch_avg_utility = float("-inf")
     best_policy_state = copy.deepcopy(policy_model.state_dict())
     best_value_state = copy.deepcopy(value_model.state_dict())
@@ -91,13 +96,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         batch_utilities = []
         for _ in range(min(args.batch_hands, args.hands - hands_played)):
             state = deal_fixed_limit_holdem(deal_rng)
+            model_player = model_players[hands_played % len(model_players)]
             opponent_policy = opponent_policies[
                 choose_weighted_index(opponent_selector_rng, opponent_policy_weights)
             ]
             action_terms = []
             while not state.is_terminal():
                 player = state.current_player()
-                if player == args.model_player:
+                if player == model_player:
                     action, log_prob, entropy, value = sample_actor_action(
                         policy_model,
                         value_model,
@@ -108,9 +114,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     action = opponent_policy(state)
                 state = state.apply(action)
 
-            reward = state.utility(args.model_player)
+            reward = state.utility(model_player)
             batch_utilities.append(reward)
             utilities.append(reward)
+            utilities_by_model_player[model_player].append(reward)
             for log_prob, entropy, value in action_terms:
                 batch_terms.append((log_prob, entropy, value, reward))
             hands_played += 1
@@ -160,7 +167,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     metrics: dict[str, Any] = {
         "hands": args.hands,
         "batch_hands": args.batch_hands,
-        "model_player": args.model_player,
+        "model_player": model_player_label(model_players),
+        "model_players": list(model_players),
         "opponent_policy": args.opponent_policy,
         "opponent_policies": list(opponent_policy_names),
         "opponent_policy_weights": list(opponent_policy_weights),
@@ -173,6 +181,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "train_avg_utility_model": sum(utilities) / len(utilities) if utilities else 0.0,
         "train_utility_stdev_model": utility_stdev,
         "train_utility_stderr_model": utility_stdev / (len(utilities) ** 0.5) if utilities else 0.0,
+        "train_avg_utility_by_model_player": {
+            str(player): sum(player_utilities) / len(player_utilities)
+            for player, player_utilities in utilities_by_model_player.items()
+            if player_utilities
+        },
         "checkpoint": str(policy_checkpoint),
         "value_checkpoint": str(value_checkpoint),
         "seed": args.seed,
@@ -185,7 +198,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--hands", type=int, default=1000)
     parser.add_argument("--batch-hands", type=int, default=50)
-    parser.add_argument("--model-player", type=int, choices=[0, 1], default=0)
+    parser.add_argument("--model-player", type=parse_model_players, default=(0,))
     parser.add_argument("--opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="random")
     parser.add_argument("--opponent-policies", type=parse_policy_mix)
     parser.add_argument("--opponent-policy-weights", type=parse_policy_weights)

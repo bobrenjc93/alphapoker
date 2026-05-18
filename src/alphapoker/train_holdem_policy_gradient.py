@@ -54,6 +54,28 @@ def choose_weighted_index(rng: random.Random, weights: tuple[float, ...]) -> int
     return len(weights) - 1
 
 
+def parse_model_players(value: str) -> tuple[int, ...]:
+    if value == "both":
+        return (0, 1)
+    try:
+        model_player = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("model-player must be 0, 1, or both") from error
+    if model_player not in (0, 1):
+        raise argparse.ArgumentTypeError("model-player must be 0, 1, or both")
+    return (model_player,)
+
+
+def normalize_model_players(value: int | str | tuple[int, ...]) -> tuple[int, ...]:
+    if isinstance(value, tuple):
+        return value
+    return parse_model_players(str(value))
+
+
+def model_player_label(model_players: tuple[int, ...]) -> int | str:
+    return model_players[0] if len(model_players) == 1 else "both"
+
+
 def sample_model_action(model, state: FixedLimitHoldemState):
     import torch
 
@@ -75,6 +97,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     from alphapoker.holdem_model import HoldemPolicyNet
 
     torch.manual_seed(args.seed)
+    model_players = normalize_model_players(args.model_player)
     input_dim = len(encode_holdem_state(deal_fixed_limit_holdem(random.Random(args.seed + 3))))
     deal_rng = random.Random(args.seed + 1)
     opponent_selector_rng = random.Random(args.seed + 2)
@@ -100,6 +123,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         model.load_state_dict(checkpoint_data["model_state_dict"])
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     utilities: list[float] = []
+    utilities_by_model_player: dict[int, list[float]] = {player: [] for player in model_players}
     best_batch_avg_utility = float("-inf")
     best_state = copy.deepcopy(model.state_dict())
 
@@ -110,6 +134,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         batch_utilities = []
         for _ in range(min(args.batch_hands, args.hands - hands_played)):
             state = deal_fixed_limit_holdem(deal_rng)
+            model_player = model_players[hands_played % len(model_players)]
             opponent_policy = opponent_policies[
                 choose_weighted_index(opponent_selector_rng, opponent_policy_weights)
             ]
@@ -117,7 +142,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             entropies = []
             while not state.is_terminal():
                 player = state.current_player()
-                if player == args.model_player:
+                if player == model_player:
                     action, log_prob, entropy = sample_model_action(model, state)
                     log_probs.append(log_prob)
                     entropies.append(entropy)
@@ -125,9 +150,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     action = opponent_policy(state)
                 state = state.apply(action)
 
-            reward = state.utility(args.model_player)
+            reward = state.utility(model_player)
             batch_utilities.append(reward)
             utilities.append(reward)
+            utilities_by_model_player[model_player].append(reward)
             if log_probs:
                 batch_terms.append((torch.stack(log_probs).sum(), torch.stack(entropies).sum(), reward))
             hands_played += 1
@@ -163,7 +189,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     metrics: dict[str, Any] = {
         "hands": args.hands,
         "batch_hands": args.batch_hands,
-        "model_player": args.model_player,
+        "model_player": model_player_label(model_players),
+        "model_players": list(model_players),
         "opponent_policy": args.opponent_policy,
         "opponent_policies": list(opponent_policy_names),
         "opponent_policy_weights": list(opponent_policy_weights),
@@ -175,6 +202,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "train_avg_utility_model": sum(utilities) / len(utilities) if utilities else 0.0,
         "train_utility_stdev_model": utility_stdev,
         "train_utility_stderr_model": utility_stdev / (len(utilities) ** 0.5) if utilities else 0.0,
+        "train_avg_utility_by_model_player": {
+            str(player): sum(player_utilities) / len(player_utilities)
+            for player, player_utilities in utilities_by_model_player.items()
+            if player_utilities
+        },
         "checkpoint": str(checkpoint),
         "seed": args.seed,
     }
@@ -186,7 +218,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--hands", type=int, default=1000)
     parser.add_argument("--batch-hands", type=int, default=50)
-    parser.add_argument("--model-player", type=int, choices=[0, 1], default=0)
+    parser.add_argument("--model-player", type=parse_model_players, default=(0,))
     parser.add_argument("--opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="random")
     parser.add_argument("--opponent-policies", type=parse_policy_mix)
     parser.add_argument("--opponent-policy-weights", type=parse_policy_weights)
