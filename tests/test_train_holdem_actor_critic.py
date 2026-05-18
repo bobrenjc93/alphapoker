@@ -16,6 +16,8 @@ def test_actor_critic_parser_accepts_weighted_mix() -> None:
             "0.1,0.9",
             "--model-player",
             "both",
+            "--model-player-weights",
+            "0.4,0.6",
             "--value-loss-coef",
             "0.25",
             "--out",
@@ -24,6 +26,7 @@ def test_actor_critic_parser_accepts_weighted_mix() -> None:
     )
 
     assert args.model_player == (0, 1)
+    assert args.model_player_weights == (0.4, 0.6)
     assert args.opponent_policies == ("random", "pot-odds")
     assert args.opponent_policy_weights == (0.1, 0.9)
     assert args.value_loss_coef == 0.25

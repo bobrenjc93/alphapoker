@@ -17,6 +17,8 @@ def test_policy_gradient_parser_accepts_pot_odds() -> None:
         [
             "--model-player",
             "1",
+            "--model-player-weights",
+            "1.0",
             "--opponent-policy",
             "pot-odds",
             "--opponent-policies",
@@ -31,6 +33,7 @@ def test_policy_gradient_parser_accepts_pot_odds() -> None:
     )
 
     assert args.model_player == (1,)
+    assert args.model_player_weights == (1.0,)
     assert args.opponent_policy == "pot-odds"
     assert args.opponent_policies == ("random", "pot-odds")
     assert args.opponent_policy_weights == (0.25, 0.75)
@@ -45,7 +48,10 @@ def test_parse_policy_mix_rejects_unknown_policy() -> None:
 
 
 def test_policy_gradient_parser_accepts_both_model_players() -> None:
-    args = build_parser().parse_args(["--model-player", "both", "--out", "out"])
+    args = build_parser().parse_args(
+        ["--model-player", "both", "--model-player-weights", "0.25,0.75", "--out", "out"]
+    )
 
     assert args.model_player == (0, 1)
+    assert args.model_player_weights == (0.25, 0.75)
     assert parse_model_players("both") == (0, 1)

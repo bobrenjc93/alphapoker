@@ -98,9 +98,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     torch.manual_seed(args.seed)
     model_players = normalize_model_players(args.model_player)
+    model_player_weights = getattr(args, "model_player_weights", None)
+    if model_player_weights is not None and len(model_player_weights) != len(model_players):
+        raise ValueError("model player weights must match model players")
     input_dim = len(encode_holdem_state(deal_fixed_limit_holdem(random.Random(args.seed + 3))))
     deal_rng = random.Random(args.seed + 1)
     opponent_selector_rng = random.Random(args.seed + 2)
+    model_player_selector_rng = random.Random(args.seed + 4)
     opponent_policy_names = args.opponent_policies or (args.opponent_policy,)
     opponent_policy_weights = getattr(args, "opponent_policy_weights", None)
     if opponent_policy_weights is None:
@@ -134,7 +138,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         batch_utilities = []
         for _ in range(min(args.batch_hands, args.hands - hands_played)):
             state = deal_fixed_limit_holdem(deal_rng)
-            model_player = model_players[hands_played % len(model_players)]
+            if model_player_weights is None:
+                model_player = model_players[hands_played % len(model_players)]
+            else:
+                model_player = model_players[
+                    choose_weighted_index(model_player_selector_rng, model_player_weights)
+                ]
             opponent_policy = opponent_policies[
                 choose_weighted_index(opponent_selector_rng, opponent_policy_weights)
             ]
@@ -191,6 +200,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "batch_hands": args.batch_hands,
         "model_player": model_player_label(model_players),
         "model_players": list(model_players),
+        "model_player_weights": list(model_player_weights) if model_player_weights is not None else None,
         "opponent_policy": args.opponent_policy,
         "opponent_policies": list(opponent_policy_names),
         "opponent_policy_weights": list(opponent_policy_weights),
@@ -219,6 +229,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--hands", type=int, default=1000)
     parser.add_argument("--batch-hands", type=int, default=50)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
+    parser.add_argument("--model-player-weights", type=parse_policy_weights)
     parser.add_argument("--opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="random")
     parser.add_argument("--opponent-policies", type=parse_policy_mix)
     parser.add_argument("--opponent-policy-weights", type=parse_policy_weights)
