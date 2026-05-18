@@ -53,6 +53,12 @@ uv run --extra train python -m alphapoker.train_leduc \
   exploitability evaluation.
 - Optional Leduc policy/value distillation model.
 
+Current exact-evaluation bests:
+
+```bash
+uv run python -m alphapoker.experiment_summary
+```
+
 ## Research Roadmap
 
 1. Keep Kuhn as the fast correctness harness.
