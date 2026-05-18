@@ -57,6 +57,30 @@ def test_holdem_self_play_pot_odds_policy_smoke() -> None:
     assert metrics["player0_policy"] == "pot-odds"
 
 
+def test_holdem_self_play_rollout_policy_smoke() -> None:
+    args = build_parser().parse_args(
+        [
+            "--hands",
+            "2",
+            "--seed",
+            "6",
+            "--player0-policy",
+            "rollout-pot-odds",
+            "--player1-policy",
+            "pot-odds",
+            "--equity-sims",
+            "2",
+            "--rollout-sims",
+            "2",
+        ]
+    )
+    metrics = run(args)
+
+    assert metrics["hands"] == 2
+    assert metrics["player0_policy"] == "rollout-pot-odds"
+    assert metrics["rollout_sims"] == 2
+
+
 def test_holdem_self_play_writes_metrics(tmp_path) -> None:
     out = tmp_path / "metrics.json"
     args = build_parser().parse_args(

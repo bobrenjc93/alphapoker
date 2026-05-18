@@ -15,7 +15,10 @@ from alphapoker.holdem import (  # noqa: E402
     play_fixed_limit_holdem_hand,
     pot_odds_call_threshold,
     pot_odds_equity_policy,
+    pot_odds_rollout_action_values,
+    pot_odds_rollout_policy,
     random_holdem_policy,
+    sample_holdem_belief_state,
 )
 from alphapoker.kuhn import BET, CALL, CHECK, FOLD  # noqa: E402
 from alphapoker.leduc import RAISE  # noqa: E402
@@ -167,4 +170,30 @@ def test_pot_odds_equity_policy_selects_legal_actions() -> None:
     policy = pot_odds_equity_policy(rng, simulations=16)
     action = policy(state)
 
+    assert action in state.legal_actions()
+
+
+def test_holdem_belief_state_preserves_public_information() -> None:
+    rng = random.Random(23)
+    state = FixedLimitHoldemState.initial(
+        (("As", "Ad"), ("Kc", "Kd")),
+        ("2h", "3d", "4s", "5c", "6h"),
+    ).apply(CALL)
+
+    sampled = sample_holdem_belief_state(state, 0, rng)
+    all_cards = [*sampled.private_cards[0], *sampled.private_cards[1], *sampled.board_cards]
+
+    assert sampled.private_cards[0] == ("As", "Ad")
+    assert sampled.visible_board() == ("2h", "3d", "4s")
+    assert len(all_cards) == len(set(all_cards))
+
+
+def test_pot_odds_rollout_policy_selects_legal_actions() -> None:
+    rng = random.Random(29)
+    state = deal_fixed_limit_holdem(rng)
+    policy = pot_odds_rollout_policy(rng, simulations=2, equity_sims=2)
+    action_values = pot_odds_rollout_action_values(state, rng, simulations=2, equity_sims=2)
+    action = policy(state)
+
+    assert set(action_values) == set(state.legal_actions())
     assert action in state.legal_actions()

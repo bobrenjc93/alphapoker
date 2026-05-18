@@ -10,19 +10,14 @@ import random
 from pathlib import Path
 from typing import Any
 
-from alphapoker.holdem import (
-    FixedLimitHoldemState,
-    HoldemPolicy,
-    equity_threshold_policy,
-    pot_odds_equity_policy,
-    random_holdem_policy,
-)
+from alphapoker.holdem import FixedLimitHoldemState, HoldemPolicy
 from alphapoker.holdem_evaluation import evaluate_policy_match
 from alphapoker.holdem_features import (
     adapt_holdem_features,
     encode_holdem_state,
     holdem_legal_action_mask,
 )
+from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES, make_policy
 from alphapoker.train import write_json
 
 
@@ -91,6 +86,7 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
         "showdowns": sum(int(item["showdowns"]) for item in metrics),
         "opponent_policy": first["opponent_policy"],
         "equity_sims": first["equity_sims"],
+        "rollout_sims": first["rollout_sims"],
         "seed": first["seed"],
         "seat_metrics": metrics,
     }
@@ -120,14 +116,13 @@ def model_policy_from_checkpoint(checkpoint_path: Path) -> HoldemPolicy:
     return select_action
 
 
-def make_opponent_policy(name: str, rng: random.Random, equity_sims: int) -> HoldemPolicy:
-    if name == "random":
-        return random_holdem_policy(rng)
-    if name == "equity":
-        return equity_threshold_policy(rng, simulations=equity_sims)
-    if name == "pot-odds":
-        return pot_odds_equity_policy(rng, simulations=equity_sims)
-    raise ValueError(f"Unknown opponent policy: {name}")
+def make_opponent_policy(
+    name: str,
+    rng: random.Random,
+    equity_sims: int,
+    rollout_sims: int | None = None,
+) -> HoldemPolicy:
+    return make_policy(name, rng, equity_sims, rollout_sims)
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
@@ -149,13 +144,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "checkpoint": str(args.checkpoint),
         **evaluate_policy_match(
             model_policy=model_policy_from_checkpoint(args.checkpoint),
-            opponent_policy=make_opponent_policy(args.opponent_policy, opponent_rng, args.equity_sims),
+            opponent_policy=make_opponent_policy(
+                args.opponent_policy,
+                opponent_rng,
+                args.equity_sims,
+                args.rollout_sims,
+            ),
             hands=args.hands,
             seed=args.seed,
             model_player=model_players[0],
         ),
         "opponent_policy": args.opponent_policy,
         "equity_sims": args.equity_sims,
+        "rollout_sims": args.rollout_sims,
     }
     if args.out is not None:
         write_json(args.out, metrics)
@@ -167,8 +168,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--hands", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--opponent-policy", choices=["random", "equity", "pot-odds"], default="random")
+    parser.add_argument("--opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="random")
     parser.add_argument("--equity-sims", type=int, default=8)
+    parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
     parser.add_argument("--out", type=Path)
     return parser

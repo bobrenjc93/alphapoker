@@ -446,6 +446,80 @@ def pot_odds_equity_policy(
     return select_action
 
 
+def sample_holdem_belief_state(
+    state: FixedLimitHoldemState,
+    player: int,
+    rng: random.Random,
+) -> FixedLimitHoldemState:
+    if player not in (0, 1):
+        raise ValueError(f"Unknown player: {player}")
+
+    visible_board = state.visible_board()
+    known_cards = set(state.private_cards[player]) | set(visible_board)
+    deck = [card for card in STANDARD_HOLDEM_DECK if card not in known_cards]
+    sampled_cards = rng.sample(deck, 2 + (5 - len(visible_board)))
+    sampled_opponent_private = (sampled_cards[0], sampled_cards[1])
+    sampled_board = (*visible_board, *sampled_cards[2:])
+    sampled_private = [state.private_cards[0], state.private_cards[1]]
+    sampled_private[1 - player] = sampled_opponent_private
+    return state._replace(
+        private_cards=(sampled_private[0], sampled_private[1]),
+        board_cards=sampled_board,
+    )
+
+
+def pot_odds_rollout_action_values(
+    state: FixedLimitHoldemState,
+    rng: random.Random,
+    *,
+    simulations: int = 16,
+    equity_sims: int = 16,
+) -> dict[str, float]:
+    if simulations <= 0:
+        raise ValueError("simulations must be positive")
+    player = state.current_player()
+    legal_actions = state.legal_actions()
+    seed = rng.randrange(2**63)
+    values: dict[str, float] = {}
+    for action_index, action in enumerate(legal_actions):
+        total_utility = 0.0
+        for simulation_index in range(simulations):
+            simulation_seed = seed + action_index * 1_000_003 + simulation_index
+            simulation_rng = random.Random(simulation_seed)
+            sampled_state = sample_holdem_belief_state(state, player, simulation_rng)
+            rollout_state = sampled_state.apply(action)
+            policy_rng = random.Random(simulation_seed + 50_000_003)
+            continuation_policy = pot_odds_equity_policy(policy_rng, simulations=equity_sims)
+            opponent_policy = pot_odds_equity_policy(policy_rng, simulations=equity_sims)
+            policies = [opponent_policy, opponent_policy]
+            policies[player] = continuation_policy
+            terminal, _ = play_fixed_limit_holdem_hand(
+                rollout_state,
+                (policies[0], policies[1]),
+            )
+            total_utility += terminal.utility(player)
+        values[action] = total_utility / simulations
+    return values
+
+
+def pot_odds_rollout_policy(
+    rng: random.Random,
+    *,
+    simulations: int = 16,
+    equity_sims: int = 16,
+) -> HoldemPolicy:
+    def select_action(state: FixedLimitHoldemState) -> str:
+        action_values = pot_odds_rollout_action_values(
+            state,
+            rng,
+            simulations=simulations,
+            equity_sims=equity_sims,
+        )
+        return max(state.legal_actions(), key=lambda action: action_values[action])
+
+    return select_action
+
+
 def play_fixed_limit_holdem_hand(
     initial_state: FixedLimitHoldemState,
     policies: tuple[HoldemPolicy, HoldemPolicy],
