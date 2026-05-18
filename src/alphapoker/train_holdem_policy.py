@@ -57,6 +57,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             best_loss = final_loss
             best_state = copy.deepcopy(model.state_dict())
 
+    model.load_state_dict(best_state)
+    with torch.no_grad():
+        best_logits = model(features).masked_fill(~masks, -1e9)
+        predictions = best_logits.argmax(dim=1)
+        train_accuracy = float((predictions == targets).float().mean().cpu())
+    target_action_counts = {
+        action: int((targets == index).sum().item())
+        for index, action in enumerate(HOLDEM_CANONICAL_ACTIONS)
+    }
+    predicted_action_counts = {
+        action: int((predictions == index).sum().item())
+        for index, action in enumerate(HOLDEM_CANONICAL_ACTIONS)
+    }
+
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     checkpoint = out_dir / "holdem_policy.pt"
@@ -79,6 +93,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "lr": args.lr,
         "final_loss": final_loss,
         "best_loss": best_loss,
+        "train_accuracy": train_accuracy,
+        "target_action_counts": target_action_counts,
+        "predicted_action_counts": predicted_action_counts,
         "checkpoint": str(checkpoint),
         "seed": args.seed,
     }
