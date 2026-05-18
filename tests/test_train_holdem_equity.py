@@ -25,9 +25,15 @@ def test_train_holdem_equity_parser_accepts_both() -> None:
         [
             "--player",
             "both",
+            "--examples-in",
+            "examples.json",
+            "--examples-out",
+            "cached.json",
             "--out",
             "out",
         ]
     )
 
     assert args.player is None
+    assert str(args.examples_in) == "examples.json"
+    assert str(args.examples_out) == "cached.json"

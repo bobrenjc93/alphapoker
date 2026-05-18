@@ -5,8 +5,11 @@ pytest.importorskip("treys")
 
 from alphapoker.holdem import deal_fixed_limit_holdem  # noqa: E402
 from alphapoker.holdem_dataset import (  # noqa: E402
+    HoldemEquityExample,
     generate_equity_policy_examples,
     generate_equity_value_examples,
+    read_equity_value_examples,
+    write_equity_value_examples,
 )
 from alphapoker.holdem_features import encode_holdem_state, holdem_legal_action_mask  # noqa: E402
 
@@ -65,3 +68,12 @@ def test_generate_equity_value_examples_for_both_seats() -> None:
     assert examples
     assert any(example.features[108] == 1.0 for example in examples)
     assert any(example.features[109] == 1.0 for example in examples)
+
+
+def test_equity_value_example_cache_round_trip(tmp_path) -> None:
+    path = tmp_path / "examples.json"
+    examples = [HoldemEquityExample(features=[0.0, 1.0], equity=0.25)]
+
+    write_equity_value_examples(path, examples)
+
+    assert read_equity_value_examples(path) == examples

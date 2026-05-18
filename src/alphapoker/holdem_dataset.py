@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import random
 from dataclasses import dataclass
+from pathlib import Path
 
 from alphapoker.holdem import (
     HoldemPolicy,
@@ -30,6 +32,23 @@ class HoldemPolicyExample:
 class HoldemEquityExample:
     features: list[float]
     equity: float
+
+
+def write_equity_value_examples(path: Path, examples: list[HoldemEquityExample]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = [{"features": example.features, "equity": example.equity} for example in examples]
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+
+
+def read_equity_value_examples(path: Path) -> list[HoldemEquityExample]:
+    payload = json.loads(path.read_text())
+    return [
+        HoldemEquityExample(
+            features=[float(value) for value in item["features"]],
+            equity=float(item["equity"]),
+        )
+        for item in payload
+    ]
 
 
 def generate_equity_policy_examples(
