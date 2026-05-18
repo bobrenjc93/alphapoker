@@ -38,14 +38,14 @@ uv run --extra train python -m alphapoker.train \
 - Exact best-response exploitability by enumerating deterministic policies.
 - Optional PyTorch policy/value model for distillation from the CFR average
   strategy.
+- Limit Leduc poker rules for the next imperfect-information benchmark.
 
 ## Research Roadmap
 
 1. Keep Kuhn as the fast correctness harness.
-2. Add Leduc poker as the next benchmark, with public-card betting rounds.
+2. Add exact or sampled Leduc best-response evaluation.
 3. Move from tabular CFR to external-sampling MCCFR and neural regret/policy
    approximation.
 4. Add distributed self-play and GPU jobs through `gpu-dev submit`.
 5. Only treat "superhuman" as satisfied for a specific poker variant after
    exploitability and match-play evaluation against strong baselines support it.
-
