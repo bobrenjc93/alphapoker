@@ -72,7 +72,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     deal_rng = random.Random(args.seed)
     opponent_rng = random.Random(args.seed + 1)
     policies = (
-        equity_model_policy_from_checkpoint(args.checkpoint),
+        equity_model_policy_from_checkpoint(
+            args.checkpoint,
+            bet_threshold=args.bet_threshold,
+            raise_threshold=args.raise_threshold,
+            call_threshold=args.call_threshold,
+        ),
         make_opponent_policy(args.opponent_policy, opponent_rng, args.equity_sims),
     )
 
@@ -101,6 +106,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "showdowns": showdowns,
         "opponent_policy": args.opponent_policy,
         "equity_sims": args.equity_sims,
+        "bet_threshold": args.bet_threshold,
+        "raise_threshold": args.raise_threshold,
+        "call_threshold": args.call_threshold,
         "seed": args.seed,
     }
     if args.out is not None:
@@ -115,6 +123,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--opponent-policy", choices=["random", "equity"], default="random")
     parser.add_argument("--equity-sims", type=int, default=8)
+    parser.add_argument("--bet-threshold", type=float, default=0.58)
+    parser.add_argument("--raise-threshold", type=float, default=0.72)
+    parser.add_argument("--call-threshold", type=float, default=0.36)
     parser.add_argument("--out", type=Path)
     return parser
 
@@ -125,4 +136,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
