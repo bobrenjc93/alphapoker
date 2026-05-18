@@ -31,6 +31,16 @@ uv run --extra train python -m alphapoker.train \
   --out experiments/kuhn_cfr_baseline
 ```
 
+Leduc policy distillation uses the same pattern:
+
+```bash
+uv run --extra train python -m alphapoker.train_leduc \
+  --iterations 5000 \
+  --best-response \
+  --network-epochs 500 \
+  --out experiments/leduc_cfr_5k
+```
+
 ## Current Milestone
 
 - Exact Kuhn poker environment with legal actions and zero-sum payoffs.
@@ -41,6 +51,7 @@ uv run --extra train python -m alphapoker.train \
 - Limit Leduc poker rules for the next imperfect-information benchmark.
 - Tabular Leduc CFR trainer with exact expected-value and best-response
   exploitability evaluation.
+- Optional Leduc policy/value distillation model.
 
 ## Research Roadmap
 
