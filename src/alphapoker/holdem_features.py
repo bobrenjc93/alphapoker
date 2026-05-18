@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
-from alphapoker.holdem import FixedLimitHoldemState, HOLDEM_RANKS, HOLDEM_SUITS
+from alphapoker.holdem import (
+    FixedLimitHoldemState,
+    HOLDEM_RANKS,
+    HOLDEM_SUITS,
+    pot_odds_call_threshold,
+)
 from alphapoker.kuhn import BET, CALL, CHECK, FOLD
 from alphapoker.leduc import RAISE
 
 HOLDEM_CANONICAL_ACTIONS = (CHECK, BET, CALL, FOLD, RAISE)
 HOLDEM_BASE_FEATURE_DIM = 117
-HOLDEM_FEATURE_DIM = 123
+HOLDEM_FEATURE_DIM = 129
 
 
 def holdem_card_index(card: str) -> int:
@@ -50,6 +55,9 @@ def encode_holdem_state(state: FixedLimitHoldemState) -> list[float]:
             len(state.visible_board()) / 5.0,
         ]
     )
+    legal = set(state.legal_actions())
+    features.extend(1.0 if action in legal else 0.0 for action in HOLDEM_CANONICAL_ACTIONS)
+    features.append(pot_odds_call_threshold(state))
     return features
 
 
