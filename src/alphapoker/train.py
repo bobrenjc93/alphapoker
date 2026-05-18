@@ -32,11 +32,13 @@ def train_network(strategy: dict[str, dict[str, float]], out_dir: Path, epochs: 
 
     from alphapoker.model import KuhnPolicyValueNet
 
+    out_dir.mkdir(parents=True, exist_ok=True)
     examples = strategy_examples(strategy)
     features = torch.tensor([example.features for example in examples], dtype=torch.float32)
     policies = torch.tensor([example.policy for example in examples], dtype=torch.float32)
     masks = torch.tensor([example.legal_mask for example in examples], dtype=torch.bool)
 
+    torch.manual_seed(0)
     model = KuhnPolicyValueNet(input_dim=features.shape[1])
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-3, weight_decay=1e-4)
 
@@ -108,4 +110,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

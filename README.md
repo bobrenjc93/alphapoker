@@ -41,6 +41,15 @@ uv run --extra train python -m alphapoker.train_leduc \
   --out experiments/leduc_cfr_5k
 ```
 
+To distill an already-trained strategy without rerunning CFR:
+
+```bash
+uv run --extra train python -m alphapoker.distill_leduc \
+  --strategy-json experiments/leduc_cfr_20k/strategy.json \
+  --epochs 500 \
+  --out experiments/leduc_cfr_20k_distill
+```
+
 ## Current Milestone
 
 - Exact Kuhn poker environment with legal actions and zero-sum payoffs.
