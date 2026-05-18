@@ -4,7 +4,7 @@ import pytest
 torch = pytest.importorskip("torch")
 pytest.importorskip("treys")
 
-from alphapoker.evaluate_holdem_model import build_parser, make_opponent_policy  # noqa: E402
+from alphapoker.evaluate_holdem_model import build_parser, make_opponent_policy, parse_model_players  # noqa: E402
 
 
 def test_make_opponent_policy_rejects_unknown() -> None:
@@ -22,7 +22,21 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
         ]
     )
 
-    assert args.model_player == 1
+    assert args.model_player == (1,)
+
+
+def test_holdem_model_eval_parser_accepts_both_model_players() -> None:
+    args = build_parser().parse_args(
+        [
+            "--checkpoint",
+            "model.pt",
+            "--model-player",
+            "both",
+        ]
+    )
+
+    assert args.model_player == (0, 1)
+    assert parse_model_players("both") == (0, 1)
 
 
 def test_holdem_model_eval_parser_accepts_pot_odds_opponent() -> None:

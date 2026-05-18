@@ -122,6 +122,7 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   features for neural policies.
 - Fixed-limit Hold'em neural checkpoint evaluation against random/equity
   baselines.
+- Cross-seat Hold'em neural checkpoint evaluation.
 - Fixed-limit Hold'em equity regression model and threshold-policy evaluation.
 - Both-seat training data for fixed-limit Hold'em equity regression.
 - Cacheable Hold'em equity-value training examples for longer runs.
