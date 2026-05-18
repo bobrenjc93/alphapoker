@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from alphapoker.holdem_dataset import generate_equity_policy_examples
+from alphapoker.holdem_dataset import read_policy_examples, write_policy_examples
 from alphapoker.holdem_features import HOLDEM_CANONICAL_ACTIONS
 from alphapoker.train import write_json
 
@@ -25,15 +26,22 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
         behavior_policy = model_policy_from_checkpoint(args.behavior_checkpoint)
 
-    examples = generate_equity_policy_examples(
-        hands=args.hands,
-        seed=args.seed,
-        equity_sims=args.equity_sims,
-        expert_player=args.expert_player,
-        expert_policy=args.expert_policy,
-        opponent_policy=args.opponent_policy,
-        expert_behavior_policy=behavior_policy,
-    )
+    examples_in = getattr(args, "examples_in", None)
+    examples_out = getattr(args, "examples_out", None)
+    if examples_in is not None:
+        examples = read_policy_examples(examples_in)
+    else:
+        examples = generate_equity_policy_examples(
+            hands=args.hands,
+            seed=args.seed,
+            equity_sims=args.equity_sims,
+            expert_player=args.expert_player,
+            expert_policy=args.expert_policy,
+            opponent_policy=args.opponent_policy,
+            expert_behavior_policy=behavior_policy,
+        )
+    if examples_out is not None:
+        write_policy_examples(examples_out, examples)
     features = torch.tensor([example.features for example in examples], dtype=torch.float32)
     targets = torch.tensor([example.action_index for example in examples], dtype=torch.long)
     masks = torch.tensor([example.legal_mask for example in examples], dtype=torch.bool)
@@ -101,6 +109,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     }
     if args.behavior_checkpoint is not None:
         metrics["behavior_checkpoint"] = str(args.behavior_checkpoint)
+    if examples_in is not None:
+        metrics["examples_in"] = str(examples_in)
+    if examples_out is not None:
+        metrics["examples_out"] = str(examples_out)
     write_json(out_dir / "metrics.json", metrics)
     return metrics
 
@@ -116,6 +128,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--lr", type=float, default=3e-3)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--examples-in", type=Path)
+    parser.add_argument("--examples-out", type=Path)
     parser.add_argument("--out", type=Path, required=True)
     return parser
 

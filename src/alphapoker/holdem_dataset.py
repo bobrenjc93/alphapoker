@@ -35,6 +35,31 @@ class HoldemEquityExample:
     equity: float
 
 
+def write_policy_examples(path: Path, examples: list[HoldemPolicyExample]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = [
+        {
+            "features": example.features,
+            "action_index": example.action_index,
+            "legal_mask": example.legal_mask,
+        }
+        for example in examples
+    ]
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+
+
+def read_policy_examples(path: Path) -> list[HoldemPolicyExample]:
+    payload = json.loads(path.read_text())
+    return [
+        HoldemPolicyExample(
+            features=[float(value) for value in item["features"]],
+            action_index=int(item["action_index"]),
+            legal_mask=[bool(value) for value in item["legal_mask"]],
+        )
+        for item in payload
+    ]
+
+
 def write_equity_value_examples(path: Path, examples: list[HoldemEquityExample]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = [{"features": example.features, "equity": example.equity} for example in examples]
