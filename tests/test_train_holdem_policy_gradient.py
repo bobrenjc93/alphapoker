@@ -14,6 +14,8 @@ def test_policy_gradient_parser_accepts_pot_odds() -> None:
             "1",
             "--opponent-policy",
             "pot-odds",
+            "--init-checkpoint",
+            "model.pt",
             "--out",
             "out",
         ]
@@ -21,3 +23,4 @@ def test_policy_gradient_parser_accepts_pot_odds() -> None:
 
     assert args.model_player == 1
     assert args.opponent_policy == "pot-odds"
+    assert str(args.init_checkpoint) == "model.pt"
