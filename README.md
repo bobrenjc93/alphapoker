@@ -118,6 +118,7 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Optional balanced action-class weighting for Hold'em policy distillation.
 - REINFORCE-style Hold'em policy-gradient training against fixed opponents,
   with supervised checkpoint initialization and weighted opponent mixtures.
+- Actor-critic Hold'em policy training with a learned value baseline.
 - Backward-compatible Hold'em hand-summary, legal-action, and pot-odds
   features for neural policies.
 - Fixed-limit Hold'em neural checkpoint evaluation against random/equity
