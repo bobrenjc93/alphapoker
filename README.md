@@ -114,6 +114,7 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - JSON metric output for Hold'em policy-vs-policy self-play baselines.
 - Supervised fixed-limit Hold'em policy distillation from the equity baseline.
 - Supervised fixed-limit Hold'em policy distillation from pot-odds experts.
+- Supervised fixed-limit Hold'em policy distillation from rollout-search experts.
 - Cacheable Hold'em policy-imitation training examples for larger expert runs.
 - Held-out Hold'em policy-imitation evaluation for cloned experts.
 - Optional balanced action-class weighting for Hold'em policy distillation.

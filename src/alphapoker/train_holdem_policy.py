@@ -8,7 +8,11 @@ import json
 from pathlib import Path
 from typing import Any
 
-from alphapoker.holdem_dataset import generate_equity_policy_examples
+from alphapoker.holdem_dataset import (
+    HOLDEM_DATASET_OPPONENT_POLICIES,
+    HOLDEM_EXPERT_POLICIES,
+    generate_equity_policy_examples,
+)
 from alphapoker.holdem_dataset import read_policy_examples, write_policy_examples
 from alphapoker.holdem_features import HOLDEM_CANONICAL_ACTIONS
 from alphapoker.train import write_json
@@ -50,6 +54,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             expert_player=args.expert_player,
             expert_policy=args.expert_policy,
             opponent_policy=args.opponent_policy,
+            rollout_sims=args.rollout_sims,
             expert_behavior_policy=behavior_policy,
         )
     if examples_out is not None:
@@ -115,6 +120,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "expert_player": args.expert_player,
         "expert_policy": args.expert_policy,
         "opponent_policy": args.opponent_policy,
+        "rollout_sims": args.rollout_sims,
         "epochs": args.epochs,
         "lr": args.lr,
         "class_weighting": class_weighting,
@@ -141,8 +147,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--hands", type=int, default=500)
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--expert-player", type=int, choices=[0, 1])
-    parser.add_argument("--expert-policy", choices=["equity", "pot-odds"], default="equity")
-    parser.add_argument("--opponent-policy", choices=["equity", "pot-odds", "random"], default="equity")
+    parser.add_argument("--expert-policy", choices=HOLDEM_EXPERT_POLICIES, default="equity")
+    parser.add_argument(
+        "--opponent-policy",
+        choices=HOLDEM_DATASET_OPPONENT_POLICIES,
+        default="equity",
+    )
+    parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--behavior-checkpoint", type=Path)
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--lr", type=float, default=3e-3)

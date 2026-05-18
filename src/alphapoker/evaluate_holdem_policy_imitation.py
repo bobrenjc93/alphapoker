@@ -7,7 +7,11 @@ import json
 from pathlib import Path
 from typing import Any
 
-from alphapoker.holdem_dataset import generate_equity_policy_examples
+from alphapoker.holdem_dataset import (
+    HOLDEM_DATASET_OPPONENT_POLICIES,
+    HOLDEM_EXPERT_POLICIES,
+    generate_equity_policy_examples,
+)
 from alphapoker.holdem_features import HOLDEM_CANONICAL_ACTIONS, adapt_holdem_features
 from alphapoker.train import write_json
 
@@ -25,6 +29,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         expert_player=args.expert_player,
         expert_policy=args.expert_policy,
         opponent_policy=args.opponent_policy,
+        rollout_sims=args.rollout_sims,
     )
     checkpoint = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
     input_dim = int(checkpoint["input_dim"])
@@ -61,6 +66,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "expert_player": args.expert_player,
         "expert_policy": args.expert_policy,
         "opponent_policy": args.opponent_policy,
+        "rollout_sims": args.rollout_sims,
         "loss": float(loss.cpu()),
         "accuracy": accuracy,
         "target_action_counts": target_action_counts,
@@ -78,8 +84,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--hands", type=int, default=500)
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--expert-player", type=int, choices=[0, 1])
-    parser.add_argument("--expert-policy", choices=["equity", "pot-odds"], default="equity")
-    parser.add_argument("--opponent-policy", choices=["equity", "pot-odds", "random"], default="equity")
+    parser.add_argument("--expert-policy", choices=HOLDEM_EXPERT_POLICIES, default="equity")
+    parser.add_argument(
+        "--opponent-policy",
+        choices=HOLDEM_DATASET_OPPONENT_POLICIES,
+        default="equity",
+    )
+    parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--out", type=Path)
     return parser

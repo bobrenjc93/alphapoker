@@ -20,6 +20,10 @@ from alphapoker.holdem_features import (
     holdem_action_index,
     holdem_legal_action_mask,
 )
+from alphapoker.holdem_self_play import make_policy
+
+HOLDEM_EXPERT_POLICIES = ("equity", "pot-odds", "rollout-pot-odds")
+HOLDEM_DATASET_OPPONENT_POLICIES = ("equity", "pot-odds", "random", "rollout-pot-odds")
 
 
 @dataclass(frozen=True)
@@ -85,25 +89,18 @@ def generate_equity_policy_examples(
     expert_player: int | None = None,
     expert_policy: str = "equity",
     opponent_policy: str = "equity",
+    rollout_sims: int | None = None,
     expert_behavior_policy: HoldemPolicy | None = None,
 ) -> list[HoldemPolicyExample]:
     deal_rng = random.Random(seed)
     policy_rng = random.Random(seed + 1)
-    if expert_policy == "equity":
-        expert_action_policy = equity_threshold_policy(policy_rng, simulations=equity_sims)
-    elif expert_policy == "pot-odds":
-        expert_action_policy = pot_odds_equity_policy(policy_rng, simulations=equity_sims)
-    else:
+    if expert_policy not in HOLDEM_EXPERT_POLICIES:
         raise ValueError(f"Unknown expert policy: {expert_policy}")
+    expert_action_policy = make_policy(expert_policy, policy_rng, equity_sims, rollout_sims)
 
-    if opponent_policy == "equity":
-        non_expert_policy = equity_threshold_policy(policy_rng, simulations=equity_sims)
-    elif opponent_policy == "pot-odds":
-        non_expert_policy = pot_odds_equity_policy(policy_rng, simulations=equity_sims)
-    elif opponent_policy == "random":
-        non_expert_policy = random_holdem_policy(policy_rng)
-    else:
+    if opponent_policy not in HOLDEM_DATASET_OPPONENT_POLICIES:
         raise ValueError(f"Unknown opponent policy: {opponent_policy}")
+    non_expert_policy = make_policy(opponent_policy, policy_rng, equity_sims, rollout_sims)
 
     examples: list[HoldemPolicyExample] = []
     for _ in range(hands):
