@@ -127,6 +127,7 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   weighted seat-balanced training.
 - Backward-compatible Hold'em hand-summary, made-hand strength, legal-action,
   and pot-odds features for neural policies.
+- Optional Monte Carlo equity feature for Hold'em policy distillation checkpoints.
 - Fixed-limit Hold'em neural checkpoint evaluation against random/equity
   baselines.
 - Cross-seat Hold'em neural checkpoint evaluation.

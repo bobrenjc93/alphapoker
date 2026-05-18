@@ -9,6 +9,7 @@ from alphapoker.holdem_dataset import (  # noqa: E402
     HoldemPolicyExample,
     generate_equity_policy_examples,
     generate_equity_value_examples,
+    encode_policy_example_features,
     read_policy_examples,
     read_equity_value_examples,
     write_policy_examples,
@@ -46,6 +47,14 @@ def test_holdem_made_hand_features_activate_on_flop() -> None:
     flop_strength_features = encode_holdem_state(flop)[-HOLDEM_HAND_STRENGTH_FEATURE_DIM:]
     assert flop_strength_features[0] > 0.0
     assert sum(flop_strength_features[2:]) == 1.0
+
+
+def test_holdem_policy_features_can_include_equity_estimate() -> None:
+    state = deal_fixed_limit_holdem()
+    features = encode_policy_example_features(state, feature_equity_sims=2)
+
+    assert len(features) == HOLDEM_FEATURE_DIM + 1
+    assert 0.0 <= features[-1] <= 1.0
 
 
 def test_generate_equity_policy_examples_smoke() -> None:

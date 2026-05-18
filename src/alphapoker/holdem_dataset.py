@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from alphapoker.holdem import (
+    FixedLimitHoldemState,
     HoldemPolicy,
     deal_fixed_limit_holdem,
     equity_threshold_policy,
@@ -43,6 +44,29 @@ class HoldemPolicyExample:
 class HoldemEquityExample:
     features: list[float]
     equity: float
+
+
+def encode_policy_example_features(
+    state: FixedLimitHoldemState,
+    *,
+    feature_equity_sims: int | None = None,
+    feature_rng: random.Random | None = None,
+) -> list[float]:
+    features = encode_holdem_state(state)
+    if feature_equity_sims is None:
+        return features
+    if feature_rng is None:
+        feature_rng = random.Random()
+    player = state.current_player()
+    features.append(
+        estimate_holdem_equity(
+            state.private_cards[player],
+            state.visible_board(),
+            simulations=feature_equity_sims,
+            rng=feature_rng,
+        )
+    )
+    return features
 
 
 def write_policy_examples(path: Path, examples: list[HoldemPolicyExample]) -> None:
@@ -96,10 +120,12 @@ def generate_equity_policy_examples(
     expert_policy: str = "equity",
     opponent_policy: str = "equity",
     rollout_sims: int | None = None,
+    feature_equity_sims: int | None = None,
     expert_behavior_policy: HoldemPolicy | None = None,
 ) -> list[HoldemPolicyExample]:
     deal_rng = random.Random(seed)
     policy_rng = random.Random(seed + 1)
+    feature_rng = random.Random(seed + 3)
     if expert_policy not in HOLDEM_EXPERT_POLICIES:
         raise ValueError(f"Unknown expert policy: {expert_policy}")
     expert_action_policy = make_policy(expert_policy, policy_rng, equity_sims, rollout_sims)
@@ -118,7 +144,11 @@ def generate_equity_policy_examples(
             if use_expert:
                 examples.append(
                     HoldemPolicyExample(
-                        features=encode_holdem_state(state),
+                        features=encode_policy_example_features(
+                            state,
+                            feature_equity_sims=feature_equity_sims,
+                            feature_rng=feature_rng,
+                        ),
                         action_index=holdem_action_index(expert_action),
                         legal_mask=holdem_legal_action_mask(state),
                     )

@@ -22,6 +22,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     from alphapoker.holdem_model import HoldemPolicyNet
 
+    checkpoint = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
+    feature_equity_sims = checkpoint.get("feature_equity_sims")
     examples = generate_equity_policy_examples(
         hands=args.hands,
         seed=args.seed,
@@ -30,8 +32,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         expert_policy=args.expert_policy,
         opponent_policy=args.opponent_policy,
         rollout_sims=args.rollout_sims,
+        feature_equity_sims=feature_equity_sims,
     )
-    checkpoint = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
     input_dim = int(checkpoint["input_dim"])
     features = torch.tensor(
         [adapt_holdem_features(example.features, input_dim) for example in examples],
@@ -67,6 +69,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "expert_policy": args.expert_policy,
         "opponent_policy": args.opponent_policy,
         "rollout_sims": args.rollout_sims,
+        "feature_equity_sims": feature_equity_sims,
         "loss": float(loss.cpu()),
         "accuracy": accuracy,
         "target_action_counts": target_action_counts,

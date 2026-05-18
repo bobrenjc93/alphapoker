@@ -15,6 +15,8 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "pot-odds",
             "--rollout-sims",
             "2",
+            "--feature-equity-sims",
+            "3",
             "--examples-in",
             "examples.json",
             "--examples-out",
@@ -29,6 +31,7 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.expert_policy == "pot-odds"
     assert args.opponent_policy == "pot-odds"
     assert args.rollout_sims == 2
+    assert args.feature_equity_sims == 3
     assert args.class_weighting == "balanced"
     assert str(args.examples_in) == "examples.json"
     assert str(args.examples_out) == "cached.json"

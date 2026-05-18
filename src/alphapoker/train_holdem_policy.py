@@ -55,6 +55,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             expert_policy=args.expert_policy,
             opponent_policy=args.opponent_policy,
             rollout_sims=args.rollout_sims,
+            feature_equity_sims=args.feature_equity_sims,
             expert_behavior_policy=behavior_policy,
         )
     if examples_out is not None:
@@ -110,6 +111,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "model_state_dict": best_state,
             "canonical_actions": list(HOLDEM_CANONICAL_ACTIONS),
             "input_dim": features.shape[1],
+            "feature_equity_sims": args.feature_equity_sims,
         },
         checkpoint,
     )
@@ -121,6 +123,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "expert_policy": args.expert_policy,
         "opponent_policy": args.opponent_policy,
         "rollout_sims": args.rollout_sims,
+        "feature_equity_sims": args.feature_equity_sims,
         "epochs": args.epochs,
         "lr": args.lr,
         "class_weighting": class_weighting,
@@ -154,6 +157,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="equity",
     )
     parser.add_argument("--rollout-sims", type=int)
+    parser.add_argument("--feature-equity-sims", type=int)
     parser.add_argument("--behavior-checkpoint", type=Path)
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--lr", type=float, default=3e-3)

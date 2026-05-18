@@ -10,7 +10,7 @@ import random
 from pathlib import Path
 from typing import Any
 
-from alphapoker.holdem import FixedLimitHoldemState, HoldemPolicy
+from alphapoker.holdem import FixedLimitHoldemState, HoldemPolicy, estimate_holdem_equity
 from alphapoker.holdem_evaluation import evaluate_policy_match
 from alphapoker.holdem_features import (
     adapt_holdem_features,
@@ -100,12 +100,25 @@ def model_policy_from_checkpoint(checkpoint_path: Path) -> HoldemPolicy:
 
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     input_dim = int(checkpoint["input_dim"])
+    feature_equity_sims = checkpoint.get("feature_equity_sims")
+    feature_rng = random.Random(0)
     model = HoldemPolicyNet(input_dim=input_dim)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
     def select_action(state: FixedLimitHoldemState) -> str:
-        features = torch.tensor([adapt_holdem_features(encode_holdem_state(state), input_dim)], dtype=torch.float32)
+        raw_features = encode_holdem_state(state)
+        if feature_equity_sims is not None:
+            player = state.current_player()
+            raw_features.append(
+                estimate_holdem_equity(
+                    state.private_cards[player],
+                    state.visible_board(),
+                    simulations=int(feature_equity_sims),
+                    rng=feature_rng,
+                )
+            )
+        features = torch.tensor([adapt_holdem_features(raw_features, input_dim)], dtype=torch.float32)
         mask = torch.tensor(holdem_legal_action_mask(state), dtype=torch.bool)
         with torch.no_grad():
             logits = model(features).squeeze(0)
