@@ -81,9 +81,25 @@ def generate_equity_value_examples(
     hands: int,
     seed: int,
     equity_sims: int,
-    player: int = 0,
+    player: int | None = 0,
     opponent_policy: str = "random",
 ) -> list[HoldemEquityExample]:
+    if player is None:
+        examples: list[HoldemEquityExample] = []
+        for seat in (0, 1):
+            examples.extend(
+                generate_equity_value_examples(
+                    hands=hands,
+                    seed=seed + seat * 1_000_003,
+                    equity_sims=equity_sims,
+                    player=seat,
+                    opponent_policy=opponent_policy,
+                )
+            )
+        return examples
+    if player not in (0, 1):
+        raise ValueError(f"player must be 0, 1, or None, got {player}")
+
     deal_rng = random.Random(seed)
     policy_rng = random.Random(seed + 1)
     label_rng = random.Random(seed + 2)

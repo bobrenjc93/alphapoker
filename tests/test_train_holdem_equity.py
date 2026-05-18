@@ -1,0 +1,33 @@
+import argparse
+
+import pytest
+
+
+pytest.importorskip("treys")
+
+from alphapoker.train_holdem_equity import build_parser, parse_player, player_label  # noqa: E402
+
+
+def test_parse_player_accepts_both_seats() -> None:
+    assert parse_player("0") == 0
+    assert parse_player("1") == 1
+    assert parse_player("both") is None
+    assert player_label(None) == "both"
+
+
+def test_parse_player_rejects_bad_values() -> None:
+    with pytest.raises(argparse.ArgumentTypeError):
+        parse_player("2")
+
+
+def test_train_holdem_equity_parser_accepts_both() -> None:
+    args = build_parser().parse_args(
+        [
+            "--player",
+            "both",
+            "--out",
+            "out",
+        ]
+    )
+
+    assert args.player is None

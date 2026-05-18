@@ -12,6 +12,22 @@ from alphapoker.holdem_dataset import generate_equity_value_examples
 from alphapoker.train import write_json
 
 
+def parse_player(value: str) -> int | None:
+    if value == "both":
+        return None
+    try:
+        player = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("player must be 0, 1, or both") from error
+    if player not in (0, 1):
+        raise argparse.ArgumentTypeError("player must be 0, 1, or both")
+    return player
+
+
+def player_label(player: int | None) -> int | str:
+    return "both" if player is None else player
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     import torch
     import torch.nn.functional as F
@@ -61,7 +77,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "hands": args.hands,
         "examples": len(examples),
         "equity_sims": args.equity_sims,
-        "player": args.player,
+        "player": player_label(args.player),
         "opponent_policy": args.opponent_policy,
         "epochs": args.epochs,
         "lr": args.lr,
@@ -78,7 +94,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--hands", type=int, default=500)
     parser.add_argument("--equity-sims", type=int, default=16)
-    parser.add_argument("--player", type=int, choices=[0, 1], default=0)
+    parser.add_argument("--player", type=parse_player, default=0)
     parser.add_argument("--opponent-policy", choices=["equity", "random"], default="random")
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--lr", type=float, default=3e-3)
@@ -93,4 +109,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

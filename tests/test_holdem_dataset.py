@@ -57,3 +57,11 @@ def test_generate_equity_value_examples_smoke() -> None:
     assert examples
     assert {len(example.features) for example in examples} == {117}
     assert all(0.0 <= example.equity <= 1.0 for example in examples)
+
+
+def test_generate_equity_value_examples_for_both_seats() -> None:
+    examples = generate_equity_value_examples(hands=3, seed=11, equity_sims=4, player=None)
+
+    assert examples
+    assert any(example.features[108] == 1.0 for example in examples)
+    assert any(example.features[109] == 1.0 for example in examples)
