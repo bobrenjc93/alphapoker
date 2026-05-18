@@ -10,6 +10,9 @@ args=(
 if [[ "${BEST_RESPONSE:-0}" == "1" ]]; then
   args+=(--best-response)
 fi
+if [[ "${LINEAR_AVERAGING:-0}" == "1" ]]; then
+  args+=(--linear-averaging)
+fi
 if [[ -n "${CHECKPOINT_IN:-}" ]]; then
   args+=(--checkpoint-in "$CHECKPOINT_IN")
 fi

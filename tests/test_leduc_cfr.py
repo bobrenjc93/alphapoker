@@ -50,3 +50,12 @@ def test_leduc_cfr_checkpoint_round_trip(tmp_path) -> None:
     result = loaded.train(1)
     assert result.iterations == 2
     assert result.infosets == 288
+
+
+def test_leduc_cfr_linear_averaging_smoke() -> None:
+    trainer = LeducCFRTrainer(linear_averaging=True)
+    result = trainer.train(2)
+
+    assert trainer.linear_averaging
+    assert result.iterations == 2
+    assert result.infosets == 288

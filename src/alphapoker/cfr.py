@@ -27,9 +27,15 @@ class InfoSet:
             return [value / normalizer for value in positives]
         return [1.0 / len(self.actions) for _ in self.actions]
 
-    def accumulate_strategy(self, reach_probability: float, strategy: list[float]) -> None:
+    def accumulate_strategy(
+        self,
+        reach_probability: float,
+        strategy: list[float],
+        *,
+        weight: float = 1.0,
+    ) -> None:
         for index, probability in enumerate(strategy):
-            self.strategy_sum[index] += reach_probability * probability
+            self.strategy_sum[index] += weight * reach_probability * probability
 
     def average_strategy(self) -> dict[str, float]:
         normalizer = sum(self.strategy_sum)

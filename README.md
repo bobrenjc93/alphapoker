@@ -45,18 +45,18 @@ To distill an already-trained strategy without rerunning CFR:
 
 ```bash
 uv run --extra train python -m alphapoker.distill_leduc \
-  --strategy-json experiments/leduc_cfr_20k/strategy.json \
+  --strategy-json experiments/leduc_cfr_linear_20k/strategy.json \
   --epochs 2000 \
-  --out experiments/leduc_cfr_20k_distill_2k_best
+  --out experiments/leduc_cfr_linear_20k_distill_2k_best
 ```
 
 Evaluate the distilled model policy exactly:
 
 ```bash
 uv run --extra train python -m alphapoker.evaluate_leduc_model \
-  --checkpoint experiments/leduc_cfr_20k_distill_2k_best/leduc_policy_value.pt \
-  --strategy-json experiments/leduc_cfr_20k/strategy.json \
-  --out experiments/leduc_cfr_20k_distill_2k_best_eval
+  --checkpoint experiments/leduc_cfr_linear_20k_distill_2k_best/leduc_policy_value.pt \
+  --strategy-json experiments/leduc_cfr_linear_20k/strategy.json \
+  --out experiments/leduc_cfr_linear_20k_distill_2k_best_eval
 ```
 
 ## Current Milestone

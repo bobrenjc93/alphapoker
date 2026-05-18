@@ -161,8 +161,9 @@ def leduc_exploitability(strategy: LeducStrategyProfile) -> float:
 class LeducCFRTrainer:
     """Full-tree tabular CFR/CFR+ for two-player limit Leduc poker."""
 
-    def __init__(self, *, cfr_plus: bool = True) -> None:
+    def __init__(self, *, cfr_plus: bool = True, linear_averaging: bool = False) -> None:
         self.cfr_plus = cfr_plus
+        self.linear_averaging = linear_averaging
         self.iterations = 0
         self.infosets: dict[str, InfoSet] = {}
 
@@ -170,6 +171,7 @@ class LeducCFRTrainer:
         return {
             "game": "leduc_poker",
             "algorithm": "cfr_plus" if self.cfr_plus else "cfr",
+            "average_weighting": "linear" if self.linear_averaging else "uniform",
             "iterations": self.iterations,
             "infosets": {
                 key: infoset.to_dict()
@@ -181,7 +183,10 @@ class LeducCFRTrainer:
     def from_state_dict(cls, payload: dict[str, Any]) -> "LeducCFRTrainer":
         if payload.get("game") != "leduc_poker":
             raise ValueError("Checkpoint is not for Leduc poker")
-        trainer = cls(cfr_plus=payload.get("algorithm") == "cfr_plus")
+        trainer = cls(
+            cfr_plus=payload.get("algorithm") == "cfr_plus",
+            linear_averaging=payload.get("average_weighting", "uniform") == "linear",
+        )
         trainer.iterations = int(payload["iterations"])
         trainer.infosets = {
             key: InfoSet.from_dict(infoset_payload)
@@ -212,7 +217,12 @@ class LeducCFRTrainer:
         player = state.current_player()
         infoset = self._infoset_for_state(state)
         strategy = infoset.current_strategy()
-        infoset.accumulate_strategy(reach_p0 if player == 0 else reach_p1, strategy)
+        average_weight = float(self.iterations + 1) if self.linear_averaging else 1.0
+        infoset.accumulate_strategy(
+            reach_p0 if player == 0 else reach_p1,
+            strategy,
+            weight=average_weight,
+        )
 
         action_utilities: list[float] = []
         node_utility = 0.0

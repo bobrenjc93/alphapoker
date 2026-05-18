@@ -1,0 +1,1271 @@
+{
+  "game": "leduc_poker",
+  "metrics": {
+    "checkpoint": "experiments/leduc_cfr_linear_20k_distill_2k_best/leduc_policy_value.pt",
+    "exploitability": 0.006048305039614135,
+    "game_value_p0": -0.0852654136111717,
+    "infosets": 288,
+    "mean_abs_value_head": 0.0034401940647512674,
+    "policy_cross_entropy": 0.18584157526493073,
+    "policy_kl": 7.137897773645818e-05,
+    "source_metrics": {
+      "checkpoint_out": "experiments/leduc_cfr_linear_20k/checkpoint.json",
+      "exploitability": 0.0069257593579646545,
+      "game_value_p0": -0.08533579858040148,
+      "infosets": 288,
+      "iterations": 20000
+    },
+    "source_strategy_json": "experiments/leduc_cfr_linear_20k/strategy.json"
+  },
+  "source": "experiments/leduc_cfr_linear_20k_distill_2k_best/leduc_policy_value.pt",
+  "strategy": {
+    "P0:private=J:public=-:r0:bet-raise|r1:root": {
+      "call": 0.9982591271400452,
+      "fold": 0.0017409108113497496
+    },
+    "P0:private=J:public=-:r0:check-bet|r1:root": {
+      "call": 0.03800909221172333,
+      "fold": 0.9436593651771545,
+      "raise": 0.018331553786993027
+    },
+    "P0:private=J:public=-:r0:root|r1:root": {
+      "bet": 0.07438372075557709,
+      "check": 0.9256163239479065
+    },
+    "P0:private=J:public=J:r0:bet-call|r1:bet-raise": {
+      "call": 0.999998927116394,
+      "fold": 1.0990959253831534e-06
+    },
+    "P0:private=J:public=J:r0:bet-call|r1:check-bet": {
+      "call": 3.872346496791579e-06,
+      "fold": 4.19948104068979e-12,
+      "raise": 0.9999961853027344
+    },
+    "P0:private=J:public=J:r0:bet-call|r1:root": {
+      "bet": 0.979752779006958,
+      "check": 0.020247267559170723
+    },
+    "P0:private=J:public=J:r0:bet-raise-call|r1:bet-raise": {
+      "call": 0.9999997615814209,
+      "fold": 2.630763162869698e-07
+    },
+    "P0:private=J:public=J:r0:bet-raise-call|r1:check-bet": {
+      "call": 1.1258616723353043e-05,
+      "fold": 3.475746166575755e-12,
+      "raise": 0.9999887943267822
+    },
+    "P0:private=J:public=J:r0:bet-raise-call|r1:root": {
+      "bet": 0.9890497922897339,
+      "check": 0.010950230993330479
+    },
+    "P0:private=J:public=J:r0:check-bet-call|r1:bet-raise": {
+      "call": 0.9999994039535522,
+      "fold": 5.942135317127395e-07
+    },
+    "P0:private=J:public=J:r0:check-bet-call|r1:check-bet": {
+      "call": 4.322989298088942e-06,
+      "fold": 3.1365671778610382e-12,
+      "raise": 0.9999957084655762
+    },
+    "P0:private=J:public=J:r0:check-bet-call|r1:root": {
+      "bet": 0.8409950733184814,
+      "check": 0.15900492668151855
+    },
+    "P0:private=J:public=J:r0:check-bet-raise-call|r1:bet-raise": {
+      "call": 0.9999998807907104,
+      "fold": 1.6416127834872896e-07
+    },
+    "P0:private=J:public=J:r0:check-bet-raise-call|r1:check-bet": {
+      "call": 7.575723884656327e-06,
+      "fold": 1.4531632190964427e-12,
+      "raise": 0.9999923706054688
+    },
+    "P0:private=J:public=J:r0:check-bet-raise-call|r1:root": {
+      "bet": 0.9839432239532471,
+      "check": 0.016056763008236885
+    },
+    "P0:private=J:public=J:r0:check-check|r1:bet-raise": {
+      "call": 0.9999446868896484,
+      "fold": 5.535600575967692e-05
+    },
+    "P0:private=J:public=J:r0:check-check|r1:check-bet": {
+      "call": 0.00015631422866135836,
+      "fold": 1.3284674196256674e-06,
+      "raise": 0.9998422861099243
+    },
+    "P0:private=J:public=J:r0:check-check|r1:root": {
+      "bet": 0.0016697521787136793,
+      "check": 0.998330295085907
+    },
+    "P0:private=J:public=K:r0:bet-call|r1:bet-raise": {
+      "call": 0.002152031287550926,
+      "fold": 0.9978480339050293
+    },
+    "P0:private=J:public=K:r0:bet-call|r1:check-bet": {
+      "call": 0.00014689152885694057,
+      "fold": 0.002768886974081397,
+      "raise": 0.9970842003822327
+    },
+    "P0:private=J:public=K:r0:bet-call|r1:root": {
+      "bet": 0.9939127564430237,
+      "check": 0.006087196059525013
+    },
+    "P0:private=J:public=K:r0:bet-raise-call|r1:bet-raise": {
+      "call": 0.002048558322712779,
+      "fold": 0.9979514479637146
+    },
+    "P0:private=J:public=K:r0:bet-raise-call|r1:check-bet": {
+      "call": 0.0014758913312107325,
+      "fold": 0.07890864461660385,
+      "raise": 0.9196154475212097
+    },
+    "P0:private=J:public=K:r0:bet-raise-call|r1:root": {
+      "bet": 0.5509002804756165,
+      "check": 0.44909968972206116
+    },
+    "P0:private=J:public=K:r0:check-bet-call|r1:bet-raise": {
+      "call": 0.00031265514553524554,
+      "fold": 0.9996873140335083
+    },
+    "P0:private=J:public=K:r0:check-bet-call|r1:check-bet": {
+      "call": 9.221519576385617e-05,
+      "fold": 0.9966410398483276,
+      "raise": 0.003266792744398117
+    },
+    "P0:private=J:public=K:r0:check-bet-call|r1:root": {
+      "bet": 0.03116905689239502,
+      "check": 0.968830943107605
+    },
+    "P0:private=J:public=K:r0:check-bet-raise-call|r1:bet-raise": {
+      "call": 0.0007498415070585907,
+      "fold": 0.9992501139640808
+    },
+    "P0:private=J:public=K:r0:check-bet-raise-call|r1:check-bet": {
+      "call": 8.183358295354992e-05,
+      "fold": 0.9981544613838196,
+      "raise": 0.0017636845586821437
+    },
+    "P0:private=J:public=K:r0:check-bet-raise-call|r1:root": {
+      "bet": 0.9970930814743042,
+      "check": 0.0029068884905427694
+    },
+    "P0:private=J:public=K:r0:check-check|r1:bet-raise": {
+      "call": 0.08530301600694656,
+      "fold": 0.9146969318389893
+    },
+    "P0:private=J:public=K:r0:check-check|r1:check-bet": {
+      "call": 0.0003198233025614172,
+      "fold": 0.9994014501571655,
+      "raise": 0.0002787479606922716
+    },
+    "P0:private=J:public=K:r0:check-check|r1:root": {
+      "bet": 0.07309450209140778,
+      "check": 0.9269055128097534
+    },
+    "P0:private=J:public=Q:r0:bet-call|r1:bet-raise": {
+      "call": 2.44371567532653e-05,
+      "fold": 0.9999755620956421
+    },
+    "P0:private=J:public=Q:r0:bet-call|r1:check-bet": {
+      "call": 3.6582903248927323e-06,
+      "fold": 0.998393714427948,
+      "raise": 0.0016025928780436516
+    },
+    "P0:private=J:public=Q:r0:bet-call|r1:root": {
+      "bet": 0.9961523413658142,
+      "check": 0.003847642568871379
+    },
+    "P0:private=J:public=Q:r0:bet-raise-call|r1:bet-raise": {
+      "call": 0.0005226524081081152,
+      "fold": 0.9994773268699646
+    },
+    "P0:private=J:public=Q:r0:bet-raise-call|r1:check-bet": {
+      "call": 0.0001279960124520585,
+      "fold": 0.9968470931053162,
+      "raise": 0.0030249105766415596
+    },
+    "P0:private=J:public=Q:r0:bet-raise-call|r1:root": {
+      "bet": 0.1233915165066719,
+      "check": 0.8766085505485535
+    },
+    "P0:private=J:public=Q:r0:check-bet-call|r1:bet-raise": {
+      "call": 0.0002569298667367548,
+      "fold": 0.9997430443763733
+    },
+    "P0:private=J:public=Q:r0:check-bet-call|r1:check-bet": {
+      "call": 7.250350608956069e-05,
+      "fold": 0.04739590734243393,
+      "raise": 0.9525315165519714
+    },
+    "P0:private=J:public=Q:r0:check-bet-call|r1:root": {
+      "bet": 0.994734525680542,
+      "check": 0.0052654799073934555
+    },
+    "P0:private=J:public=Q:r0:check-bet-raise-call|r1:bet-raise": {
+      "call": 0.0008070067269727588,
+      "fold": 0.999193012714386
+    },
+    "P0:private=J:public=Q:r0:check-bet-raise-call|r1:check-bet": {
+      "call": 0.000527289928868413,
+      "fold": 0.8186075687408447,
+      "raise": 0.18086519837379456
+    },
+    "P0:private=J:public=Q:r0:check-bet-raise-call|r1:root": {
+      "bet": 0.006854982580989599,
+      "check": 0.9931449890136719
+    },
+    "P0:private=J:public=Q:r0:check-check|r1:bet-raise": {
+      "call": 0.000575894198846072,
+      "fold": 0.9994240999221802
+    },
+    "P0:private=J:public=Q:r0:check-check|r1:check-bet": {
+      "call": 1.1544143490027636e-05,
+      "fold": 0.9989674091339111,
+      "raise": 0.0010210748296231031
+    },
+    "P0:private=J:public=Q:r0:check-check|r1:root": {
+      "bet": 0.2075732797384262,
+      "check": 0.7924267053604126
+    },
+    "P0:private=K:public=-:r0:bet-raise|r1:root": {
+      "call": 0.9998902082443237,
+      "fold": 0.00010975426266668364
+    },
+    "P0:private=K:public=-:r0:check-bet|r1:root": {
+      "call": 0.32813408970832825,
+      "fold": 0.0005745318485423923,
+      "raise": 0.6712913513183594
+    },
+    "P0:private=K:public=-:r0:root|r1:root": {
+      "bet": 0.7537989616394043,
+      "check": 0.2462010234594345
+    },
+    "P0:private=K:public=J:r0:bet-call|r1:bet-raise": {
+      "call": 0.23150472342967987,
+      "fold": 0.7684952020645142
+    },
+    "P0:private=K:public=J:r0:bet-call|r1:check-bet": {
+      "call": 0.9961596727371216,
+      "fold": 0.0036555060651153326,
+      "raise": 0.00018473307136446238
+    },
+    "P0:private=K:public=J:r0:bet-call|r1:root": {
+      "bet": 0.058002229779958725,
+      "check": 0.941997766494751
+    },
+    "P0:private=K:public=J:r0:bet-raise-call|r1:bet-raise": {
+      "call": 0.3934282064437866,
+      "fold": 0.6065717935562134
+    },
+    "P0:private=K:public=J:r0:bet-raise-call|r1:check-bet": {
+      "call": 0.9984276294708252,
+      "fold": 0.0014710553223267198,
+      "raise": 0.00010124169057235122
+    },
+    "P0:private=K:public=J:r0:bet-raise-call|r1:root": {
+      "bet": 0.06542054563760757,
+      "check": 0.9345794916152954
+    },
+    "P0:private=K:public=J:r0:check-bet-call|r1:bet-raise": {
+      "call": 0.0016307123005390167,
+      "fold": 0.9983692765235901
+    },
+    "P0:private=K:public=J:r0:check-bet-call|r1:check-bet": {
+      "call": 0.9974818825721741,
+      "fold": 0.0023448846768587828,
+      "raise": 0.0001732124510454014
+    },
+    "P0:private=K:public=J:r0:check-bet-call|r1:root": {
+      "bet": 0.0020838112104684114,
+      "check": 0.9979161620140076
+    },
+    "P0:private=K:public=J:r0:check-bet-raise-call|r1:bet-raise": {
+      "call": 0.4026256799697876,
+      "fold": 0.5973743796348572
+    },
+    "P0:private=K:public=J:r0:check-bet-raise-call|r1:check-bet": {
+      "call": 0.9960073828697205,
+      "fold": 0.003452514298260212,
+      "raise": 0.0005401047528721392
+    },
+    "P0:private=K:public=J:r0:check-bet-raise-call|r1:root": {
+      "bet": 0.0724772959947586,
+      "check": 0.9275227189064026
+    },
+    "P0:private=K:public=J:r0:check-check|r1:bet-raise": {
+      "call": 0.00010393951379228383,
+      "fold": 0.9998960494995117
+    },
+    "P0:private=K:public=J:r0:check-check|r1:check-bet": {
+      "call": 0.00027871472411789,
+      "fold": 0.9997209906578064,
+      "raise": 2.701883659028681e-07
+    },
+    "P0:private=K:public=J:r0:check-check|r1:root": {
+      "bet": 2.9647021619894076e-06,
+      "check": 0.9999970197677612
+    },
+    "P0:private=K:public=K:r0:bet-call|r1:bet-raise": {
+      "call": 0.9999680519104004,
+      "fold": 3.188978735124692e-05
+    },
+    "P0:private=K:public=K:r0:bet-call|r1:check-bet": {
+      "call": 0.00017869137809611857,
+      "fold": 6.796940787978656e-09,
+      "raise": 0.9998213648796082
+    },
+    "P0:private=K:public=K:r0:bet-call|r1:root": {
+      "bet": 0.8326432108879089,
+      "check": 0.16735675930976868
+    },
+    "P0:private=K:public=K:r0:bet-raise-call|r1:bet-raise": {
+      "call": 0.9999855756759644,
+      "fold": 1.4454585652856622e-05
+    },
+    "P0:private=K:public=K:r0:bet-raise-call|r1:check-bet": {
+      "call": 6.838853732915595e-05,
+      "fold": 1.1808113375977314e-09,
+      "raise": 0.9999315738677979
+    },
+    "P0:private=K:public=K:r0:bet-raise-call|r1:root": {
+      "bet": 0.5453056693077087,
+      "check": 0.45469433069229126
+    },
+    "P0:private=K:public=K:r0:check-bet-call|r1:bet-raise": {
+      "call": 0.999869704246521,
+      "fold": 0.0001302874443354085
+    },
+    "P0:private=K:public=K:r0:check-bet-call|r1:check-bet": {
+      "call": 0.0001271407527383417,
+      "fold": 2.9323704353600988e-08,
+      "raise": 0.9998728036880493
+    },
+    "P0:private=K:public=K:r0:check-bet-call|r1:root": {
+      "bet": 0.08769592642784119,
+      "check": 0.9123039841651917
+    },
+    "P0:private=K:public=K:r0:check-bet-raise-call|r1:bet-raise": {
+      "call": 0.9999271631240845,
+      "fold": 7.279269630089402e-05
+    },
+    "P0:private=K:public=K:r0:check-bet-raise-call|r1:check-bet": {
+      "call": 8.204585355997551e-06,
+      "fold": 5.336117103738047e-10,
+      "raise": 0.999991774559021
+    },
+    "P0:private=K:public=K:r0:check-bet-raise-call|r1:root": {
+      "bet": 0.9986781477928162,
+      "check": 0.0013217930682003498
+    },
+    "P0:private=K:public=K:r0:check-check|r1:bet-raise": {
+      "call": 0.9999963045120239,
+      "fold": 3.685355068228091e-06
+    },
+    "P0:private=K:public=K:r0:check-check|r1:check-bet": {
+      "call": 4.6776392991887406e-05,
+      "fold": 2.698237411280502e-09,
+      "raise": 0.9999532699584961
+    },
+    "P0:private=K:public=K:r0:check-check|r1:root": {
+      "bet": 0.9980033040046692,
+      "check": 0.0019967341795563698
+    },
+    "P0:private=K:public=Q:r0:bet-call|r1:bet-raise": {
+      "call": 0.000618492194917053,
+      "fold": 0.999381422996521
+    },
+    "P0:private=K:public=Q:r0:bet-call|r1:check-bet": {
+      "call": 0.49725040793418884,
+      "fold": 0.5026537179946899,
+      "raise": 9.592283458914608e-05
+    },
+    "P0:private=K:public=Q:r0:bet-call|r1:root": {
+      "bet": 0.005930481944233179,
+      "check": 0.9940695762634277
+    },
+    "P0:private=K:public=Q:r0:bet-raise-call|r1:bet-raise": {
+      "call": 0.39614611864089966,
+      "fold": 0.6038539409637451
+    },
+    "P0:private=K:public=Q:r0:bet-raise-call|r1:check-bet": {
+      "call": 0.9862374067306519,
+      "fold": 0.010560890659689903,
+      "raise": 0.003201706102117896
+    },
+    "P0:private=K:public=Q:r0:bet-raise-call|r1:root": {
+      "bet": 0.700532078742981,
+      "check": 0.29946789145469666
+    },
+    "P0:private=K:public=Q:r0:check-bet-call|r1:bet-raise": {
+      "call": 0.0020770267583429813,
+      "fold": 0.997922956943512
+    },
+    "P0:private=K:public=Q:r0:check-bet-call|r1:check-bet": {
+      "call": 0.5519582629203796,
+      "fold": 0.4452432692050934,
+      "raise": 0.0027984974440187216
+    },
+    "P0:private=K:public=Q:r0:check-bet-call|r1:root": {
+      "bet": 0.9281896948814392,
+      "check": 0.071810282766819
+    },
+    "P0:private=K:public=Q:r0:check-bet-raise-call|r1:bet-raise": {
+      "call": 0.5158727765083313,
+      "fold": 0.4841272532939911
+    },
+    "P0:private=K:public=Q:r0:check-bet-raise-call|r1:check-bet": {
+      "call": 0.680955708026886,
+      "fold": 0.3091292381286621,
+      "raise": 0.009915041737258434
+    },
+    "P0:private=K:public=Q:r0:check-bet-raise-call|r1:root": {
+      "bet": 0.00480801472440362,
+      "check": 0.9951920509338379
+    },
+    "P0:private=K:public=Q:r0:check-check|r1:bet-raise": {
+      "call": 0.8513706922531128,
+      "fold": 0.1486293077468872
+    },
+    "P0:private=K:public=Q:r0:check-check|r1:check-bet": {
+      "call": 0.41089850664138794,
+      "fold": 0.5886427164077759,
+      "raise": 0.00045878023956902325
+    },
+    "P0:private=K:public=Q:r0:check-check|r1:root": {
+      "bet": 0.00021646436653099954,
+      "check": 0.9997835755348206
+    },
+    "P0:private=Q:public=-:r0:bet-raise|r1:root": {
+      "call": 0.999079704284668,
+      "fold": 0.0009202885557897389
+    },
+    "P0:private=Q:public=-:r0:check-bet|r1:root": {
+      "call": 0.8517455458641052,
+      "fold": 0.002158315386623144,
+      "raise": 0.14609605073928833
+    },
+    "P0:private=Q:public=-:r0:root|r1:root": {
+      "bet": 0.7268213629722595,
+      "check": 0.27317866683006287
+    },
+    "P0:private=Q:public=J:r0:bet-call|r1:bet-raise": {
+      "call": 0.0023158094845712185,
+      "fold": 0.997684121131897
+    },
+    "P0:private=Q:public=J:r0:bet-call|r1:check-bet": {
+      "call": 6.399412814062089e-05,
+      "fold": 0.9997654557228088,
+      "raise": 0.0001705434697214514
+    },
+    "P0:private=Q:public=J:r0:bet-call|r1:root": {
+      "bet": 0.009094893001019955,
+      "check": 0.9909050464630127
+    },
+    "P0:private=Q:public=J:r0:bet-raise-call|r1:bet-raise": {
+      "call": 0.001501303631812334,
+      "fold": 0.9984986782073975
+    },
+    "P0:private=Q:public=J:r0:bet-raise-call|r1:check-bet": {
+      "call": 0.0001165659268735908,
+      "fold": 0.999835729598999,
+      "raise": 4.766446363646537e-05
+    },
+    "P0:private=Q:public=J:r0:bet-raise-call|r1:root": {
+      "bet": 0.0021002567373216152,
+      "check": 0.9978997707366943
+    },
+    "P0:private=Q:public=J:r0:check-bet-call|r1:bet-raise": {
+      "call": 0.0008045565336942673,
+      "fold": 0.999195396900177
+    },
+    "P0:private=Q:public=J:r0:check-bet-call|r1:check-bet": {
+      "call": 0.0007590994355268776,
+      "fold": 0.9898165464401245,
+      "raise": 0.00942441076040268
+    },
+    "P0:private=Q:public=J:r0:check-bet-call|r1:root": {
+      "bet": 0.022726913914084435,
+      "check": 0.9772730469703674
+    },
+    "P0:private=Q:public=J:r0:check-bet-raise-call|r1:bet-raise": {
+      "call": 0.0025241351686418056,
+      "fold": 0.997475802898407
+    },
+    "P0:private=Q:public=J:r0:check-bet-raise-call|r1:check-bet": {
+      "call": 0.00015163692296482623,
+      "fold": 0.9997366070747375,
+      "raise": 0.00011183319293195382
+    },
+    "P0:private=Q:public=J:r0:check-bet-raise-call|r1:root": {
+      "bet": 0.0046515073627233505,
+      "check": 0.9953485131263733
+    },
+    "P0:private=Q:public=J:r0:check-check|r1:bet-raise": {
+      "call": 5.985017560306005e-05,
+      "fold": 0.9999401569366455
+    },
+    "P0:private=Q:public=J:r0:check-check|r1:check-bet": {
+      "call": 2.811530248436611e-05,
+      "fold": 0.9999572038650513,
+      "raise": 1.469766539230477e-05
+    },
+    "P0:private=Q:public=J:r0:check-check|r1:root": {
+      "bet": 0.0008912353659979999,
+      "check": 0.9991087317466736
+    },
+    "P0:private=Q:public=K:r0:bet-call|r1:bet-raise": {
+      "call": 0.2128557413816452,
+      "fold": 0.7871443033218384
+    },
+    "P0:private=Q:public=K:r0:bet-call|r1:check-bet": {
+      "call": 0.5271390080451965,
+      "fold": 0.4638872444629669,
+      "raise": 0.008973709307610989
+    },
+    "P0:private=Q:public=K:r0:bet-call|r1:root": {
+      "bet": 0.4749695062637329,
+      "check": 0.5250304341316223
+    },
+    "P0:private=Q:public=K:r0:bet-raise-call|r1:bet-raise": {
+      "call": 0.002765919081866741,
+      "fold": 0.997234046459198
+    },
+    "P0:private=Q:public=K:r0:bet-raise-call|r1:check-bet": {
+      "call": 0.2889341413974762,
+      "fold": 0.7102137207984924,
+      "raise": 0.0008521787822246552
+    },
+    "P0:private=Q:public=K:r0:bet-raise-call|r1:root": {
+      "bet": 0.1355016827583313,
+      "check": 0.8644983768463135
+    },
+    "P0:private=Q:public=K:r0:check-bet-call|r1:bet-raise": {
+      "call": 0.0013696654932573438,
+      "fold": 0.9986304044723511
+    },
+    "P0:private=Q:public=K:r0:check-bet-call|r1:check-bet": {
+      "call": 0.5612841844558716,
+      "fold": 0.4375312030315399,
+      "raise": 0.0011845470871776342
+    },
+    "P0:private=Q:public=K:r0:check-bet-call|r1:root": {
+      "bet": 0.008398756384849548,
+      "check": 0.9916011691093445
+    },
+    "P0:private=Q:public=K:r0:check-bet-raise-call|r1:bet-raise": {
+      "call": 0.00320822698995471,
+      "fold": 0.9967917799949646
+    },
+    "P0:private=Q:public=K:r0:check-bet-raise-call|r1:check-bet": {
+      "call": 0.7290918231010437,
+      "fold": 0.2693033516407013,
+      "raise": 0.0016047959215939045
+    },
+    "P0:private=Q:public=K:r0:check-bet-raise-call|r1:root": {
+      "bet": 0.9919273853302002,
+      "check": 0.008072561584413052
+    },
+    "P0:private=Q:public=K:r0:check-check|r1:bet-raise": {
+      "call": 0.9951713681221008,
+      "fold": 0.0048286328092217445
+    },
+    "P0:private=Q:public=K:r0:check-check|r1:check-bet": {
+      "call": 0.9979731440544128,
+      "fold": 0.0010871192207559943,
+      "raise": 0.0009397113462910056
+    },
+    "P0:private=Q:public=K:r0:check-check|r1:root": {
+      "bet": 0.5640336871147156,
+      "check": 0.4359663128852844
+    },
+    "P0:private=Q:public=Q:r0:bet-call|r1:bet-raise": {
+      "call": 0.9999428987503052,
+      "fold": 5.714779035770334e-05
+    },
+    "P0:private=Q:public=Q:r0:bet-call|r1:check-bet": {
+      "call": 8.828091085888445e-05,
+      "fold": 1.4791228863941797e-07,
+      "raise": 0.9999115467071533
+    },
+    "P0:private=Q:public=Q:r0:bet-call|r1:root": {
+      "bet": 0.5234791040420532,
+      "check": 0.47652092576026917
+    },
+    "P0:private=Q:public=Q:r0:bet-raise-call|r1:bet-raise": {
+      "call": 0.999889612197876,
+      "fold": 0.00011035818897653371
+    },
+    "P0:private=Q:public=Q:r0:bet-raise-call|r1:check-bet": {
+      "call": 5.0579801609274e-05,
+      "fold": 5.739353881040188e-08,
+      "raise": 0.9999493360519409
+    },
+    "P0:private=Q:public=Q:r0:bet-raise-call|r1:root": {
+      "bet": 0.9954788088798523,
+      "check": 0.0045212735421955585
+    },
+    "P0:private=Q:public=Q:r0:check-bet-call|r1:bet-raise": {
+      "call": 0.9999704360961914,
+      "fold": 2.9604740120703354e-05
+    },
+    "P0:private=Q:public=Q:r0:check-bet-call|r1:check-bet": {
+      "call": 2.4887312974897213e-05,
+      "fold": 5.211514331193712e-09,
+      "raise": 0.9999750852584839
+    },
+    "P0:private=Q:public=Q:r0:check-bet-call|r1:root": {
+      "bet": 0.9946025013923645,
+      "check": 0.005397453438490629
+    },
+    "P0:private=Q:public=Q:r0:check-bet-raise-call|r1:bet-raise": {
+      "call": 0.9999557733535767,
+      "fold": 4.424761209520511e-05
+    },
+    "P0:private=Q:public=Q:r0:check-bet-raise-call|r1:check-bet": {
+      "call": 0.00011935183283640072,
+      "fold": 2.134392929065143e-08,
+      "raise": 0.9998806715011597
+    },
+    "P0:private=Q:public=Q:r0:check-bet-raise-call|r1:root": {
+      "bet": 0.025010723620653152,
+      "check": 0.9749892950057983
+    },
+    "P0:private=Q:public=Q:r0:check-check|r1:bet-raise": {
+      "call": 0.999994158744812,
+      "fold": 5.8850205277849454e-06
+    },
+    "P0:private=Q:public=Q:r0:check-check|r1:check-bet": {
+      "call": 0.00014665078197140247,
+      "fold": 9.442757686883851e-09,
+      "raise": 0.9998533725738525
+    },
+    "P0:private=Q:public=Q:r0:check-check|r1:root": {
+      "bet": 0.5330947637557983,
+      "check": 0.4669051766395569
+    },
+    "P1:private=J:public=-:r0:bet|r1:root": {
+      "call": 0.1254674196243286,
+      "fold": 0.8189059495925903,
+      "raise": 0.055626582354307175
+    },
+    "P1:private=J:public=-:r0:check-bet-raise|r1:root": {
+      "call": 0.9983243346214294,
+      "fold": 0.001675624051131308
+    },
+    "P1:private=J:public=-:r0:check|r1:root": {
+      "bet": 0.30299487709999084,
+      "check": 0.6970050930976868
+    },
+    "P1:private=J:public=J:r0:bet-call|r1:bet": {
+      "call": 4.03142530558398e-06,
+      "fold": 3.0660439465091116e-11,
+      "raise": 0.9999959468841553
+    },
+    "P1:private=J:public=J:r0:bet-call|r1:check": {
+      "bet": 0.9999873638153076,
+      "check": 1.2681904991040938e-05
+    },
+    "P1:private=J:public=J:r0:bet-call|r1:check-bet-raise": {
+      "call": 0.9999998807907104,
+      "fold": 1.6467103591821797e-07
+    },
+    "P1:private=J:public=J:r0:bet-raise-call|r1:bet": {
+      "call": 2.2663537038170034e-06,
+      "fold": 8.053454604584065e-12,
+      "raise": 0.9999977350234985
+    },
+    "P1:private=J:public=J:r0:bet-raise-call|r1:check": {
+      "bet": 0.9999755620956421,
+      "check": 2.4459774067508988e-05
+    },
+    "P1:private=J:public=J:r0:bet-raise-call|r1:check-bet-raise": {
+      "call": 0.9999998807907104,
+      "fold": 8.679109697595777e-08
+    },
+    "P1:private=J:public=J:r0:check-bet-call|r1:bet": {
+      "call": 2.3416293970512925e-06,
+      "fold": 2.1902408272461704e-12,
+      "raise": 0.999997615814209
+    },
+    "P1:private=J:public=J:r0:check-bet-call|r1:check": {
+      "bet": 0.9999814033508301,
+      "check": 1.8625110897119157e-05
+    },
+    "P1:private=J:public=J:r0:check-bet-call|r1:check-bet-raise": {
+      "call": 1.0,
+      "fold": 3.621456912128451e-08
+    },
+    "P1:private=J:public=J:r0:check-bet-raise-call|r1:bet": {
+      "call": 1.7808758911996847e-06,
+      "fold": 9.178333006815143e-13,
+      "raise": 0.9999982118606567
+    },
+    "P1:private=J:public=J:r0:check-bet-raise-call|r1:check": {
+      "bet": 0.999962568283081,
+      "check": 3.739289604709484e-05
+    },
+    "P1:private=J:public=J:r0:check-bet-raise-call|r1:check-bet-raise": {
+      "call": 1.0,
+      "fold": 2.1743117528671974e-08
+    },
+    "P1:private=J:public=J:r0:check-check|r1:bet": {
+      "call": 1.769945811247453e-05,
+      "fold": 5.432747585132347e-09,
+      "raise": 0.9999822378158569
+    },
+    "P1:private=J:public=J:r0:check-check|r1:check": {
+      "bet": 0.9998332262039185,
+      "check": 0.0001667237957008183
+    },
+    "P1:private=J:public=J:r0:check-check|r1:check-bet-raise": {
+      "call": 0.9999958276748657,
+      "fold": 4.2013766687887255e-06
+    },
+    "P1:private=J:public=K:r0:bet-call|r1:bet": {
+      "call": 9.363057324662805e-05,
+      "fold": 0.6353989243507385,
+      "raise": 0.3645074963569641
+    },
+    "P1:private=J:public=K:r0:bet-call|r1:check": {
+      "bet": 0.38138702511787415,
+      "check": 0.6186130046844482
+    },
+    "P1:private=J:public=K:r0:bet-call|r1:check-bet-raise": {
+      "call": 0.0006820818525739014,
+      "fold": 0.9993178844451904
+    },
+    "P1:private=J:public=K:r0:bet-raise-call|r1:bet": {
+      "call": 0.00012113149568904191,
+      "fold": 0.7122769951820374,
+      "raise": 0.2876017987728119
+    },
+    "P1:private=J:public=K:r0:bet-raise-call|r1:check": {
+      "bet": 0.9952111840248108,
+      "check": 0.004788797348737717
+    },
+    "P1:private=J:public=K:r0:bet-raise-call|r1:check-bet-raise": {
+      "call": 0.004225532524287701,
+      "fold": 0.9957744479179382
+    },
+    "P1:private=J:public=K:r0:check-bet-call|r1:bet": {
+      "call": 5.3720770665677264e-05,
+      "fold": 0.9871211647987366,
+      "raise": 0.0128250103443861
+    },
+    "P1:private=J:public=K:r0:check-bet-call|r1:check": {
+      "bet": 0.5381300449371338,
+      "check": 0.461870014667511
+    },
+    "P1:private=J:public=K:r0:check-bet-call|r1:check-bet-raise": {
+      "call": 0.0001681069261394441,
+      "fold": 0.9998319149017334
+    },
+    "P1:private=J:public=K:r0:check-bet-raise-call|r1:bet": {
+      "call": 0.0001291995868086815,
+      "fold": 0.8206209540367126,
+      "raise": 0.1792498379945755
+    },
+    "P1:private=J:public=K:r0:check-bet-raise-call|r1:check": {
+      "bet": 0.46583816409111023,
+      "check": 0.5341618657112122
+    },
+    "P1:private=J:public=K:r0:check-bet-raise-call|r1:check-bet-raise": {
+      "call": 0.0008089037728495896,
+      "fold": 0.9991911053657532
+    },
+    "P1:private=J:public=K:r0:check-check|r1:bet": {
+      "call": 0.000615258002653718,
+      "fold": 0.9980567693710327,
+      "raise": 0.0013280634302645922
+    },
+    "P1:private=J:public=K:r0:check-check|r1:check": {
+      "bet": 0.006389192771166563,
+      "check": 0.9936107993125916
+    },
+    "P1:private=J:public=K:r0:check-check|r1:check-bet-raise": {
+      "call": 0.04047767072916031,
+      "fold": 0.9595223665237427
+    },
+    "P1:private=J:public=Q:r0:bet-call|r1:bet": {
+      "call": 6.260850568651222e-06,
+      "fold": 0.998121440410614,
+      "raise": 0.0018722383538261056
+    },
+    "P1:private=J:public=Q:r0:bet-call|r1:check": {
+      "bet": 0.9939700365066528,
+      "check": 0.0060300324112176895
+    },
+    "P1:private=J:public=Q:r0:bet-call|r1:check-bet-raise": {
+      "call": 8.237306610681117e-05,
+      "fold": 0.9999176263809204
+    },
+    "P1:private=J:public=Q:r0:bet-raise-call|r1:bet": {
+      "call": 0.0002383157261647284,
+      "fold": 0.5955715775489807,
+      "raise": 0.4041900634765625
+    },
+    "P1:private=J:public=Q:r0:bet-raise-call|r1:check": {
+      "bet": 0.004669968970119953,
+      "check": 0.9953300952911377
+    },
+    "P1:private=J:public=Q:r0:bet-raise-call|r1:check-bet-raise": {
+      "call": 0.0003139536711387336,
+      "fold": 0.9996861219406128
+    },
+    "P1:private=J:public=Q:r0:check-bet-call|r1:bet": {
+      "call": 8.329319825861603e-05,
+      "fold": 0.8657329678535461,
+      "raise": 0.13418377935886383
+    },
+    "P1:private=J:public=Q:r0:check-bet-call|r1:check": {
+      "bet": 0.3940005302429199,
+      "check": 0.6059994697570801
+    },
+    "P1:private=J:public=Q:r0:check-bet-call|r1:check-bet-raise": {
+      "call": 0.008882218971848488,
+      "fold": 0.9911177754402161
+    },
+    "P1:private=J:public=Q:r0:check-bet-raise-call|r1:bet": {
+      "call": 0.00016647785378154367,
+      "fold": 0.7450405359268188,
+      "raise": 0.25479307770729065
+    },
+    "P1:private=J:public=Q:r0:check-bet-raise-call|r1:check": {
+      "bet": 0.06880901753902435,
+      "check": 0.9311909675598145
+    },
+    "P1:private=J:public=Q:r0:check-bet-raise-call|r1:check-bet-raise": {
+      "call": 0.0015228450065478683,
+      "fold": 0.9984771609306335
+    },
+    "P1:private=J:public=Q:r0:check-check|r1:bet": {
+      "call": 0.00013115486945025623,
+      "fold": 0.9654895663261414,
+      "raise": 0.03437918797135353
+    },
+    "P1:private=J:public=Q:r0:check-check|r1:check": {
+      "bet": 0.07423213869333267,
+      "check": 0.9257677793502808
+    },
+    "P1:private=J:public=Q:r0:check-check|r1:check-bet-raise": {
+      "call": 0.00012748544395435601,
+      "fold": 0.9998724460601807
+    },
+    "P1:private=K:public=-:r0:bet|r1:root": {
+      "call": 0.41503235697746277,
+      "fold": 0.0001826656807679683,
+      "raise": 0.5847849249839783
+    },
+    "P1:private=K:public=-:r0:check-bet-raise|r1:root": {
+      "call": 0.9998847246170044,
+      "fold": 0.0001152619588538073
+    },
+    "P1:private=K:public=-:r0:check|r1:root": {
+      "bet": 0.9972822666168213,
+      "check": 0.002717711264267564
+    },
+    "P1:private=K:public=J:r0:bet-call|r1:bet": {
+      "call": 0.75605309009552,
+      "fold": 0.2386086881160736,
+      "raise": 0.0053381845355033875
+    },
+    "P1:private=K:public=J:r0:bet-call|r1:check": {
+      "bet": 0.4314509630203247,
+      "check": 0.5685490369796753
+    },
+    "P1:private=K:public=J:r0:bet-call|r1:check-bet-raise": {
+      "call": 0.9448294639587402,
+      "fold": 0.05517057701945305
+    },
+    "P1:private=K:public=J:r0:bet-raise-call|r1:bet": {
+      "call": 0.9401221871376038,
+      "fold": 0.056699205189943314,
+      "raise": 0.003178585786372423
+    },
+    "P1:private=K:public=J:r0:bet-raise-call|r1:check": {
+      "bet": 0.4850073456764221,
+      "check": 0.5149926543235779
+    },
+    "P1:private=K:public=J:r0:bet-raise-call|r1:check-bet-raise": {
+      "call": 0.9983407258987427,
+      "fold": 0.0016592396423220634
+    },
+    "P1:private=K:public=J:r0:check-bet-call|r1:bet": {
+      "call": 0.7397533655166626,
+      "fold": 0.25835132598876953,
+      "raise": 0.0018952906830236316
+    },
+    "P1:private=K:public=J:r0:check-bet-call|r1:check": {
+      "bet": 0.14113971590995789,
+      "check": 0.8588603138923645
+    },
+    "P1:private=K:public=J:r0:check-bet-call|r1:check-bet-raise": {
+      "call": 0.9989639520645142,
+      "fold": 0.0010360783198848367
+    },
+    "P1:private=K:public=J:r0:check-bet-raise-call|r1:bet": {
+      "call": 0.8234027028083801,
+      "fold": 0.16248932480812073,
+      "raise": 0.014107976108789444
+    },
+    "P1:private=K:public=J:r0:check-bet-raise-call|r1:check": {
+      "bet": 0.4810248911380768,
+      "check": 0.5189750790596008
+    },
+    "P1:private=K:public=J:r0:check-bet-raise-call|r1:check-bet-raise": {
+      "call": 0.874411404132843,
+      "fold": 0.12558861076831818
+    },
+    "P1:private=K:public=J:r0:check-check|r1:bet": {
+      "call": 0.11423704773187637,
+      "fold": 0.8816577196121216,
+      "raise": 0.004105281084775925
+    },
+    "P1:private=K:public=J:r0:check-check|r1:check": {
+      "bet": 0.0008537601097486913,
+      "check": 0.9991462230682373
+    },
+    "P1:private=K:public=J:r0:check-check|r1:check-bet-raise": {
+      "call": 0.001264914870262146,
+      "fold": 0.9987351298332214
+    },
+    "P1:private=K:public=K:r0:bet-call|r1:bet": {
+      "call": 2.337331352464389e-05,
+      "fold": 3.7616132431139704e-08,
+      "raise": 0.999976634979248
+    },
+    "P1:private=K:public=K:r0:bet-call|r1:check": {
+      "bet": 0.9999681711196899,
+      "check": 3.1885043426882476e-05
+    },
+    "P1:private=K:public=K:r0:bet-call|r1:check-bet-raise": {
+      "call": 0.9999735355377197,
+      "fold": 2.6465133487363346e-05
+    },
+    "P1:private=K:public=K:r0:bet-raise-call|r1:bet": {
+      "call": 2.9827501748513896e-06,
+      "fold": 2.564824130857346e-09,
+      "raise": 0.9999970197677612
+    },
+    "P1:private=K:public=K:r0:bet-raise-call|r1:check": {
+      "bet": 0.9999979734420776,
+      "check": 2.061542090814328e-06
+    },
+    "P1:private=K:public=K:r0:bet-raise-call|r1:check-bet-raise": {
+      "call": 0.9999879598617554,
+      "fold": 1.2088436051271856e-05
+    },
+    "P1:private=K:public=K:r0:check-bet-call|r1:bet": {
+      "call": 6.5823423938127235e-06,
+      "fold": 1.15860920857358e-08,
+      "raise": 0.9999934434890747
+    },
+    "P1:private=K:public=K:r0:check-bet-call|r1:check": {
+      "bet": 0.9999778270721436,
+      "check": 2.2193340555531904e-05
+    },
+    "P1:private=K:public=K:r0:check-bet-call|r1:check-bet-raise": {
+      "call": 0.9999686479568481,
+      "fold": 3.1327967008110136e-05
+    },
+    "P1:private=K:public=K:r0:check-bet-raise-call|r1:bet": {
+      "call": 6.156603262752469e-07,
+      "fold": 7.89761922526111e-10,
+      "raise": 0.9999994039535522
+    },
+    "P1:private=K:public=K:r0:check-bet-raise-call|r1:check": {
+      "bet": 0.9999995231628418,
+      "check": 5.084347094452824e-07
+    },
+    "P1:private=K:public=K:r0:check-bet-raise-call|r1:check-bet-raise": {
+      "call": 0.999987006187439,
+      "fold": 1.3050276720605325e-05
+    },
+    "P1:private=K:public=K:r0:check-check|r1:bet": {
+      "call": 5.2346449592732824e-06,
+      "fold": 2.419149047749869e-10,
+      "raise": 0.9999947547912598
+    },
+    "P1:private=K:public=K:r0:check-check|r1:check": {
+      "bet": 0.999994158744812,
+      "check": 5.894681635254528e-06
+    },
+    "P1:private=K:public=K:r0:check-check|r1:check-bet-raise": {
+      "call": 0.9999983310699463,
+      "fold": 1.7273273442697246e-06
+    },
+    "P1:private=K:public=Q:r0:bet-call|r1:bet": {
+      "call": 0.3029559552669525,
+      "fold": 0.6953381299972534,
+      "raise": 0.001705924398265779
+    },
+    "P1:private=K:public=Q:r0:bet-call|r1:check": {
+      "bet": 0.010128920897841454,
+      "check": 0.989871084690094
+    },
+    "P1:private=K:public=Q:r0:bet-call|r1:check-bet-raise": {
+      "call": 0.0009793427307158709,
+      "fold": 0.9990206956863403
+    },
+    "P1:private=K:public=Q:r0:bet-raise-call|r1:bet": {
+      "call": 0.5273110270500183,
+      "fold": 0.37842273712158203,
+      "raise": 0.09426622092723846
+    },
+    "P1:private=K:public=Q:r0:bet-raise-call|r1:check": {
+      "bet": 0.5119628310203552,
+      "check": 0.4880371391773224
+    },
+    "P1:private=K:public=Q:r0:bet-raise-call|r1:check-bet-raise": {
+      "call": 0.5348517894744873,
+      "fold": 0.4651481807231903
+    },
+    "P1:private=K:public=Q:r0:check-bet-call|r1:bet": {
+      "call": 0.41840681433677673,
+      "fold": 0.5768081545829773,
+      "raise": 0.0047850883565843105
+    },
+    "P1:private=K:public=Q:r0:check-bet-call|r1:check": {
+      "bet": 0.34510910511016846,
+      "check": 0.6548908948898315
+    },
+    "P1:private=K:public=Q:r0:check-bet-call|r1:check-bet-raise": {
+      "call": 0.06698846071958542,
+      "fold": 0.933011531829834
+    },
+    "P1:private=K:public=Q:r0:check-bet-raise-call|r1:bet": {
+      "call": 0.6264016032218933,
+      "fold": 0.3658943474292755,
+      "raise": 0.007704056333750486
+    },
+    "P1:private=K:public=Q:r0:check-bet-raise-call|r1:check": {
+      "bet": 0.5706888437271118,
+      "check": 0.42931118607521057
+    },
+    "P1:private=K:public=Q:r0:check-bet-raise-call|r1:check-bet-raise": {
+      "call": 0.3794995844364166,
+      "fold": 0.6205004453659058
+    },
+    "P1:private=K:public=Q:r0:check-check|r1:bet": {
+      "call": 0.9953224062919617,
+      "fold": 0.004042554181069136,
+      "raise": 0.0006349897012114525
+    },
+    "P1:private=K:public=Q:r0:check-check|r1:check": {
+      "bet": 0.024570506066083908,
+      "check": 0.9754295349121094
+    },
+    "P1:private=K:public=Q:r0:check-check|r1:check-bet-raise": {
+      "call": 0.000295068632112816,
+      "fold": 0.999704897403717
+    },
+    "P1:private=Q:public=-:r0:bet|r1:root": {
+      "call": 0.6274163722991943,
+      "fold": 0.001998242922127247,
+      "raise": 0.3705854117870331
+    },
+    "P1:private=Q:public=-:r0:check-bet-raise|r1:root": {
+      "call": 0.9992165565490723,
+      "fold": 0.0007834248244762421
+    },
+    "P1:private=Q:public=-:r0:check|r1:root": {
+      "bet": 0.8520070314407349,
+      "check": 0.14799295365810394
+    },
+    "P1:private=Q:public=J:r0:bet-call|r1:bet": {
+      "call": 0.0002207526849815622,
+      "fold": 0.9796778559684753,
+      "raise": 0.02010139636695385
+    },
+    "P1:private=Q:public=J:r0:bet-call|r1:check": {
+      "bet": 0.0029705266933888197,
+      "check": 0.9970294237136841
+    },
+    "P1:private=Q:public=J:r0:bet-call|r1:check-bet-raise": {
+      "call": 0.0007695805979892612,
+      "fold": 0.9992303848266602
+    },
+    "P1:private=Q:public=J:r0:bet-raise-call|r1:bet": {
+      "call": 0.00023186988255474716,
+      "fold": 0.9890275001525879,
+      "raise": 0.010740559548139572
+    },
+    "P1:private=Q:public=J:r0:bet-raise-call|r1:check": {
+      "bet": 0.004013867117464542,
+      "check": 0.9959861636161804
+    },
+    "P1:private=Q:public=J:r0:bet-raise-call|r1:check-bet-raise": {
+      "call": 0.0004096497141290456,
+      "fold": 0.9995903372764587
+    },
+    "P1:private=Q:public=J:r0:check-bet-call|r1:bet": {
+      "call": 0.00013445988588500768,
+      "fold": 0.9946421384811401,
+      "raise": 0.005223377607762814
+    },
+    "P1:private=Q:public=J:r0:check-bet-call|r1:check": {
+      "bet": 0.5401186943054199,
+      "check": 0.45988136529922485
+    },
+    "P1:private=Q:public=J:r0:check-bet-call|r1:check-bet-raise": {
+      "call": 0.004727779887616634,
+      "fold": 0.9952722191810608
+    },
+    "P1:private=Q:public=J:r0:check-bet-raise-call|r1:bet": {
+      "call": 0.0005442640394903719,
+      "fold": 0.9718451499938965,
+      "raise": 0.027610495686531067
+    },
+    "P1:private=Q:public=J:r0:check-bet-raise-call|r1:check": {
+      "bet": 0.0016939309425652027,
+      "check": 0.9983060359954834
+    },
+    "P1:private=Q:public=J:r0:check-bet-raise-call|r1:check-bet-raise": {
+      "call": 0.00016329664504155517,
+      "fold": 0.9998366832733154
+    },
+    "P1:private=Q:public=J:r0:check-check|r1:bet": {
+      "call": 2.3142747522797436e-05,
+      "fold": 0.9997813105583191,
+      "raise": 0.00019552830781321973
+    },
+    "P1:private=Q:public=J:r0:check-check|r1:check": {
+      "bet": 0.00382251082919538,
+      "check": 0.9961774349212646
+    },
+    "P1:private=Q:public=J:r0:check-check|r1:check-bet-raise": {
+      "call": 4.186108708381653e-05,
+      "fold": 0.9999581575393677
+    },
+    "P1:private=Q:public=K:r0:bet-call|r1:bet": {
+      "call": 0.29883873462677,
+      "fold": 0.6974347233772278,
+      "raise": 0.0037265061400830746
+    },
+    "P1:private=Q:public=K:r0:bet-call|r1:check": {
+      "bet": 0.3741706311702728,
+      "check": 0.6258293390274048
+    },
+    "P1:private=Q:public=K:r0:bet-call|r1:check-bet-raise": {
+      "call": 0.0014123180881142616,
+      "fold": 0.9985877275466919
+    },
+    "P1:private=Q:public=K:r0:bet-raise-call|r1:bet": {
+      "call": 0.5208067297935486,
+      "fold": 0.4756835103034973,
+      "raise": 0.0035097808577120304
+    },
+    "P1:private=Q:public=K:r0:bet-raise-call|r1:check": {
+      "bet": 0.4275404214859009,
+      "check": 0.5724595189094543
+    },
+    "P1:private=Q:public=K:r0:bet-raise-call|r1:check-bet-raise": {
+      "call": 0.07315376400947571,
+      "fold": 0.9268462061882019
+    },
+    "P1:private=Q:public=K:r0:check-bet-call|r1:bet": {
+      "call": 0.456030011177063,
+      "fold": 0.5411633253097534,
+      "raise": 0.0028067324310541153
+    },
+    "P1:private=Q:public=K:r0:check-bet-call|r1:check": {
+      "bet": 0.278843492269516,
+      "check": 0.7211565375328064
+    },
+    "P1:private=Q:public=K:r0:check-bet-call|r1:check-bet-raise": {
+      "call": 0.0010850424878299236,
+      "fold": 0.9989149570465088
+    },
+    "P1:private=Q:public=K:r0:check-bet-raise-call|r1:bet": {
+      "call": 0.2882053554058075,
+      "fold": 0.7086563110351562,
+      "raise": 0.003138285595923662
+    },
+    "P1:private=Q:public=K:r0:check-bet-raise-call|r1:check": {
+      "bet": 0.010087334550917149,
+      "check": 0.9899126887321472
+    },
+    "P1:private=Q:public=K:r0:check-bet-raise-call|r1:check-bet-raise": {
+      "call": 0.00716688996180892,
+      "fold": 0.992833137512207
+    },
+    "P1:private=Q:public=K:r0:check-check|r1:bet": {
+      "call": 0.7137079238891602,
+      "fold": 0.2844008207321167,
+      "raise": 0.001891259802505374
+    },
+    "P1:private=Q:public=K:r0:check-check|r1:check": {
+      "bet": 0.3283452093601227,
+      "check": 0.6716547608375549
+    },
+    "P1:private=Q:public=K:r0:check-check|r1:check-bet-raise": {
+      "call": 0.9973353147506714,
+      "fold": 0.0026647013146430254
+    },
+    "P1:private=Q:public=Q:r0:bet-call|r1:bet": {
+      "call": 4.46119838670711e-06,
+      "fold": 2.3835022844309606e-10,
+      "raise": 0.9999955892562866
+    },
+    "P1:private=Q:public=Q:r0:bet-call|r1:check": {
+      "bet": 0.9999829530715942,
+      "check": 1.7079126337193884e-05
+    },
+    "P1:private=Q:public=Q:r0:bet-call|r1:check-bet-raise": {
+      "call": 0.9999212026596069,
+      "fold": 7.882620411692187e-05
+    },
+    "P1:private=Q:public=Q:r0:bet-raise-call|r1:bet": {
+      "call": 1.0059267879114486e-05,
+      "fold": 8.634766790471815e-10,
+      "raise": 0.9999899864196777
+    },
+    "P1:private=Q:public=Q:r0:bet-raise-call|r1:check": {
+      "bet": 0.9999325275421143,
+      "check": 6.741443212376907e-05
+    },
+    "P1:private=Q:public=Q:r0:bet-raise-call|r1:check-bet-raise": {
+      "call": 0.9999637603759766,
+      "fold": 3.620257484726608e-05
+    },
+    "P1:private=Q:public=Q:r0:check-bet-call|r1:bet": {
+      "call": 3.81305312657787e-06,
+      "fold": 4.571975090184033e-11,
+      "raise": 0.9999961853027344
+    },
+    "P1:private=Q:public=Q:r0:check-bet-call|r1:check": {
+      "bet": 0.9999988079071045,
+      "check": 1.2354969385341974e-06
+    },
+    "P1:private=Q:public=Q:r0:check-bet-call|r1:check-bet-raise": {
+      "call": 0.9999842643737793,
+      "fold": 1.569991400174331e-05
+    },
+    "P1:private=Q:public=Q:r0:check-bet-raise-call|r1:bet": {
+      "call": 5.271483678370714e-05,
+      "fold": 5.944019165760039e-10,
+      "raise": 0.9999473094940186
+    },
+    "P1:private=Q:public=Q:r0:check-bet-raise-call|r1:check": {
+      "bet": 0.9997900128364563,
+      "check": 0.000210034879273735
+    },
+    "P1:private=Q:public=Q:r0:check-bet-raise-call|r1:check-bet-raise": {
+      "call": 0.999990701675415,
+      "fold": 9.329485692433082e-06
+    },
+    "P1:private=Q:public=Q:r0:check-check|r1:bet": {
+      "call": 4.2897299863398075e-05,
+      "fold": 5.605209074666107e-10,
+      "raise": 0.9999570846557617
+    },
+    "P1:private=Q:public=Q:r0:check-check|r1:check": {
+      "bet": 0.9999653100967407,
+      "check": 3.4644868719624355e-05
+    },
+    "P1:private=Q:public=Q:r0:check-check|r1:check-bet-raise": {
+      "call": 0.9999822378158569,
+      "fold": 1.777803663571831e-05
+    }
+  }
+}

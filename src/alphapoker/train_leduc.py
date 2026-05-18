@@ -83,7 +83,10 @@ def train_network(
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     if args.checkpoint_in is None:
-        trainer = LeducCFRTrainer(cfr_plus=not args.vanilla_cfr)
+        trainer = LeducCFRTrainer(
+            cfr_plus=not args.vanilla_cfr,
+            linear_averaging=args.linear_averaging,
+        )
     else:
         trainer = LeducCFRTrainer.load_checkpoint(args.checkpoint_in)
 
@@ -103,6 +106,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         {
             "game": "leduc_poker",
             "algorithm": "cfr" if args.vanilla_cfr else "cfr_plus",
+            "average_weighting": "linear" if trainer.linear_averaging else "uniform",
             "metrics": metrics,
             "strategy": strategy,
         },
@@ -120,6 +124,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--network-epochs", type=int, default=0)
     parser.add_argument("--checkpoint-in", type=Path)
     parser.add_argument("--checkpoint-out", type=Path)
+    parser.add_argument("--linear-averaging", action="store_true")
     return parser
 
 
