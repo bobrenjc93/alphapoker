@@ -72,6 +72,8 @@ uv run --extra train python -m alphapoker.evaluate_leduc_model \
 - Optional Leduc policy/value distillation model.
 - Heads-up fixed-limit Texas Hold'em state transitions and hand evaluation
   built on `treys`.
+- Random fixed-limit Hold'em self-play baseline for exercising the larger-game
+  state machine.
 
 Current exact-evaluation bests:
 

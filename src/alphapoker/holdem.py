@@ -7,7 +7,9 @@ custom hand-ranking logic.
 
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass
+from typing import Callable
 
 from alphapoker.kuhn import BET, CALL, CHECK, FOLD
 from alphapoker.leduc import RAISE
@@ -315,3 +317,47 @@ class FixedLimitHoldemState:
         }
         values.update(kwargs)
         return FixedLimitHoldemState(**values)  # type: ignore[arg-type]
+
+
+HOLDEM_RANKS = "23456789TJQKA"
+HOLDEM_SUITS = "shdc"
+STANDARD_HOLDEM_DECK = tuple(f"{rank}{suit}" for rank in HOLDEM_RANKS for suit in HOLDEM_SUITS)
+
+HoldemPolicy = Callable[[FixedLimitHoldemState], str]
+
+
+def deal_fixed_limit_holdem(rng: random.Random | None = None) -> FixedLimitHoldemState:
+    rng = rng or random.Random()
+    deck = list(STANDARD_HOLDEM_DECK)
+    rng.shuffle(deck)
+    return FixedLimitHoldemState.initial(
+        ((deck[0], deck[1]), (deck[2], deck[3])),
+        (deck[4], deck[5], deck[6], deck[7], deck[8]),
+    )
+
+
+def random_holdem_policy(rng: random.Random) -> HoldemPolicy:
+    def select_action(state: FixedLimitHoldemState) -> str:
+        return rng.choice(state.legal_actions())
+
+    return select_action
+
+
+def play_fixed_limit_holdem_hand(
+    initial_state: FixedLimitHoldemState,
+    policies: tuple[HoldemPolicy, HoldemPolicy],
+    *,
+    max_actions: int = 128,
+) -> tuple[FixedLimitHoldemState, list[tuple[int, str]]]:
+    state = initial_state
+    actions: list[tuple[int, str]] = []
+    while not state.is_terminal():
+        if len(actions) >= max_actions:
+            raise RuntimeError("Hold'em hand exceeded max_actions")
+        player = state.current_player()
+        action = policies[player](state)
+        if action not in state.legal_actions():
+            raise ValueError(f"Policy selected illegal action {action!r}")
+        actions.append((player, action))
+        state = state.apply(action)
+    return state, actions

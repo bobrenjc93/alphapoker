@@ -3,8 +3,16 @@ import pytest
 
 pytest.importorskip("treys")
 
-from alphapoker.holdem import compare_holdem_hands, evaluate_holdem_hand  # noqa: E402
-from alphapoker.holdem import FixedLimitHoldemState  # noqa: E402
+import random  # noqa: E402
+
+from alphapoker.holdem import (  # noqa: E402
+    FixedLimitHoldemState,
+    deal_fixed_limit_holdem,
+    compare_holdem_hands,
+    evaluate_holdem_hand,
+    play_fixed_limit_holdem_hand,
+    random_holdem_policy,
+)
 from alphapoker.kuhn import BET, CALL, CHECK, FOLD  # noqa: E402
 from alphapoker.leduc import RAISE  # noqa: E402
 
@@ -99,3 +107,24 @@ def test_fixed_limit_holdem_showdown_uses_holdem_evaluator() -> None:
     assert state.winner() == 0
     assert state.utility(0) == 2.0
     assert state.utility(1) == -2.0
+
+
+def test_deal_fixed_limit_holdem_is_unique_and_seeded() -> None:
+    state0 = deal_fixed_limit_holdem(random.Random(7))
+    state1 = deal_fixed_limit_holdem(random.Random(7))
+    all_cards = [*state0.private_cards[0], *state0.private_cards[1], *state0.board_cards]
+
+    assert state0 == state1
+    assert len(all_cards) == len(set(all_cards))
+
+
+def test_random_fixed_limit_holdem_play_reaches_terminal() -> None:
+    rng = random.Random(11)
+    state, actions = play_fixed_limit_holdem_hand(
+        deal_fixed_limit_holdem(rng),
+        (random_holdem_policy(rng), random_holdem_policy(rng)),
+    )
+
+    assert state.is_terminal()
+    assert actions
+    assert state.utility(0) + state.utility(1) == 0.0
