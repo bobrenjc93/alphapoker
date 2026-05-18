@@ -58,14 +58,21 @@ def generate_equity_policy_examples(
     seed: int,
     equity_sims: int,
     expert_player: int | None = None,
+    expert_policy: str = "equity",
     opponent_policy: str = "equity",
     expert_behavior_policy: HoldemPolicy | None = None,
 ) -> list[HoldemPolicyExample]:
     deal_rng = random.Random(seed)
     policy_rng = random.Random(seed + 1)
-    equity_policy = equity_threshold_policy(policy_rng, simulations=equity_sims)
+    if expert_policy == "equity":
+        expert_action_policy = equity_threshold_policy(policy_rng, simulations=equity_sims)
+    elif expert_policy == "pot-odds":
+        expert_action_policy = pot_odds_equity_policy(policy_rng, simulations=equity_sims)
+    else:
+        raise ValueError(f"Unknown expert policy: {expert_policy}")
+
     if opponent_policy == "equity":
-        non_expert_policy = equity_policy
+        non_expert_policy = equity_threshold_policy(policy_rng, simulations=equity_sims)
     elif opponent_policy == "pot-odds":
         non_expert_policy = pot_odds_equity_policy(policy_rng, simulations=equity_sims)
     elif opponent_policy == "random":
@@ -79,7 +86,7 @@ def generate_equity_policy_examples(
         while not state.is_terminal():
             player = state.current_player()
             use_expert = expert_player is None or player == expert_player
-            expert_action = equity_policy(state) if use_expert else non_expert_policy(state)
+            expert_action = expert_action_policy(state) if use_expert else non_expert_policy(state)
             if use_expert:
                 examples.append(
                     HoldemPolicyExample(

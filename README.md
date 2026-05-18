@@ -112,6 +112,7 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Pot-odds-aware equity policy baseline for fixed-limit Hold'em.
 - JSON metric output for Hold'em policy-vs-policy self-play baselines.
 - Supervised fixed-limit Hold'em policy distillation from the equity baseline.
+- Supervised fixed-limit Hold'em policy distillation from pot-odds experts.
 - Fixed-limit Hold'em neural checkpoint evaluation against random/equity
   baselines.
 - Fixed-limit Hold'em equity regression model and threshold-policy evaluation.

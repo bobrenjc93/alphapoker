@@ -30,6 +30,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         seed=args.seed,
         equity_sims=args.equity_sims,
         expert_player=args.expert_player,
+        expert_policy=args.expert_policy,
         opponent_policy=args.opponent_policy,
         expert_behavior_policy=behavior_policy,
     )
@@ -72,6 +73,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "examples": len(examples),
         "equity_sims": args.equity_sims,
         "expert_player": args.expert_player,
+        "expert_policy": args.expert_policy,
         "opponent_policy": args.opponent_policy,
         "epochs": args.epochs,
         "lr": args.lr,
@@ -91,6 +93,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--hands", type=int, default=500)
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--expert-player", type=int, choices=[0, 1])
+    parser.add_argument("--expert-policy", choices=["equity", "pot-odds"], default="equity")
     parser.add_argument("--opponent-policy", choices=["equity", "pot-odds", "random"], default="equity")
     parser.add_argument("--behavior-checkpoint", type=Path)
     parser.add_argument("--epochs", type=int, default=200)
