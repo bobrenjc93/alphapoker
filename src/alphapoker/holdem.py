@@ -376,6 +376,14 @@ def estimate_holdem_equity(
     return wins / simulations
 
 
+def pot_odds_call_threshold(state: FixedLimitHoldemState, *, margin: float = 0.0) -> float:
+    call_amount = state.outstanding_call_amount()
+    if call_amount <= 0:
+        return 0.0
+    pot_after_call = sum(state.contributions) + call_amount
+    return min(1.0, max(0.0, call_amount / pot_after_call + margin))
+
+
 def equity_threshold_policy(
     rng: random.Random,
     *,
@@ -397,6 +405,37 @@ def equity_threshold_policy(
             if RAISE in legal and equity >= raise_threshold:
                 return RAISE
             if equity >= call_threshold:
+                return CALL
+            return FOLD
+
+        if BET in legal and equity >= bet_threshold:
+            return BET
+        return CHECK
+
+    return select_action
+
+
+def pot_odds_equity_policy(
+    rng: random.Random,
+    *,
+    simulations: int = 128,
+    bet_threshold: float = 0.58,
+    raise_threshold: float = 0.72,
+    call_margin: float = 0.0,
+) -> HoldemPolicy:
+    def select_action(state: FixedLimitHoldemState) -> str:
+        player = state.current_player()
+        equity = estimate_holdem_equity(
+            state.private_cards[player],
+            state.visible_board(),
+            simulations=simulations,
+            rng=rng,
+        )
+        legal = state.legal_actions()
+        if state.outstanding_call_amount() > 0:
+            if RAISE in legal and equity >= raise_threshold:
+                return RAISE
+            if equity >= pot_odds_call_threshold(state, margin=call_margin):
                 return CALL
             return FOLD
 

@@ -150,7 +150,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--hands", type=int, default=100)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--opponent-policy", choices=["random", "equity"], default="equity")
+    parser.add_argument("--opponent-policy", choices=["random", "equity", "pot-odds"], default="equity")
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
     parser.add_argument(

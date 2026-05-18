@@ -41,6 +41,18 @@ def test_generate_equity_policy_examples_for_one_player_vs_random() -> None:
     assert examples
 
 
+def test_generate_equity_policy_examples_vs_pot_odds() -> None:
+    examples = generate_equity_policy_examples(
+        hands=2,
+        seed=7,
+        equity_sims=4,
+        expert_player=0,
+        opponent_policy="pot-odds",
+    )
+
+    assert examples
+
+
 def test_generate_equity_policy_examples_with_behavior_policy() -> None:
     examples = generate_equity_policy_examples(
         hands=2,

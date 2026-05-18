@@ -91,7 +91,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--hands", type=int, default=500)
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--expert-player", type=int, choices=[0, 1])
-    parser.add_argument("--opponent-policy", choices=["equity", "random"], default="equity")
+    parser.add_argument("--opponent-policy", choices=["equity", "pot-odds", "random"], default="equity")
     parser.add_argument("--behavior-checkpoint", type=Path)
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--lr", type=float, default=3e-3)

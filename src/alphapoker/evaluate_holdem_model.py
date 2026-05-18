@@ -12,6 +12,7 @@ from alphapoker.holdem import (
     FixedLimitHoldemState,
     HoldemPolicy,
     equity_threshold_policy,
+    pot_odds_equity_policy,
     random_holdem_policy,
 )
 from alphapoker.holdem_evaluation import evaluate_policy_match
@@ -47,6 +48,8 @@ def make_opponent_policy(name: str, rng: random.Random, equity_sims: int) -> Hol
         return random_holdem_policy(rng)
     if name == "equity":
         return equity_threshold_policy(rng, simulations=equity_sims)
+    if name == "pot-odds":
+        return pot_odds_equity_policy(rng, simulations=equity_sims)
     raise ValueError(f"Unknown opponent policy: {name}")
 
 
@@ -74,7 +77,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--hands", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--opponent-policy", choices=["random", "equity"], default="random")
+    parser.add_argument("--opponent-policy", choices=["random", "equity", "pot-odds"], default="random")
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--model-player", type=int, choices=[0, 1], default=0)
     parser.add_argument("--out", type=Path)

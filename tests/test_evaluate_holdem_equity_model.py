@@ -33,3 +33,16 @@ def test_equity_model_eval_parser_accepts_thresholds() -> None:
     assert args.bet_threshold == 0.6
     assert args.raise_threshold == 0.8
     assert args.call_threshold == 0.4
+
+
+def test_equity_model_eval_parser_accepts_pot_odds_opponent() -> None:
+    args = build_parser().parse_args(
+        [
+            "--checkpoint",
+            "model.pt",
+            "--opponent-policy",
+            "pot-odds",
+        ]
+    )
+
+    assert args.opponent_policy == "pot-odds"

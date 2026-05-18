@@ -13,9 +13,12 @@ from alphapoker.holdem import (
     deal_fixed_limit_holdem,
     equity_threshold_policy,
     play_fixed_limit_holdem_hand,
+    pot_odds_equity_policy,
     random_holdem_policy,
 )
 from alphapoker.train import write_json
+
+HOLDEM_SELF_PLAY_POLICIES = ("random", "equity", "pot-odds")
 
 
 def make_policy(name: str, rng: random.Random, equity_sims: int):
@@ -23,6 +26,8 @@ def make_policy(name: str, rng: random.Random, equity_sims: int):
         return random_holdem_policy(rng)
     if name == "equity":
         return equity_threshold_policy(rng, simulations=equity_sims)
+    if name == "pot-odds":
+        return pot_odds_equity_policy(rng, simulations=equity_sims)
     raise ValueError(f"Unknown policy: {name}")
 
 
@@ -76,8 +81,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--hands", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--player0-policy", choices=["random", "equity"], default="random")
-    parser.add_argument("--player1-policy", choices=["random", "equity"], default="random")
+    parser.add_argument("--player0-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="random")
+    parser.add_argument("--player1-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="random")
     parser.add_argument("--equity-sims", type=int, default=128)
     parser.add_argument("--out", type=Path)
     return parser

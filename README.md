@@ -109,6 +109,7 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Random fixed-limit Hold'em self-play baseline for exercising the larger-game
   state machine.
 - Monte Carlo equity policy baseline for fixed-limit Hold'em.
+- Pot-odds-aware equity policy baseline for fixed-limit Hold'em.
 - JSON metric output for Hold'em policy-vs-policy self-play baselines.
 - Supervised fixed-limit Hold'em policy distillation from the equity baseline.
 - Fixed-limit Hold'em neural checkpoint evaluation against random/equity

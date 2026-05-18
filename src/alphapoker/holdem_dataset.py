@@ -12,6 +12,7 @@ from alphapoker.holdem import (
     deal_fixed_limit_holdem,
     equity_threshold_policy,
     estimate_holdem_equity,
+    pot_odds_equity_policy,
     random_holdem_policy,
 )
 from alphapoker.holdem_features import (
@@ -65,6 +66,8 @@ def generate_equity_policy_examples(
     equity_policy = equity_threshold_policy(policy_rng, simulations=equity_sims)
     if opponent_policy == "equity":
         non_expert_policy = equity_policy
+    elif opponent_policy == "pot-odds":
+        non_expert_policy = pot_odds_equity_policy(policy_rng, simulations=equity_sims)
     elif opponent_policy == "random":
         non_expert_policy = random_holdem_policy(policy_rng)
     else:
@@ -127,6 +130,8 @@ def generate_equity_value_examples(
         other_policy = random_holdem_policy(policy_rng)
     elif opponent_policy == "equity":
         other_policy = equity_threshold_policy(policy_rng, simulations=equity_sims)
+    elif opponent_policy == "pot-odds":
+        other_policy = pot_odds_equity_policy(policy_rng, simulations=equity_sims)
     else:
         raise ValueError(f"Unknown opponent policy: {opponent_policy}")
 

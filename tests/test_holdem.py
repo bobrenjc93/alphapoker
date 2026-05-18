@@ -13,6 +13,8 @@ from alphapoker.holdem import (  # noqa: E402
     estimate_holdem_equity,
     evaluate_holdem_hand,
     play_fixed_limit_holdem_hand,
+    pot_odds_call_threshold,
+    pot_odds_equity_policy,
     random_holdem_policy,
 )
 from alphapoker.kuhn import BET, CALL, CHECK, FOLD  # noqa: E402
@@ -145,6 +147,24 @@ def test_equity_threshold_policy_selects_legal_actions() -> None:
     rng = random.Random(17)
     state = deal_fixed_limit_holdem(rng)
     policy = equity_threshold_policy(rng, simulations=16)
+    action = policy(state)
+
+    assert action in state.legal_actions()
+
+
+def test_pot_odds_call_threshold_uses_current_pot() -> None:
+    state = FixedLimitHoldemState.initial(
+        (("As", "Ad"), ("Kc", "Kd")),
+        ("2h", "3d", "4s", "5c", "6h"),
+    )
+
+    assert pot_odds_call_threshold(state) == pytest.approx(0.25)
+
+
+def test_pot_odds_equity_policy_selects_legal_actions() -> None:
+    rng = random.Random(19)
+    state = deal_fixed_limit_holdem(rng)
+    policy = pot_odds_equity_policy(rng, simulations=16)
     action = policy(state)
 
     assert action in state.legal_actions()

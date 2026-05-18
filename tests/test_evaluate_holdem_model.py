@@ -23,3 +23,16 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
     )
 
     assert args.model_player == 1
+
+
+def test_holdem_model_eval_parser_accepts_pot_odds_opponent() -> None:
+    args = build_parser().parse_args(
+        [
+            "--checkpoint",
+            "model.pt",
+            "--opponent-policy",
+            "pot-odds",
+        ]
+    )
+
+    assert args.opponent_policy == "pot-odds"
