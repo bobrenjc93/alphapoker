@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import statistics
+from pathlib import Path
 from typing import Any
 
 from alphapoker.holdem import (
@@ -13,6 +15,7 @@ from alphapoker.holdem import (
     play_fixed_limit_holdem_hand,
     random_holdem_policy,
 )
+from alphapoker.train import write_json
 
 
 def make_policy(name: str, rng: random.Random, equity_sims: int):
@@ -32,6 +35,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
 
     total_utility_p0 = 0.0
+    utilities_p0: list[float] = []
     showdowns = 0
     folds = 0
     total_actions = 0
@@ -40,16 +44,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             deal_fixed_limit_holdem(deal_rng),
             policies,
         )
-        total_utility_p0 += terminal.utility(0)
+        utility_p0 = terminal.utility(0)
+        total_utility_p0 += utility_p0
+        utilities_p0.append(utility_p0)
         total_actions += len(actions)
         if terminal.showdown:
             showdowns += 1
         else:
             folds += 1
 
-    return {
+    utility_stdev = statistics.stdev(utilities_p0) if len(utilities_p0) > 1 else 0.0
+    metrics = {
         "hands": args.hands,
         "avg_utility_p0": total_utility_p0 / args.hands if args.hands else 0.0,
+        "utility_stdev_p0": utility_stdev,
+        "utility_stderr_p0": utility_stdev / (args.hands**0.5) if args.hands else 0.0,
         "avg_actions": total_actions / args.hands if args.hands else 0.0,
         "showdowns": showdowns,
         "folds": folds,
@@ -58,6 +67,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "player1_policy": args.player1_policy,
         "equity_sims": args.equity_sims,
     }
+    if args.out is not None:
+        write_json(Path(args.out), metrics)
+    return metrics
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -67,6 +79,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--player0-policy", choices=["random", "equity"], default="random")
     parser.add_argument("--player1-policy", choices=["random", "equity"], default="random")
     parser.add_argument("--equity-sims", type=int, default=128)
+    parser.add_argument("--out", type=Path)
     return parser
 
 

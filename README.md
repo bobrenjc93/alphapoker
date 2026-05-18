@@ -75,6 +75,7 @@ uv run --extra train python -m alphapoker.evaluate_leduc_model \
 - Random fixed-limit Hold'em self-play baseline for exercising the larger-game
   state machine.
 - Monte Carlo equity policy baseline for fixed-limit Hold'em.
+- JSON metric output for Hold'em policy-vs-policy self-play baselines.
 
 Current exact-evaluation bests:
 

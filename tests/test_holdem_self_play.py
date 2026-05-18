@@ -34,3 +34,21 @@ def test_holdem_self_play_equity_policy_smoke() -> None:
 
     assert metrics["hands"] == 3
     assert metrics["player0_policy"] == "equity"
+
+
+def test_holdem_self_play_writes_metrics(tmp_path) -> None:
+    out = tmp_path / "metrics.json"
+    args = build_parser().parse_args(
+        [
+            "--hands",
+            "2",
+            "--seed",
+            "8",
+            "--out",
+            str(out),
+        ]
+    )
+    metrics = run(args)
+
+    assert out.exists()
+    assert metrics["utility_stderr_p0"] >= 0.0
