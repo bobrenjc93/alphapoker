@@ -115,6 +115,7 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Supervised fixed-limit Hold'em policy distillation from pot-odds experts.
 - Cacheable Hold'em policy-imitation training examples for larger expert runs.
 - Held-out Hold'em policy-imitation evaluation for cloned experts.
+- Optional balanced action-class weighting for Hold'em policy distillation.
 - Backward-compatible Hold'em hand-summary, legal-action, and pot-odds
   features for neural policies.
 - Fixed-limit Hold'em neural checkpoint evaluation against random/equity

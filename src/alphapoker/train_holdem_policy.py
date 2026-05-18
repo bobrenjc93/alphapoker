@@ -14,6 +14,18 @@ from alphapoker.holdem_features import HOLDEM_CANONICAL_ACTIONS
 from alphapoker.train import write_json
 
 
+def class_weights_from_targets(targets, n_actions: int, mode: str):
+    if mode == "none":
+        return None
+    if mode != "balanced":
+        raise ValueError(f"Unknown class weighting mode: {mode}")
+    import torch
+
+    counts = torch.bincount(targets, minlength=n_actions).float()
+    weights = counts.sum() / counts.clamp_min(1.0)
+    return weights / weights.mean()
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     import torch
     import torch.nn.functional as F
@@ -49,6 +61,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     torch.manual_seed(0)
     model = HoldemPolicyNet(input_dim=features.shape[1])
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
+    class_weighting = getattr(args, "class_weighting", "none")
+    class_weights = class_weights_from_targets(
+        targets,
+        len(HOLDEM_CANONICAL_ACTIONS),
+        class_weighting,
+    )
 
     best_loss = float("inf")
     best_state = copy.deepcopy(model.state_dict())
@@ -56,7 +74,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     for _ in range(args.epochs):
         logits = model(features)
         masked_logits = logits.masked_fill(~masks, -1e9)
-        loss = F.cross_entropy(masked_logits, targets)
+        loss = F.cross_entropy(masked_logits, targets, weight=class_weights)
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()
@@ -99,6 +117,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "opponent_policy": args.opponent_policy,
         "epochs": args.epochs,
         "lr": args.lr,
+        "class_weighting": class_weighting,
         "final_loss": final_loss,
         "best_loss": best_loss,
         "train_accuracy": train_accuracy,
@@ -127,6 +146,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--behavior-checkpoint", type=Path)
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--lr", type=float, default=3e-3)
+    parser.add_argument("--class-weighting", choices=["none", "balanced"], default="none")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--examples-in", type=Path)
     parser.add_argument("--examples-out", type=Path)
