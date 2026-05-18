@@ -70,6 +70,7 @@ uv run --extra train python -m alphapoker.evaluate_leduc_model \
 - Tabular Leduc CFR trainer with exact expected-value and best-response
   exploitability evaluation.
 - Optional Leduc policy/value distillation model.
+- Texas Hold'em hand-evaluation utilities built on `treys`.
 
 Current exact-evaluation bests:
 
