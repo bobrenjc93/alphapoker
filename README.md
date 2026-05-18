@@ -59,6 +59,26 @@ uv run --extra train python -m alphapoker.evaluate_leduc_model \
   --out experiments/leduc_cfr_linear_20k_distill_2k_best_eval
 ```
 
+Train and evaluate the current fixed-limit Hold'em policy baseline:
+
+```bash
+uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
+  --hands 500 \
+  --equity-sims 8 \
+  --expert-player 0 \
+  --opponent-policy random \
+  --epochs 200 \
+  --seed 41 \
+  --out experiments/holdem_equity_p0_vs_random_distill_500
+
+uv run --extra train --extra holdem python -m alphapoker.evaluate_holdem_model \
+  --checkpoint experiments/holdem_equity_p0_vs_random_distill_500/holdem_policy.pt \
+  --hands 1000 \
+  --seed 22 \
+  --opponent-policy random \
+  --out experiments/holdem_policy_p0_vs_random_1k/metrics.json
+```
+
 ## Current Milestone
 
 - Exact Kuhn poker environment with legal actions and zero-sum payoffs.
@@ -76,6 +96,9 @@ uv run --extra train python -m alphapoker.evaluate_leduc_model \
   state machine.
 - Monte Carlo equity policy baseline for fixed-limit Hold'em.
 - JSON metric output for Hold'em policy-vs-policy self-play baselines.
+- Supervised fixed-limit Hold'em policy distillation from the equity baseline.
+- Fixed-limit Hold'em neural checkpoint evaluation against random/equity
+  baselines.
 
 Current exact-evaluation bests:
 
