@@ -9,6 +9,8 @@ from alphapoker.holdem import (  # noqa: E402
     FixedLimitHoldemState,
     deal_fixed_limit_holdem,
     compare_holdem_hands,
+    equity_threshold_policy,
+    estimate_holdem_equity,
     evaluate_holdem_hand,
     play_fixed_limit_holdem_hand,
     random_holdem_policy,
@@ -128,3 +130,21 @@ def test_random_fixed_limit_holdem_play_reaches_terminal() -> None:
     assert state.is_terminal()
     assert actions
     assert state.utility(0) + state.utility(1) == 0.0
+
+
+def test_holdem_equity_estimator_orders_premium_and_weak_hands() -> None:
+    rng = random.Random(13)
+    premium = estimate_holdem_equity(("As", "Ad"), (), simulations=200, rng=rng)
+    weak = estimate_holdem_equity(("7c", "2d"), (), simulations=200, rng=rng)
+
+    assert premium > 0.75
+    assert weak < 0.45
+
+
+def test_equity_threshold_policy_selects_legal_actions() -> None:
+    rng = random.Random(17)
+    state = deal_fixed_limit_holdem(rng)
+    policy = equity_threshold_policy(rng, simulations=16)
+    action = policy(state)
+
+    assert action in state.legal_actions()

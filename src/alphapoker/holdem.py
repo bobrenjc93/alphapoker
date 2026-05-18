@@ -343,6 +343,70 @@ def random_holdem_policy(rng: random.Random) -> HoldemPolicy:
     return select_action
 
 
+def estimate_holdem_equity(
+    private_cards: tuple[str, str],
+    visible_board: tuple[str, ...],
+    *,
+    simulations: int = 256,
+    rng: random.Random | None = None,
+) -> float:
+    if simulations <= 0:
+        raise ValueError("simulations must be positive")
+    if len(private_cards) != 2:
+        raise ValueError("equity estimation requires exactly two private cards")
+    if len(visible_board) > 5:
+        raise ValueError("visible board cannot exceed five cards")
+
+    rng = rng or random.Random()
+    known = set(private_cards) | set(visible_board)
+    if len(known) != len(private_cards) + len(visible_board):
+        raise ValueError("Known cards must be unique")
+
+    deck = [card for card in STANDARD_HOLDEM_DECK if card not in known]
+    wins = 0.0
+    for _ in range(simulations):
+        sample = rng.sample(deck, 2 + (5 - len(visible_board)))
+        opponent_private = (sample[0], sample[1])
+        board = (*visible_board, *sample[2:])
+        comparison = compare_holdem_hands(private_cards, opponent_private, board)
+        if comparison == 1:
+            wins += 1.0
+        elif comparison == 0:
+            wins += 0.5
+    return wins / simulations
+
+
+def equity_threshold_policy(
+    rng: random.Random,
+    *,
+    simulations: int = 128,
+    bet_threshold: float = 0.58,
+    raise_threshold: float = 0.72,
+    call_threshold: float = 0.36,
+) -> HoldemPolicy:
+    def select_action(state: FixedLimitHoldemState) -> str:
+        player = state.current_player()
+        equity = estimate_holdem_equity(
+            state.private_cards[player],
+            state.visible_board(),
+            simulations=simulations,
+            rng=rng,
+        )
+        legal = state.legal_actions()
+        if state.outstanding_call_amount() > 0:
+            if RAISE in legal and equity >= raise_threshold:
+                return RAISE
+            if equity >= call_threshold:
+                return CALL
+            return FOLD
+
+        if BET in legal and equity >= bet_threshold:
+            return BET
+        return CHECK
+
+    return select_action
+
+
 def play_fixed_limit_holdem_hand(
     initial_state: FixedLimitHoldemState,
     policies: tuple[HoldemPolicy, HoldemPolicy],
