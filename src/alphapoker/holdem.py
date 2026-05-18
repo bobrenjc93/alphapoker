@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from alphapoker.kuhn import BET, CALL, CHECK, FOLD
+from alphapoker.leduc import RAISE
 from treys import Card, Evaluator
 
 
@@ -71,3 +73,245 @@ def compare_holdem_hands(
         return -1
     return 0
 
+
+History = tuple[str, ...]
+StreetHistories = tuple[History, History, History, History]
+
+
+@dataclass(frozen=True)
+class FixedLimitHoldemState:
+    """Heads-up fixed-limit Texas Hold'em state with chance fixed up front."""
+
+    private_cards: tuple[tuple[str, str], tuple[str, str]]
+    board_cards: tuple[str, str, str, str, str]
+    street: int = 0
+    histories: StreetHistories = ((), (), (), ())
+    contributions: tuple[int, int] = (1, 2)
+    round_contributions: tuple[int, int] = (1, 2)
+    to_act: int = 0
+    bets_this_round: int = 1
+    folded_player: int | None = None
+    showdown: bool = False
+    small_blind: int = 1
+    big_blind: int = 2
+    small_bet: int = 2
+    big_bet: int = 4
+    max_bets_per_round: int = 4
+
+    @classmethod
+    def initial(
+        cls,
+        private_cards: tuple[tuple[str, str], tuple[str, str]],
+        board_cards: tuple[str, str, str, str, str],
+        *,
+        small_blind: int = 1,
+        big_blind: int = 2,
+        small_bet: int = 2,
+        big_bet: int = 4,
+        max_bets_per_round: int = 4,
+    ) -> "FixedLimitHoldemState":
+        cards = [*private_cards[0], *private_cards[1], *board_cards]
+        if len(private_cards[0]) != 2 or len(private_cards[1]) != 2:
+            raise ValueError("Each Hold'em player needs exactly two private cards")
+        if len(board_cards) != 5:
+            raise ValueError("Hold'em state needs exactly five predetermined board cards")
+        if len(set(cards)) != len(cards):
+            raise ValueError("Cards must be unique")
+
+        return cls(
+            private_cards=private_cards,
+            board_cards=board_cards,
+            contributions=(small_blind, big_blind),
+            round_contributions=(small_blind, big_blind),
+            small_blind=small_blind,
+            big_blind=big_blind,
+            small_bet=small_bet,
+            big_bet=big_bet,
+            max_bets_per_round=max_bets_per_round,
+        )
+
+    def is_terminal(self) -> bool:
+        return self.folded_player is not None or self.showdown
+
+    def current_player(self) -> int:
+        if self.is_terminal():
+            raise ValueError("Terminal states have no current player")
+        return self.to_act
+
+    def visible_board(self) -> tuple[str, ...]:
+        board_count = (0, 3, 4, 5)[self.street]
+        return self.board_cards[:board_count]
+
+    def current_round_history(self) -> History:
+        return self.histories[self.street]
+
+    def outstanding_call_amount(self) -> int:
+        other = 1 - self.to_act
+        return max(0, self.round_contributions[other] - self.round_contributions[self.to_act])
+
+    def current_bet_size(self) -> int:
+        return self.small_bet if self.street < 2 else self.big_bet
+
+    def legal_actions(self) -> tuple[str, ...]:
+        if self.is_terminal():
+            return ()
+        if self.outstanding_call_amount() > 0:
+            actions = [CALL, FOLD]
+            if self.bets_this_round < self.max_bets_per_round:
+                actions.append(RAISE)
+            return tuple(actions)
+
+        actions = [CHECK]
+        if self.bets_this_round < self.max_bets_per_round:
+            actions.append(BET)
+        return tuple(actions)
+
+    def apply(self, action: str) -> "FixedLimitHoldemState":
+        if action not in self.legal_actions():
+            raise ValueError(f"Illegal action {action!r} for state {self}")
+
+        histories = self._append_history(action)
+        contributions = list(self.contributions)
+        round_contributions = list(self.round_contributions)
+        bets_this_round = self.bets_this_round
+
+        if action == FOLD:
+            return self._replace(
+                histories=histories,
+                contributions=tuple(contributions),
+                folded_player=self.to_act,
+            )
+
+        if action == CALL:
+            amount = self.outstanding_call_amount()
+            contributions[self.to_act] += amount
+            round_contributions[self.to_act] += amount
+            return self._finish_betting_round(histories, tuple(contributions))
+
+        if action == CHECK:
+            if self.current_round_history() == (CHECK,):
+                return self._finish_betting_round(histories, tuple(contributions))
+            return self._next_player(
+                histories=histories,
+                contributions=tuple(contributions),
+                round_contributions=tuple(round_contributions),
+                bets_this_round=bets_this_round,
+            )
+
+        if action == BET:
+            amount = self.current_bet_size()
+            contributions[self.to_act] += amount
+            round_contributions[self.to_act] += amount
+            bets_this_round += 1
+            return self._next_player(
+                histories=histories,
+                contributions=tuple(contributions),
+                round_contributions=tuple(round_contributions),
+                bets_this_round=bets_this_round,
+            )
+
+        if action == RAISE:
+            amount = self.outstanding_call_amount() + self.current_bet_size()
+            contributions[self.to_act] += amount
+            round_contributions[self.to_act] += amount
+            bets_this_round += 1
+            return self._next_player(
+                histories=histories,
+                contributions=tuple(contributions),
+                round_contributions=tuple(round_contributions),
+                bets_this_round=bets_this_round,
+            )
+
+        raise AssertionError(f"Unhandled action: {action}")
+
+    def winner(self) -> int | None:
+        if not self.is_terminal():
+            raise ValueError("Non-terminal states do not have a winner")
+        if self.folded_player is not None:
+            return 1 - self.folded_player
+
+        comparison = compare_holdem_hands(
+            self.private_cards[0],
+            self.private_cards[1],
+            self.board_cards,
+        )
+        if comparison == 0:
+            return None
+        return 0 if comparison == 1 else 1
+
+    def utility(self, player: int) -> float:
+        if player not in (0, 1):
+            raise ValueError(f"Unknown player: {player}")
+        if not self.is_terminal():
+            raise ValueError("Utility is only defined for terminal states")
+
+        pot = sum(self.contributions)
+        winner = self.winner()
+        if winner is None:
+            return pot / 2.0 - self.contributions[player]
+        if winner == player:
+            return float(pot - self.contributions[player])
+        return float(-self.contributions[player])
+
+    def _append_history(self, action: str) -> StreetHistories:
+        histories = [list(history) for history in self.histories]
+        histories[self.street].append(action)
+        return tuple(tuple(history) for history in histories)  # type: ignore[return-value]
+
+    def _finish_betting_round(
+        self,
+        histories: StreetHistories,
+        contributions: tuple[int, int],
+    ) -> "FixedLimitHoldemState":
+        if self.street == 3:
+            return self._replace(
+                histories=histories,
+                contributions=contributions,
+                showdown=True,
+            )
+
+        return self._replace(
+            street=self.street + 1,
+            histories=histories,
+            contributions=contributions,
+            round_contributions=(0, 0),
+            to_act=1,
+            bets_this_round=0,
+        )
+
+    def _next_player(
+        self,
+        *,
+        histories: StreetHistories,
+        contributions: tuple[int, int],
+        round_contributions: tuple[int, int],
+        bets_this_round: int,
+    ) -> "FixedLimitHoldemState":
+        return self._replace(
+            histories=histories,
+            contributions=contributions,
+            round_contributions=round_contributions,
+            bets_this_round=bets_this_round,
+            to_act=1 - self.to_act,
+        )
+
+    def _replace(self, **kwargs: object) -> "FixedLimitHoldemState":
+        values = {
+            "private_cards": self.private_cards,
+            "board_cards": self.board_cards,
+            "street": self.street,
+            "histories": self.histories,
+            "contributions": self.contributions,
+            "round_contributions": self.round_contributions,
+            "to_act": self.to_act,
+            "bets_this_round": self.bets_this_round,
+            "folded_player": self.folded_player,
+            "showdown": self.showdown,
+            "small_blind": self.small_blind,
+            "big_blind": self.big_blind,
+            "small_bet": self.small_bet,
+            "big_bet": self.big_bet,
+            "max_bets_per_round": self.max_bets_per_round,
+        }
+        values.update(kwargs)
+        return FixedLimitHoldemState(**values)  # type: ignore[arg-type]
