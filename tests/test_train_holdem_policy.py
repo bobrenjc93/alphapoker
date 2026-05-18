@@ -50,3 +50,19 @@ def test_train_holdem_policy_parser_accepts_rollout_expert() -> None:
 
     assert args.expert_policy == "rollout-pot-odds"
     assert args.rollout_sims == 2
+
+
+def test_train_holdem_policy_parser_accepts_tuned_expert() -> None:
+    args = build_parser().parse_args(
+        [
+            "--expert-policy",
+            "tuned-pot-odds",
+            "--opponent-policy",
+            "tuned-pot-odds",
+            "--out",
+            "out",
+        ]
+    )
+
+    assert args.expert_policy == "tuned-pot-odds"
+    assert args.opponent_policy == "tuned-pot-odds"

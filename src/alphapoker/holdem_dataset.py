@@ -22,8 +22,14 @@ from alphapoker.holdem_features import (
 )
 from alphapoker.holdem_self_play import make_policy
 
-HOLDEM_EXPERT_POLICIES = ("equity", "pot-odds", "rollout-pot-odds")
-HOLDEM_DATASET_OPPONENT_POLICIES = ("equity", "pot-odds", "random", "rollout-pot-odds")
+HOLDEM_EXPERT_POLICIES = ("equity", "pot-odds", "tuned-pot-odds", "rollout-pot-odds")
+HOLDEM_DATASET_OPPONENT_POLICIES = (
+    "equity",
+    "pot-odds",
+    "tuned-pot-odds",
+    "random",
+    "rollout-pot-odds",
+)
 
 
 @dataclass(frozen=True)

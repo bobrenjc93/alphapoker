@@ -19,7 +19,13 @@ from alphapoker.holdem import (
 )
 from alphapoker.train import write_json
 
-HOLDEM_SELF_PLAY_POLICIES = ("random", "equity", "pot-odds", "rollout-pot-odds")
+HOLDEM_SELF_PLAY_POLICIES = (
+    "random",
+    "equity",
+    "pot-odds",
+    "tuned-pot-odds",
+    "rollout-pot-odds",
+)
 
 
 def make_policy(
@@ -34,6 +40,14 @@ def make_policy(
         return equity_threshold_policy(rng, simulations=equity_sims)
     if name == "pot-odds":
         return pot_odds_equity_policy(rng, simulations=equity_sims)
+    if name == "tuned-pot-odds":
+        return pot_odds_equity_policy(
+            rng,
+            simulations=equity_sims,
+            bet_threshold=0.54,
+            raise_threshold=0.76,
+            call_margin=0.05,
+        )
     if name == "rollout-pot-odds":
         return pot_odds_rollout_policy(
             rng,

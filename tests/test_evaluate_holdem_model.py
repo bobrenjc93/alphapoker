@@ -66,3 +66,16 @@ def test_holdem_model_eval_parser_accepts_rollout_opponent() -> None:
 
     assert args.opponent_policy == "rollout-pot-odds"
     assert args.rollout_sims == 2
+
+
+def test_holdem_model_eval_parser_accepts_tuned_pot_odds_opponent() -> None:
+    args = build_parser().parse_args(
+        [
+            "--checkpoint",
+            "model.pt",
+            "--opponent-policy",
+            "tuned-pot-odds",
+        ]
+    )
+
+    assert args.opponent_policy == "tuned-pot-odds"

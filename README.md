@@ -111,6 +111,7 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Monte Carlo equity policy baseline for fixed-limit Hold'em.
 - Pot-odds-aware equity policy baseline for fixed-limit Hold'em.
 - Cross-seat pot-odds parameter sweeps for stronger rule-policy gates.
+- Tuned pot-odds rule-policy gate confirmed against the default pot-odds policy.
 - Imperfect-information pot-odds rollout policy for one-step action-value search.
 - JSON metric output for Hold'em policy-vs-policy self-play baselines.
 - Supervised fixed-limit Hold'em policy distillation from the equity baseline.
