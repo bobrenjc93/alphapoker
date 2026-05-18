@@ -3,7 +3,7 @@ import pytest
 
 pytest.importorskip("treys")
 
-from alphapoker.holdem import deal_fixed_limit_holdem  # noqa: E402
+from alphapoker.holdem import FixedLimitHoldemState, deal_fixed_limit_holdem  # noqa: E402
 from alphapoker.holdem_dataset import (  # noqa: E402
     HoldemEquityExample,
     HoldemPolicyExample,
@@ -17,10 +17,12 @@ from alphapoker.holdem_dataset import (  # noqa: E402
 from alphapoker.holdem_features import (  # noqa: E402
     HOLDEM_BASE_FEATURE_DIM,
     HOLDEM_FEATURE_DIM,
+    HOLDEM_HAND_STRENGTH_FEATURE_DIM,
     adapt_holdem_features,
     encode_holdem_state,
     holdem_legal_action_mask,
 )
+from alphapoker.kuhn import CALL  # noqa: E402
 
 
 def test_holdem_features_have_fixed_shape() -> None:
@@ -29,6 +31,21 @@ def test_holdem_features_have_fixed_shape() -> None:
     assert len(encode_holdem_state(state)) == HOLDEM_FEATURE_DIM
     assert len(holdem_legal_action_mask(state)) == 5
     assert len(adapt_holdem_features(encode_holdem_state(state), HOLDEM_BASE_FEATURE_DIM)) == HOLDEM_BASE_FEATURE_DIM
+
+
+def test_holdem_made_hand_features_activate_on_flop() -> None:
+    preflop = FixedLimitHoldemState.initial(
+        (("As", "Qs"), ("Ah", "Ad")),
+        ("2s", "7s", "9s", "Kd", "3c"),
+    )
+    flop = preflop.apply(CALL)
+
+    assert encode_holdem_state(preflop)[-HOLDEM_HAND_STRENGTH_FEATURE_DIM:] == [
+        0.0 for _ in range(HOLDEM_HAND_STRENGTH_FEATURE_DIM)
+    ]
+    flop_strength_features = encode_holdem_state(flop)[-HOLDEM_HAND_STRENGTH_FEATURE_DIM:]
+    assert flop_strength_features[0] > 0.0
+    assert sum(flop_strength_features[2:]) == 1.0
 
 
 def test_generate_equity_policy_examples_smoke() -> None:

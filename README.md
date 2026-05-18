@@ -125,8 +125,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   seat-balanced training.
 - Actor-critic Hold'em policy training with a learned value baseline and
   seat-balanced training.
-- Backward-compatible Hold'em hand-summary, legal-action, and pot-odds
-  features for neural policies.
+- Backward-compatible Hold'em hand-summary, made-hand strength, legal-action,
+  and pot-odds features for neural policies.
 - Fixed-limit Hold'em neural checkpoint evaluation against random/equity
   baselines.
 - Cross-seat Hold'em neural checkpoint evaluation.

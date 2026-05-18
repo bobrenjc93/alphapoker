@@ -6,6 +6,7 @@ from alphapoker.holdem import (
     FixedLimitHoldemState,
     HOLDEM_RANKS,
     HOLDEM_SUITS,
+    evaluate_holdem_hand,
     pot_odds_call_threshold,
 )
 from alphapoker.kuhn import BET, CALL, CHECK, FOLD
@@ -13,7 +14,8 @@ from alphapoker.leduc import RAISE
 
 HOLDEM_CANONICAL_ACTIONS = (CHECK, BET, CALL, FOLD, RAISE)
 HOLDEM_BASE_FEATURE_DIM = 117
-HOLDEM_FEATURE_DIM = 129
+HOLDEM_HAND_STRENGTH_FEATURE_DIM = 11
+HOLDEM_FEATURE_DIM = 140
 
 
 def holdem_card_index(card: str) -> int:
@@ -58,7 +60,21 @@ def encode_holdem_state(state: FixedLimitHoldemState) -> list[float]:
     legal = set(state.legal_actions())
     features.extend(1.0 if action in legal else 0.0 for action in HOLDEM_CANONICAL_ACTIONS)
     features.append(pot_odds_call_threshold(state))
+    features.extend(holdem_made_hand_features(state, player))
     return features
+
+
+def holdem_made_hand_features(state: FixedLimitHoldemState, player: int) -> list[float]:
+    visible_board = state.visible_board()
+    if len(visible_board) < 3:
+        return [0.0 for _ in range(HOLDEM_HAND_STRENGTH_FEATURE_DIM)]
+
+    result = evaluate_holdem_hand(state.private_cards[player], visible_board)
+    rank_strength = 1.0 - ((result.rank_class - 1) / 8.0)
+    score_strength = (7463.0 - result.score) / 7462.0
+    rank_class_one_hot = [0.0 for _ in range(9)]
+    rank_class_one_hot[result.rank_class - 1] = 1.0
+    return [rank_strength, score_strength, *rank_class_one_hot]
 
 
 def adapt_holdem_features(features: list[float], input_dim: int) -> list[float]:
