@@ -20,12 +20,17 @@ class ExperimentMetric:
 
 def load_metrics(experiments_dir: Path) -> list[ExperimentMetric]:
     metrics: list[ExperimentMetric] = []
-    for path in sorted(experiments_dir.glob("*/metrics.json")):
+    paths = [
+        *experiments_dir.glob("*/metrics.json"),
+        *experiments_dir.glob("*/model_eval.json"),
+    ]
+    for path in sorted(paths):
         payload: dict[str, Any] = json.loads(path.read_text())
+        source_metrics = payload.get("source_metrics", {})
         metrics.append(
             ExperimentMetric(
                 name=path.parent.name,
-                iterations=payload.get("iterations"),
+                iterations=payload.get("iterations", source_metrics.get("iterations")),
                 game_value_p0=payload.get("game_value_p0"),
                 exploitability=payload.get("exploitability"),
                 infosets=payload.get("infosets"),
@@ -73,4 +78,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

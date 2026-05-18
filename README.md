@@ -50,6 +50,15 @@ uv run --extra train python -m alphapoker.distill_leduc \
   --out experiments/leduc_cfr_20k_distill
 ```
 
+Evaluate the distilled model policy exactly:
+
+```bash
+uv run --extra train python -m alphapoker.evaluate_leduc_model \
+  --checkpoint experiments/leduc_cfr_20k_distill/leduc_policy_value.pt \
+  --strategy-json experiments/leduc_cfr_20k/strategy.json \
+  --out experiments/leduc_cfr_20k_distill_eval
+```
+
 ## Current Milestone
 
 - Exact Kuhn poker environment with legal actions and zero-sum payoffs.
