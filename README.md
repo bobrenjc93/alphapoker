@@ -196,6 +196,14 @@ Current fixed-limit Hold'em gate:
   with sqrt-balanced weighting and KL weight 1.0, did not repair the rollout
   gap: `-0.5425 +/- 0.3559` vs `tight-safe-rollout-pot-odds` over 200 paired
   deals.
+- A rollout-aware actor-critic pilot initialized from the current best and
+  trained for 50 hands directly against `tight-safe-rollout-pot-odds`
+  (`rollout_sims=1`, tight-range feature sims 1) produced useful runtime
+  telemetry but did not become a candidate: it was positive against the cheap
+  safe-rollout probe (`+0.8000 +/- 0.7393` over 100 paired deals) and a small
+  tight exact probe (`+0.5125 +/- 0.2914` over 200 paired deals), but collapsed
+  the `tight-range-pot-odds` gate to `+0.0050 +/- 0.2920` over 200 paired
+  deals.
 - Unweighted `tight-range` feature 1k distillation improved imitation accuracy
   but collapsed raises; it was weaker in match play: `+0.3795 +/- 0.0618` vs
   tight exact e8 over 2000 paired deals, and `+0.0560 +/- 0.0782` vs
