@@ -11,6 +11,7 @@ import random
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import blake2b
+from itertools import combinations
 from typing import Callable
 
 from alphapoker.kuhn import BET, CALL, CHECK, FOLD
@@ -432,6 +433,45 @@ def sampled_holdem_equity(
     )
 
 
+@lru_cache(maxsize=500_000)
+def _exact_river_holdem_equity_cached(
+    private_cards: tuple[str, str],
+    board_cards: tuple[str, str, str, str, str],
+) -> float:
+    known = set(private_cards) | set(board_cards)
+    deck = [card for card in STANDARD_HOLDEM_DECK if card not in known]
+    wins = 0.0
+    total = 0
+    for opponent_private in combinations(deck, 2):
+        comparison = compare_holdem_hands(private_cards, opponent_private, board_cards)
+        if comparison == 1:
+            wins += 1.0
+        elif comparison == 0:
+            wins += 0.5
+        total += 1
+    return wins / total if total else 0.0
+
+
+def exact_river_holdem_equity(
+    private_cards: tuple[str, str],
+    board_cards: tuple[str, ...],
+) -> float:
+    """Return exact hand equity against all opponent river holdings."""
+
+    sorted_private = tuple(sorted(private_cards))
+    sorted_board = tuple(sorted(board_cards))
+    if len(sorted_private) != 2:
+        raise ValueError("exact river equity requires exactly two private cards")
+    if len(sorted_board) != 5:
+        raise ValueError("exact river equity requires five board cards")
+    if len(set(sorted_private) | set(sorted_board)) != 7:
+        raise ValueError("Known cards must be unique")
+    return _exact_river_holdem_equity_cached(
+        (sorted_private[0], sorted_private[1]),
+        (sorted_board[0], sorted_board[1], sorted_board[2], sorted_board[3], sorted_board[4]),
+    )
+
+
 def preflop_holdem_equity_heuristic(private_cards: tuple[str, str]) -> float:
     if len(private_cards) != 2:
         raise ValueError("preflop equity heuristic requires exactly two private cards")
@@ -532,6 +572,39 @@ def cached_pot_odds_equity_policy(
             state.private_cards[player],
             state.visible_board(),
             simulations=simulations,
+        )
+        legal = state.legal_actions()
+        if state.outstanding_call_amount() > 0:
+            if RAISE in legal and equity >= raise_threshold:
+                return RAISE
+            if equity >= pot_odds_call_threshold(state, margin=call_margin):
+                return CALL
+            return FOLD
+
+        if BET in legal and equity >= bet_threshold:
+            return BET
+        return CHECK
+
+    return select_action
+
+
+def river_exact_pot_odds_equity_policy(
+    *,
+    simulations: int = 128,
+    bet_threshold: float = 0.54,
+    raise_threshold: float = 0.76,
+    call_margin: float = 0.05,
+) -> HoldemPolicy:
+    def select_action(state: FixedLimitHoldemState) -> str:
+        player = state.current_player()
+        equity = (
+            exact_river_holdem_equity(state.private_cards[player], state.visible_board())
+            if len(state.visible_board()) == 5
+            else sampled_holdem_equity(
+                state.private_cards[player],
+                state.visible_board(),
+                simulations=simulations,
+            )
         )
         legal = state.legal_actions()
         if state.outstanding_call_amount() > 0:

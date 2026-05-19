@@ -19,6 +19,7 @@ from alphapoker.holdem import (
     pot_odds_equity_policy,
     pot_odds_rollout_policy,
     random_holdem_policy,
+    river_exact_pot_odds_equity_policy,
 )
 from alphapoker.train import write_json
 
@@ -29,6 +30,7 @@ HOLDEM_SELF_PLAY_POLICIES = (
     "cached-pot-odds",
     "tuned-pot-odds",
     "cached-tuned-pot-odds",
+    "river-exact-tuned-pot-odds",
     "hybrid-pot-odds",
     "rollout-pot-odds",
     "cached-rollout-pot-odds",
@@ -64,6 +66,8 @@ def make_policy(
             raise_threshold=0.76,
             call_margin=0.05,
         )
+    if name == "river-exact-tuned-pot-odds":
+        return river_exact_pot_odds_equity_policy(simulations=equity_sims)
     if name == "hybrid-pot-odds":
         return hybrid_pot_odds_equity_policy(rng, simulations=equity_sims)
     if name == "rollout-pot-odds":

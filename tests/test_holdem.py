@@ -14,6 +14,7 @@ from alphapoker.holdem import (  # noqa: E402
     equity_threshold_policy,
     estimate_holdem_equity,
     evaluate_holdem_hand,
+    exact_river_holdem_equity,
     hybrid_pot_odds_equity_policy,
     play_fixed_limit_holdem_hand,
     pot_odds_call_threshold,
@@ -22,6 +23,7 @@ from alphapoker.holdem import (  # noqa: E402
     pot_odds_rollout_action_values,
     pot_odds_rollout_policy,
     random_holdem_policy,
+    river_exact_pot_odds_equity_policy,
     sample_holdem_belief_state,
     sampled_holdem_equity,
 )
@@ -159,6 +161,20 @@ def test_sampled_holdem_equity_is_deterministic() -> None:
     assert 0.0 <= first <= 1.0
 
 
+def test_exact_river_holdem_equity_scores_unbeatable_hand() -> None:
+    equity = exact_river_holdem_equity(
+        ("As", "Ks"),
+        ("Qs", "Js", "Ts", "2c", "3d"),
+    )
+
+    assert equity == 1.0
+
+
+def test_exact_river_holdem_equity_validates_board_complete() -> None:
+    with pytest.raises(ValueError, match="five board"):
+        exact_river_holdem_equity(("As", "Ks"), ("Qs", "Js", "Ts", "2c"))
+
+
 def test_preflop_holdem_equity_heuristic_orders_hands() -> None:
     premium = preflop_holdem_equity_heuristic(("As", "Ad"))
     suited_broadway = preflop_holdem_equity_heuristic(("As", "Ks"))
@@ -199,6 +215,15 @@ def test_cached_pot_odds_equity_policy_selects_legal_actions() -> None:
     rng = random.Random(20)
     state = deal_fixed_limit_holdem(rng)
     policy = cached_pot_odds_equity_policy(simulations=16)
+    action = policy(state)
+
+    assert action in state.legal_actions()
+
+
+def test_river_exact_pot_odds_equity_policy_selects_legal_actions() -> None:
+    rng = random.Random(21)
+    state = deal_fixed_limit_holdem(rng)
+    policy = river_exact_pot_odds_equity_policy(simulations=16)
     action = policy(state)
 
     assert action in state.legal_actions()
