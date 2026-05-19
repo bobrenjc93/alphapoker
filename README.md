@@ -153,6 +153,30 @@ Current exact-evaluation bests:
 uv run python -m alphapoker.experiment_summary
 ```
 
+## Progress Timeline
+
+Hold'em progress is tracked as fixed-limit chip EV rather than Elo. Elo needs a
+binary match-win model; these experiments directly measure `avg_utility_model`
+in chips/hand with paired seats and standard errors. The timestamp column below
+uses real ISO-8601 git commit times from `git log --date=iso-strict` for the
+commit that first recorded the metric.
+
+| Recorded at | Commit | Milestone | Main measured gate |
+| --- | --- | --- | --- |
+| 2026-05-18T08:14:14-07:00 | `83a65be` | Bootstrapped exact Kuhn CFR harness. | Exploitability/testing harness only; no Hold'em gate yet. |
+| 2026-05-18T08:59:30-07:00 | `07811cd` | Improved Leduc CFR distillation checkpoint selection. | Exact small-game benchmark infrastructure before Hold'em. |
+| 2026-05-18T09:30:45-07:00 | `7211b2b` | Added first fixed-limit Hold'em equity policy baseline. | First larger-game rule-policy gate. |
+| 2026-05-18T12:29:44-07:00 | `995c22f` | Added Hold'em policy-gradient trainer. | RL infrastructure; later direct RL checkpoints did not beat supervised gates. |
+| 2026-05-19T03:13:49-07:00 | `e228875` | Tuned exact turn/river pot-odds rule policy. | `+0.0077 +/- 0.0157` vs `tight-turn-river-exact-pot-odds` e8, 4000 paired deals. |
+| 2026-05-19T04:51:12-07:00 | `c760f0a` | Added range-aware pot-odds policy. | `+0.4455 +/- 0.0633` vs tight exact e8, 2000 paired deals. |
+| 2026-05-19T05:02:45-07:00 | `806fda7` | Distilled the range-aware teacher into a neural policy. | `+0.3545 +/- 0.0787` vs tight exact e8, 2000 paired deals. |
+| 2026-05-19T05:52:39-07:00 | `3344aef` | Added tight-range equity features and the current best 1k balanced distillation. | `+0.5073 +/- 0.0833` vs tight exact e8, 2000 paired deals. |
+| 2026-05-19T07:56:19-07:00 | `fe97bbc` | Rechecked the current best with action diagnostics on a fresh larger seed. | `+0.4578 +/- 0.0579` vs tight exact e8, 4000 paired deals. |
+| 2026-05-19T08:47:22-07:00 | `b325e0b` | Confirmed the current best against the range-aware opponent. | `+0.2860 +/- 0.0843` vs `tight-range-pot-odds` e4, 1000 paired deals. |
+| 2026-05-19T10:31:16-07:00 | `2861fdb` | Found a KL-anchored safe-rollout side checkpoint. | `+0.4415 +/- 0.0986` vs tight exact e8 and `+0.2400 +/- 0.3793` vs safe rollout s4, but only `+0.0470 +/- 0.0813` vs tight range e4. |
+| 2026-05-19T12:09:32-07:00 | `2d027bd` | Best-batch rollout actor-critic side pilot. | Good side probes, but exact gate was only `+0.0650 +/- 0.2337` over 200 paired deals. |
+| 2026-05-19T12:39:31-07:00 | `38718c9` | 25% robustness-checkpoint logit blend. | Stayed positive on small exact/range probes, but failed safe rollout s1 at `-0.7375 +/- 0.5386`; not a candidate. |
+
 Current fixed-limit Hold'em gate:
 
 - `tight-range-pot-odds` vs `tight-turn-river-exact-pot-odds` with candidate
@@ -197,6 +221,10 @@ Current fixed-limit Hold'em gate:
   `tight-range-pot-odds` e4, both over 100 paired deals), but failed the cheap
   `tight-safe-rollout-pot-odds` `rollout_sims=1` probe (`-0.7375 +/- 0.5386`
   over 40 paired deals). It is not a candidate.
+- A lower-dose unweighted KL counterexample pass with 50 player-0 and 50
+  player-1 safe-rollout behavior hands was still too disruptive: the completed
+  tight exact e8 probe was `-0.2700 +/- 0.3548` over 100 paired deals, so the
+  slow range/safe probes were not extended.
 - A mixed replay pilot combining the original 1k tight-range self-play examples
   with 200 player-0 and 200 player-1 safe-rollout counterexample hands, trained
   with sqrt-balanced weighting and KL weight 1.0, did not repair the rollout
