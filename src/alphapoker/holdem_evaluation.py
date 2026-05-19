@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import random
 import statistics
 from typing import Any
@@ -31,6 +32,61 @@ def _mean(values: list[float]) -> float:
 
 def _stderr(values: list[float], stdev: float) -> float:
     return stdev / (len(values) ** 0.5) if values else 0.0
+
+
+def _weighted_mean(metrics: list[dict[str, Any]], key: str) -> float:
+    total_hands = sum(int(item["hands"]) for item in metrics)
+    return (
+        sum(float(item[key]) * int(item["hands"]) for item in metrics) / total_hands
+        if total_hands
+        else 0.0
+    )
+
+
+def _pooled_stdev(metrics: list[dict[str, Any]], mean_key: str, stdev_key: str) -> float:
+    total_hands = sum(int(item["hands"]) for item in metrics)
+    if total_hands <= 1:
+        return 0.0
+    mean = _weighted_mean(metrics, mean_key)
+    sum_squares = 0.0
+    for item in metrics:
+        hands = int(item["hands"])
+        stdev = float(item[stdev_key])
+        item_mean = float(item[mean_key])
+        sum_squares += max(0, hands - 1) * stdev * stdev
+        sum_squares += hands * (item_mean - mean) * (item_mean - mean)
+    return math.sqrt(sum_squares / (total_hands - 1))
+
+
+def aggregate_policy_match_shards(metrics: list[dict[str, Any]]) -> dict[str, Any]:
+    if not metrics:
+        raise ValueError("At least one metric is required")
+    if len(metrics) == 1:
+        return metrics[0]
+    total_hands = sum(int(item["hands"]) for item in metrics)
+    model_stdev = _pooled_stdev(metrics, "avg_utility_model", "utility_stdev_model")
+    p0_stdev = _pooled_stdev(metrics, "avg_utility_p0", "utility_stdev_p0")
+    first = metrics[0]
+    aggregated = {
+        "hands": total_hands,
+        "model_player": first["model_player"],
+        "avg_utility_model": _weighted_mean(metrics, "avg_utility_model"),
+        "utility_stdev_model": model_stdev,
+        "utility_stderr_model": model_stdev / (total_hands**0.5) if total_hands else 0.0,
+        "avg_utility_p0": _weighted_mean(metrics, "avg_utility_p0"),
+        "utility_stdev_p0": p0_stdev,
+        "utility_stderr_p0": p0_stdev / (total_hands**0.5) if total_hands else 0.0,
+        "avg_actions": _weighted_mean(metrics, "avg_actions"),
+        "folds": sum(int(item["folds"]) for item in metrics),
+        "showdowns": sum(int(item["showdowns"]) for item in metrics),
+        "seed": first["seed"],
+        "shards": len(metrics),
+        "shard_metrics": metrics,
+    }
+    for key in ("policy", "opponent_policy", "equity_sims", "rollout_sims"):
+        if key in first:
+            aggregated[key] = first[key]
+    return aggregated
 
 
 def evaluate_policy_match(
