@@ -8,6 +8,7 @@ from alphapoker.train_holdem_policy import (  # noqa: E402
     _shard_hands,
     _split_train_validation_indices,
     build_parser,
+    class_weight_exponent_for_mode,
     class_weights_from_targets,
     run,
 )
@@ -32,6 +33,8 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "cached.json",
             "--class-weighting",
             "balanced",
+            "--class-weight-exponent",
+            "0.75",
             "--jobs",
             "4",
             "--validation-fraction",
@@ -47,6 +50,7 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.feature_equity_sims == 3
     assert args.feature_equity_mode == "sampled"
     assert args.class_weighting == "balanced"
+    assert args.class_weight_exponent == 0.75
     assert args.jobs == 4
     assert args.validation_fraction == 0.2
     assert str(args.examples_in) == "examples.json"
@@ -204,6 +208,29 @@ def test_sqrt_balanced_class_weights_dampen_rare_action_weight() -> None:
 
     assert sqrt_balanced[1] > sqrt_balanced[0]
     assert sqrt_balanced[1] / sqrt_balanced[0] < balanced[1] / balanced[0]
+
+
+def test_class_weight_exponent_interpolates_rare_action_weight() -> None:
+    torch = pytest.importorskip("torch")
+    targets = torch.tensor([0, 0, 0, 1])
+
+    sqrt_balanced = class_weights_from_targets(targets, 2, "sqrt-balanced")
+    power_balanced = class_weights_from_targets(targets, 2, "balanced", 0.75)
+    balanced = class_weights_from_targets(targets, 2, "balanced")
+
+    sqrt_ratio = sqrt_balanced[1] / sqrt_balanced[0]
+    power_ratio = power_balanced[1] / power_balanced[0]
+    balanced_ratio = balanced[1] / balanced[0]
+    assert sqrt_ratio < power_ratio < balanced_ratio
+    assert class_weight_exponent_for_mode("balanced", 0.75) == 0.75
+    assert class_weight_exponent_for_mode("sqrt-balanced") == 0.5
+
+
+def test_class_weight_exponent_requires_weighting() -> None:
+    with pytest.raises(ValueError, match="requires class weighting"):
+        class_weight_exponent_for_mode("none", 0.75)
+    with pytest.raises(ValueError, match="positive"):
+        class_weight_exponent_for_mode("balanced", 0.0)
 
 
 def test_train_holdem_policy_parser_accepts_tight_range_feature() -> None:

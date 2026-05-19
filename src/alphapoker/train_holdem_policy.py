@@ -24,17 +24,35 @@ from alphapoker.train import write_json
 CLASS_WEIGHTING_MODES = ("none", "balanced", "sqrt-balanced")
 
 
-def class_weights_from_targets(targets, n_actions: int, mode: str):
-    if mode == "none":
-        return None
+def class_weight_exponent_for_mode(mode: str, exponent: float | None = None) -> float | None:
     if mode not in CLASS_WEIGHTING_MODES:
         raise ValueError(f"Unknown class weighting mode: {mode}")
+    if mode == "none":
+        if exponent is not None:
+            raise ValueError("class weight exponent requires class weighting")
+        return None
+    resolved = 0.5 if mode == "sqrt-balanced" else 1.0
+    if exponent is not None:
+        if exponent <= 0.0:
+            raise ValueError("class weight exponent must be positive")
+        resolved = exponent
+    return resolved
+
+
+def class_weights_from_targets(
+    targets,
+    n_actions: int,
+    mode: str,
+    exponent: float | None = None,
+):
+    resolved_exponent = class_weight_exponent_for_mode(mode, exponent)
+    if resolved_exponent is None:
+        return None
     import torch
 
     counts = torch.bincount(targets, minlength=n_actions).float()
     weights = counts.sum() / counts.clamp_min(1.0)
-    if mode == "sqrt-balanced":
-        weights = weights.sqrt()
+    weights = weights.pow(resolved_exponent)
     return weights / weights.mean()
 
 
@@ -230,10 +248,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     model = HoldemPolicyNet(input_dim=features.shape[1])
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     class_weighting = getattr(args, "class_weighting", "none")
+    class_weight_exponent = getattr(args, "class_weight_exponent", None)
     class_weights = class_weights_from_targets(
         train_targets,
         len(HOLDEM_CANONICAL_ACTIONS),
         class_weighting,
+        class_weight_exponent,
+    )
+    resolved_class_weight_exponent = class_weight_exponent_for_mode(
+        class_weighting,
+        class_weight_exponent,
     )
 
     def loss_for(batch_features, batch_targets, batch_masks):
@@ -341,6 +365,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "epochs": args.epochs,
         "lr": args.lr,
         "class_weighting": class_weighting,
+        "class_weight_exponent": resolved_class_weight_exponent,
         "validation_fraction": validation_fraction,
         "train_examples": len(train_indices),
         "validation_examples": len(validation_indices),
@@ -393,6 +418,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--lr", type=float, default=3e-3)
     parser.add_argument("--class-weighting", choices=CLASS_WEIGHTING_MODES, default="none")
+    parser.add_argument("--class-weight-exponent", type=float)
     parser.add_argument("--validation-fraction", type=float, default=0.0)
     parser.add_argument("--jobs", type=int, default=1)
     parser.add_argument("--seed", type=int, default=0)
