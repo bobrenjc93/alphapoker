@@ -166,6 +166,9 @@ Current fixed-limit Hold'em gate:
   `+0.4578 +/- 0.0579` chips/hand. The live action mix was aggressive relative
   to the opponent: model raises were 9.7% of model actions vs 3.8% for the
   opponent.
+- The same checkpoint also beat `balanced-turn-river-exact-pot-odds` e8 over
+  1000 paired deals: `+0.6905 +/- 0.1156` chips/hand. Its live raise rate stayed
+  near 10%, versus 3.9% for the opponent.
 - Same checkpoint vs `tight-range-pot-odds` e4 with paired seats and 500 paired
   deals: `+0.1630 +/- 0.1107` chips/hand.
 - Unweighted `tight-range` feature 1k distillation improved imitation accuracy
