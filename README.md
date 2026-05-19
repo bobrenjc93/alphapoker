@@ -191,6 +191,12 @@ Current fixed-limit Hold'em gate:
   but regressed against `tight-range-pot-odds` e4 to `+0.0470 +/- 0.0813` over
   1000 paired deals. It is a useful robustness side checkpoint, not a new
   current best.
+- A 25% logit blend from the current best toward that unweighted KL robustness
+  checkpoint stayed positive but noisy on small exact and range probes
+  (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
+  `tight-range-pot-odds` e4, both over 100 paired deals), but failed the cheap
+  `tight-safe-rollout-pot-odds` `rollout_sims=1` probe (`-0.7375 +/- 0.5386`
+  over 40 paired deals). It is not a candidate.
 - A mixed replay pilot combining the original 1k tight-range self-play examples
   with 200 player-0 and 200 player-1 safe-rollout counterexample hands, trained
   with sqrt-balanced weighting and KL weight 1.0, did not repair the rollout
