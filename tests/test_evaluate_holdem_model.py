@@ -9,11 +9,12 @@ from alphapoker.evaluate_holdem_model import (  # noqa: E402
     evaluation_process_context,
     make_opponent_policy,
     model_policy_from_checkpoint,
+    opponent_aggressions_before_current_decision,
     parse_model_players,
     run,
     split_hands,
 )
-from alphapoker.holdem import deal_fixed_limit_holdem  # noqa: E402
+from alphapoker.holdem import RAISE, deal_fixed_limit_holdem  # noqa: E402
 from alphapoker.holdem_features import HOLDEM_CANONICAL_ACTIONS, HOLDEM_FEATURE_DIM  # noqa: E402
 from alphapoker.holdem_model import HoldemEquityNet, HoldemPolicyNet  # noqa: E402
 
@@ -56,6 +57,8 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
             "blend.pt",
             "--blend-weight",
             "0.25",
+            "--blend-after-opponent-aggressions",
+            "1",
             "--model-player",
             "1",
         ]
@@ -64,6 +67,7 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
     assert args.model_player == (1,)
     assert str(args.blend_checkpoint) == "blend.pt"
     assert args.blend_weight == 0.25
+    assert args.blend_after_opponent_aggressions == 1
 
 
 def test_holdem_model_eval_parser_accepts_both_model_players() -> None:
@@ -221,6 +225,29 @@ def test_model_policy_blends_compatible_checkpoints(tmp_path) -> None:
     assert blend_policy(state) == blend_action
 
 
+def test_model_policy_can_blend_after_opponent_aggression(tmp_path) -> None:
+    state = deal_fixed_limit_holdem()
+    primary_action = state.legal_actions()[0]
+    blend_action = state.legal_actions()[-1]
+    primary_checkpoint = tmp_path / "primary.pt"
+    blend_checkpoint = tmp_path / "blend.pt"
+    write_biased_policy_checkpoint(primary_checkpoint, primary_action)
+    write_biased_policy_checkpoint(blend_checkpoint, blend_action)
+
+    policy = model_policy_from_checkpoint(
+        primary_checkpoint,
+        blend_checkpoint_path=blend_checkpoint,
+        blend_weight=1.0,
+        blend_after_opponent_aggressions=1,
+    )
+
+    assert opponent_aggressions_before_current_decision(state) == 0
+    assert policy(state) == primary_action
+    raised_state = state.apply(RAISE)
+    assert opponent_aggressions_before_current_decision(raised_state) == 1
+    assert policy(raised_state) == blend_action
+
+
 def test_model_policy_blend_rejects_incompatible_features(tmp_path) -> None:
     state = deal_fixed_limit_holdem()
     legal_action = state.legal_actions()[0]
@@ -267,6 +294,8 @@ def test_holdem_model_eval_run_smoke(tmp_path) -> None:
                 str(blend_checkpoint),
                 "--blend-weight",
                 "0.25",
+                "--blend-after-opponent-aggressions",
+                "1",
                 "--hands",
                 "1",
                 "--model-player",
@@ -283,6 +312,7 @@ def test_holdem_model_eval_run_smoke(tmp_path) -> None:
     assert metrics["shard_hands"] == [1]
     assert metrics["blend_checkpoint"] == str(blend_checkpoint)
     assert metrics["blend_weight"] == 0.25
+    assert metrics["blend_after_opponent_aggressions"] == 1
     assert not metrics["paired_seats"]
     assert sum(metrics["model_action_counts"].values()) > 0
     assert sum(metrics["opponent_action_counts"].values()) > 0

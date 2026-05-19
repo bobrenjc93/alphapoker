@@ -13,7 +13,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
-from alphapoker.holdem import FixedLimitHoldemState, HoldemPolicy
+from alphapoker.holdem import BET, RAISE, FixedLimitHoldemState, HoldemPolicy
 from alphapoker.holdem_evaluation import (
     ACTION_COUNT_KEYS,
     add_action_counts,
@@ -114,6 +114,7 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
         "rollout_margin",
         "blend_checkpoint",
         "blend_weight",
+        "blend_after_opponent_aggressions",
         "fallback_policy",
         "min_strategy_weight",
         "bet_threshold",
@@ -164,12 +165,38 @@ def validate_blend_checkpoint_compatibility(
         )
 
 
+def opponent_aggressions_before_current_decision(state: FixedLimitHoldemState) -> int:
+    """Count prior opponent bets/raises visible to the current player."""
+
+    current_player = state.current_player()
+    replay_state = FixedLimitHoldemState.initial(
+        state.private_cards,
+        state.board_cards,
+        small_blind=state.small_blind,
+        big_blind=state.big_blind,
+        small_bet=state.small_bet,
+        big_bet=state.big_bet,
+        max_bets_per_round=state.max_bets_per_round,
+    )
+    aggressions = 0
+    for street_history in state.histories:
+        for action in street_history:
+            if replay_state.is_terminal():
+                return aggressions
+            actor = replay_state.current_player()
+            if actor != current_player and action in (BET, RAISE):
+                aggressions += 1
+            replay_state = replay_state.apply(action)
+    return aggressions
+
+
 def model_policy_from_checkpoint(
     checkpoint_path: Path,
     *,
     feature_seed: int = 0,
     blend_checkpoint_path: Path | None = None,
     blend_weight: float = 0.5,
+    blend_after_opponent_aggressions: int | None = None,
 ) -> HoldemPolicy:
     import torch
 
@@ -178,6 +205,11 @@ def model_policy_from_checkpoint(
 
     if not 0.0 <= blend_weight <= 1.0:
         raise ValueError("blend_weight must be between 0.0 and 1.0")
+    if blend_after_opponent_aggressions is not None:
+        if blend_after_opponent_aggressions < 1:
+            raise ValueError("blend_after_opponent_aggressions must be positive")
+        if blend_checkpoint_path is None:
+            raise ValueError("blend_after_opponent_aggressions requires a blend checkpoint")
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     feature_encoder = policy_feature_encoder_from_checkpoint_data(
         checkpoint,
@@ -202,7 +234,18 @@ def model_policy_from_checkpoint(
             logits = model(features).squeeze(0)
             if blend_model is not None:
                 blend_logits = blend_model(features).squeeze(0)
-                logits = (1.0 - blend_weight) * logits + blend_weight * blend_logits
+                active_blend_weight = blend_weight
+                if blend_after_opponent_aggressions is not None:
+                    opponent_aggressions = opponent_aggressions_before_current_decision(state)
+                    active_blend_weight = (
+                        blend_weight
+                        if opponent_aggressions >= blend_after_opponent_aggressions
+                        else 0.0
+                    )
+                logits = (
+                    (1.0 - active_blend_weight) * logits
+                    + active_blend_weight * blend_logits
+                )
             logits = logits.masked_fill(~mask, -1e9)
             action_index = int(logits.argmax().item())
         return HOLDEM_CANONICAL_ACTIONS[action_index]
@@ -231,6 +274,7 @@ def evaluate_model_shard(
     rollout_margin: float,
     blend_checkpoint: Path | None,
     blend_weight: float,
+    blend_after_opponent_aggressions: int | None,
     model_player: int,
     shard_index: int,
 ) -> dict[str, Any]:
@@ -244,6 +288,7 @@ def evaluate_model_shard(
                 feature_seed=eval_seed,
                 blend_checkpoint_path=blend_checkpoint,
                 blend_weight=blend_weight,
+                blend_after_opponent_aggressions=blend_after_opponent_aggressions,
             ),
             opponent_policy=make_opponent_policy(
                 opponent_policy,
@@ -262,6 +307,7 @@ def evaluate_model_shard(
         "rollout_margin": rollout_margin,
         "blend_checkpoint": str(blend_checkpoint) if blend_checkpoint is not None else None,
         "blend_weight": blend_weight if blend_checkpoint is not None else None,
+        "blend_after_opponent_aggressions": blend_after_opponent_aggressions,
         "shard_index": shard_index,
     }
 
@@ -277,6 +323,7 @@ def evaluate_model_paired_shard(
     rollout_margin: float,
     blend_checkpoint: Path | None,
     blend_weight: float,
+    blend_after_opponent_aggressions: int | None,
     shard_index: int,
 ) -> dict[str, Any]:
     eval_seed = seed + shard_index * 1_000_003
@@ -286,6 +333,7 @@ def evaluate_model_paired_shard(
             feature_seed=eval_seed + model_player,
             blend_checkpoint_path=blend_checkpoint,
             blend_weight=blend_weight,
+            blend_after_opponent_aggressions=blend_after_opponent_aggressions,
         )
         for model_player in (0, 1)
     )
@@ -313,6 +361,7 @@ def evaluate_model_paired_shard(
         "rollout_margin": rollout_margin,
         "blend_checkpoint": str(blend_checkpoint) if blend_checkpoint is not None else None,
         "blend_weight": blend_weight if blend_checkpoint is not None else None,
+        "blend_after_opponent_aggressions": blend_after_opponent_aggressions,
         "shard_index": shard_index,
     }
 
@@ -337,6 +386,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     blend_weight = float(getattr(args, "blend_weight", 0.5))
     if not 0.0 <= blend_weight <= 1.0:
         raise ValueError("--blend-weight must be between 0.0 and 1.0")
+    blend_after_opponent_aggressions = getattr(args, "blend_after_opponent_aggressions", None)
+    if blend_after_opponent_aggressions is not None:
+        if blend_after_opponent_aggressions < 1:
+            raise ValueError("--blend-after-opponent-aggressions must be positive")
+        if blend_checkpoint is None:
+            raise ValueError("--blend-after-opponent-aggressions requires --blend-checkpoint")
     model_players = normalize_model_players(args.model_player)
     shard_hands = split_hands(args.hands, args.jobs)
     if args.paired_seats and model_players != (0, 1):
@@ -353,6 +408,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "rollout_margin": rollout_margin,
                 "blend_checkpoint": blend_checkpoint,
                 "blend_weight": blend_weight,
+                "blend_after_opponent_aggressions": blend_after_opponent_aggressions,
                 "shard_index": shard_index,
             }
             for shard_index, shard_size in enumerate(shard_hands)
@@ -398,6 +454,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "rollout_margin": rollout_margin,
             "blend_checkpoint": blend_checkpoint,
             "blend_weight": blend_weight,
+            "blend_after_opponent_aggressions": blend_after_opponent_aggressions,
             "model_player": model_player,
             "shard_index": shard_index,
         }
@@ -442,6 +499,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--blend-checkpoint", type=Path)
     parser.add_argument("--blend-weight", type=float, default=0.5)
+    parser.add_argument("--blend-after-opponent-aggressions", type=int)
     parser.add_argument("--hands", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="random")

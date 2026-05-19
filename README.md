@@ -140,6 +140,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   for Hold'em policy distillation checkpoints.
 - Fixed-limit Hold'em neural checkpoint evaluation against random/equity
   baselines.
+- State-dependent Hold'em checkpoint blending that can switch toward a
+  robustness checkpoint after observed opponent aggression.
 - Cross-seat Hold'em neural checkpoint evaluation.
 - Hold'em match-evaluation action-count diagnostics by model/opponent role and
   player seat, with optional progress reporting for long checkpoint evaluations.
