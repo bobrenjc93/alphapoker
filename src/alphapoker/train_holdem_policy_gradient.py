@@ -95,6 +95,7 @@ def evaluate_trained_policy(
     eval_model_players = getattr(args, "eval_model_player", None) or model_players
     eval_seed = getattr(args, "eval_seed", None)
     eval_equity_sims = getattr(args, "eval_equity_sims", None)
+    eval_rollout_margin = getattr(args, "eval_rollout_margin", None)
     return evaluate_model(
         argparse.Namespace(
             checkpoint=checkpoint,
@@ -103,6 +104,11 @@ def evaluate_trained_policy(
             opponent_policy=getattr(args, "eval_opponent_policy", "pot-odds"),
             equity_sims=eval_equity_sims if eval_equity_sims is not None else args.equity_sims,
             rollout_sims=getattr(args, "eval_rollout_sims", None),
+            rollout_margin=(
+                eval_rollout_margin
+                if eval_rollout_margin is not None
+                else getattr(args, "rollout_margin", 1.0)
+            ),
             model_player=eval_model_players,
             jobs=getattr(args, "eval_jobs", 1),
             paired_seats=getattr(args, "eval_paired_seats", False),
@@ -187,6 +193,11 @@ def evaluate_selection_checkpoint(
     eval_rollout_sims = getattr(args, "selection_eval_rollout_sims", None)
     if eval_rollout_sims is None:
         eval_rollout_sims = getattr(args, "eval_rollout_sims", None)
+    eval_rollout_margin = getattr(args, "selection_eval_rollout_margin", None)
+    if eval_rollout_margin is None:
+        eval_rollout_margin = getattr(args, "eval_rollout_margin", None)
+    if eval_rollout_margin is None:
+        eval_rollout_margin = getattr(args, "rollout_margin", 1.0)
     eval_seed = getattr(args, "selection_eval_seed", None)
     return evaluate_model(
         argparse.Namespace(
@@ -196,6 +207,7 @@ def evaluate_selection_checkpoint(
             opponent_policy=eval_opponent_policy,
             equity_sims=eval_equity_sims if eval_equity_sims is not None else args.equity_sims,
             rollout_sims=eval_rollout_sims,
+            rollout_margin=eval_rollout_margin,
             model_player=eval_model_players,
             jobs=getattr(args, "selection_eval_jobs", 1),
             paired_seats=getattr(args, "selection_eval_paired_seats", False),
@@ -220,6 +232,10 @@ def compact_selection_evaluation(
     }
     if "paired_deals" in metrics:
         compact["paired_deals"] = metrics["paired_deals"]
+    if "rollout_sims" in metrics:
+        compact["rollout_sims"] = metrics["rollout_sims"]
+    if "rollout_margin" in metrics:
+        compact["rollout_margin"] = metrics["rollout_margin"]
     return compact
 
 
@@ -235,6 +251,14 @@ def selection_evaluation_metadata(
     eval_equity_sims = getattr(args, "selection_eval_equity_sims", None)
     if eval_equity_sims is None:
         eval_equity_sims = getattr(args, "eval_equity_sims", None)
+    eval_rollout_sims = getattr(args, "selection_eval_rollout_sims", None)
+    if eval_rollout_sims is None:
+        eval_rollout_sims = getattr(args, "eval_rollout_sims", None)
+    eval_rollout_margin = getattr(args, "selection_eval_rollout_margin", None)
+    if eval_rollout_margin is None:
+        eval_rollout_margin = getattr(args, "eval_rollout_margin", None)
+    if eval_rollout_margin is None:
+        eval_rollout_margin = getattr(args, "rollout_margin", 1.0)
     eval_model_players = (
         getattr(args, "selection_eval_model_player", None)
         or getattr(args, "eval_model_player", None)
@@ -248,6 +272,8 @@ def selection_evaluation_metadata(
         "selection_eval_equity_sims": (
             eval_equity_sims if eval_equity_sims is not None else args.equity_sims
         ),
+        "selection_eval_rollout_sims": eval_rollout_sims,
+        "selection_eval_rollout_margin": eval_rollout_margin,
         "selection_eval_model_player": model_player_label(eval_model_players),
         "selection_eval_jobs": getattr(args, "selection_eval_jobs", 1),
         "selection_eval_paired_seats": getattr(args, "selection_eval_paired_seats", False),
@@ -308,8 +334,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         opponent_policy_weights = tuple(1.0 for _ in opponent_policy_names)
     if len(opponent_policy_weights) != len(opponent_policy_names):
         raise ValueError("opponent policy weights must match opponent policies")
+    rollout_sims = getattr(args, "rollout_sims", None)
+    rollout_margin = float(getattr(args, "rollout_margin", 1.0))
     opponent_policies = [
-        make_policy(name, random.Random(args.seed + 100 + index), args.equity_sims)
+        make_policy(
+            name,
+            random.Random(args.seed + 100 + index),
+            args.equity_sims,
+            rollout_sims,
+            rollout_margin,
+        )
         for index, name in enumerate(opponent_policy_names)
     ]
 
@@ -463,6 +497,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "opponent_policies": list(opponent_policy_names),
         "opponent_policy_weights": list(opponent_policy_weights),
         "equity_sims": args.equity_sims,
+        "rollout_sims": rollout_sims,
+        "rollout_margin": rollout_margin,
         "lr": args.lr,
         "entropy_coef": args.entropy_coef,
         "init_checkpoint": str(args.init_checkpoint) if args.init_checkpoint is not None else None,
@@ -507,6 +543,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--opponent-policies", type=parse_policy_mix)
     parser.add_argument("--opponent-policy-weights", type=parse_policy_weights)
     parser.add_argument("--equity-sims", type=int, default=8)
+    parser.add_argument("--rollout-sims", type=int)
+    parser.add_argument("--rollout-margin", type=float, default=1.0)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--entropy-coef", type=float, default=0.01)
     parser.add_argument("--init-checkpoint", type=Path)
@@ -520,6 +558,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--selection-eval-opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES)
     parser.add_argument("--selection-eval-equity-sims", type=int)
     parser.add_argument("--selection-eval-rollout-sims", type=int)
+    parser.add_argument("--selection-eval-rollout-margin", type=float)
     parser.add_argument("--selection-eval-model-player", type=parse_model_players)
     parser.add_argument("--selection-eval-jobs", type=int, default=1)
     parser.add_argument("--selection-eval-paired-seats", action="store_true")
@@ -532,6 +571,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--eval-opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="pot-odds")
     parser.add_argument("--eval-equity-sims", type=int)
     parser.add_argument("--eval-rollout-sims", type=int)
+    parser.add_argument("--eval-rollout-margin", type=float)
     parser.add_argument("--eval-model-player", type=parse_model_players)
     parser.add_argument("--eval-jobs", type=int, default=1)
     parser.add_argument("--eval-paired-seats", action="store_true")

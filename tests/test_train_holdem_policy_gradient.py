@@ -34,6 +34,10 @@ def test_policy_gradient_parser_accepts_pot_odds() -> None:
             "random,pot-odds",
             "--opponent-policy-weights",
             "0.25,0.75",
+            "--rollout-sims",
+            "4",
+            "--rollout-margin",
+            "1.5",
             "--init-checkpoint",
             "model.pt",
             "--feature-equity-sims",
@@ -48,6 +52,10 @@ def test_policy_gradient_parser_accepts_pot_odds() -> None:
             "2",
             "--selection-eval-opponent-policy",
             "random",
+            "--selection-eval-rollout-sims",
+            "1",
+            "--selection-eval-rollout-margin",
+            "1.25",
             "--selection-eval-model-player",
             "both",
             "--selection-eval-jobs",
@@ -65,6 +73,8 @@ def test_policy_gradient_parser_accepts_pot_odds() -> None:
     assert args.opponent_policy == "pot-odds"
     assert args.opponent_policies == ("random", "pot-odds")
     assert args.opponent_policy_weights == (0.25, 0.75)
+    assert args.rollout_sims == 4
+    assert args.rollout_margin == 1.5
     assert str(args.init_checkpoint) == "model.pt"
     assert args.feature_equity_sims == 4
     assert args.feature_equity_mode == "sampled"
@@ -72,6 +82,8 @@ def test_policy_gradient_parser_accepts_pot_odds() -> None:
     assert args.selection_eval_hands == 3
     assert args.selection_eval_interval_hands == 2
     assert args.selection_eval_opponent_policy == "random"
+    assert args.selection_eval_rollout_sims == 1
+    assert args.selection_eval_rollout_margin == 1.25
     assert args.selection_eval_model_player == (0, 1)
     assert args.selection_eval_jobs == 1
     assert args.selection_eval_paired_seats
@@ -111,6 +123,10 @@ def test_policy_gradient_parser_accepts_evaluation_options() -> None:
             "--eval-paired-seats",
             "--eval-seed",
             "123",
+            "--eval-rollout-sims",
+            "3",
+            "--eval-rollout-margin",
+            "1.75",
         ]
     )
 
@@ -120,6 +136,33 @@ def test_policy_gradient_parser_accepts_evaluation_options() -> None:
     assert args.eval_jobs == 2
     assert args.eval_paired_seats
     assert args.eval_seed == 123
+    assert args.eval_rollout_sims == 3
+    assert args.eval_rollout_margin == 1.75
+
+
+def test_policy_gradient_records_rollout_training_options(tmp_path) -> None:
+    metrics = run(
+        build_parser().parse_args(
+            [
+                "--hands",
+                "1",
+                "--batch-hands",
+                "1",
+                "--opponent-policy",
+                "tight-safe-rollout-pot-odds",
+                "--rollout-sims",
+                "1",
+                "--rollout-margin",
+                "1.5",
+                "--out",
+                str(tmp_path),
+            ]
+        )
+    )
+
+    assert metrics["opponent_policy"] == "tight-safe-rollout-pot-odds"
+    assert metrics["rollout_sims"] == 1
+    assert metrics["rollout_margin"] == 1.5
 
 
 def test_policy_gradient_run_records_evaluation(tmp_path) -> None:
@@ -214,6 +257,10 @@ def test_policy_gradient_can_select_evaluation_checkpoint(tmp_path) -> None:
                 "1",
                 "--selection-eval-opponent-policy",
                 "random",
+                "--selection-eval-rollout-sims",
+                "2",
+                "--selection-eval-rollout-margin",
+                "1.5",
                 "--selection-eval-seed",
                 "50",
                 "--out",
@@ -225,7 +272,10 @@ def test_policy_gradient_can_select_evaluation_checkpoint(tmp_path) -> None:
     assert metrics["checkpoint_selection"] == "evaluation"
     assert metrics["selection_eval_hands"] == 1
     assert metrics["selection_eval_interval_hands"] == 1
+    assert metrics["selection_eval_rollout_sims"] == 2
+    assert metrics["selection_eval_rollout_margin"] == 1.5
     assert [item["hands_played"] for item in metrics["selection_evaluations"]] == [0, 1, 2]
+    assert {item["rollout_margin"] for item in metrics["selection_evaluations"]} == {1.5}
     assert metrics["best_selection_eval_hands_played"] in (0, 1, 2)
     assert not (tmp_path / "holdem_policy_selection_candidate.pt").exists()
     assert (tmp_path / "holdem_policy.pt").exists()

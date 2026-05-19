@@ -97,8 +97,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         opponent_policy_weights = tuple(1.0 for _ in opponent_policy_names)
     if len(opponent_policy_weights) != len(opponent_policy_names):
         raise ValueError("opponent policy weights must match opponent policies")
+    rollout_sims = getattr(args, "rollout_sims", None)
+    rollout_margin = float(getattr(args, "rollout_margin", 1.0))
     opponent_policies = [
-        make_policy(name, random.Random(args.seed + 100 + index), args.equity_sims)
+        make_policy(
+            name,
+            random.Random(args.seed + 100 + index),
+            args.equity_sims,
+            rollout_sims,
+            rollout_margin,
+        )
         for index, name in enumerate(opponent_policy_names)
     ]
 
@@ -289,6 +297,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "opponent_policies": list(opponent_policy_names),
         "opponent_policy_weights": list(opponent_policy_weights),
         "equity_sims": args.equity_sims,
+        "rollout_sims": rollout_sims,
+        "rollout_margin": rollout_margin,
         "lr": args.lr,
         "entropy_coef": args.entropy_coef,
         "value_loss_coef": args.value_loss_coef,
@@ -336,6 +346,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--opponent-policies", type=parse_policy_mix)
     parser.add_argument("--opponent-policy-weights", type=parse_policy_weights)
     parser.add_argument("--equity-sims", type=int, default=8)
+    parser.add_argument("--rollout-sims", type=int)
+    parser.add_argument("--rollout-margin", type=float, default=1.0)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--entropy-coef", type=float, default=0.01)
     parser.add_argument("--value-loss-coef", type=float, default=0.5)
@@ -350,6 +362,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--selection-eval-opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES)
     parser.add_argument("--selection-eval-equity-sims", type=int)
     parser.add_argument("--selection-eval-rollout-sims", type=int)
+    parser.add_argument("--selection-eval-rollout-margin", type=float)
     parser.add_argument("--selection-eval-model-player", type=parse_model_players)
     parser.add_argument("--selection-eval-jobs", type=int, default=1)
     parser.add_argument("--selection-eval-paired-seats", action="store_true")
@@ -362,6 +375,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--eval-opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="pot-odds")
     parser.add_argument("--eval-equity-sims", type=int)
     parser.add_argument("--eval-rollout-sims", type=int)
+    parser.add_argument("--eval-rollout-margin", type=float)
     parser.add_argument("--eval-model-player", type=parse_model_players)
     parser.add_argument("--eval-jobs", type=int, default=1)
     parser.add_argument("--eval-paired-seats", action="store_true")
