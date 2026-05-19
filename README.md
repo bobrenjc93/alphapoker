@@ -129,7 +129,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   weighted seat-balanced training.
 - Backward-compatible Hold'em hand-summary, made-hand strength, legal-action,
   and pot-odds features for neural policies.
-- Optional Monte Carlo equity feature for Hold'em policy distillation checkpoints.
+- Optional Monte Carlo, turn/river exact, and tight range-filtered equity features
+  for Hold'em policy distillation checkpoints.
 - Fixed-limit Hold'em neural checkpoint evaluation against random/equity
   baselines.
 - Cross-seat Hold'em neural checkpoint evaluation.
@@ -153,6 +154,11 @@ Current fixed-limit Hold'em gate:
   `+0.4455 +/- 0.0633` chips/hand for the range-aware policy.
 - Same-scale exact e4 control vs opponent e8:
   `-0.1073 +/- 0.0636` chips/hand.
+- `tight-range` feature 1k distillation from `tight-range-pot-odds`, evaluated
+  against `tight-turn-river-exact-pot-odds` e8 with paired seats and 2000 paired
+  deals: `+0.5073 +/- 0.0833` chips/hand for the model.
+- Same checkpoint vs `tight-range-pot-odds` e4 with paired seats and 500 paired
+  deals: `+0.1630 +/- 0.1107` chips/hand.
 
 ## Research Roadmap
 

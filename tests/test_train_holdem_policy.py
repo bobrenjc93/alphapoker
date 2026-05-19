@@ -181,6 +181,22 @@ def test_train_holdem_policy_parser_accepts_turn_river_exact_feature() -> None:
     assert args.feature_equity_mode == "turn-river-exact"
 
 
+def test_train_holdem_policy_parser_accepts_tight_range_feature() -> None:
+    args = build_parser().parse_args(
+        [
+            "--feature-equity-sims",
+            "4",
+            "--feature-equity-mode",
+            "tight-range",
+            "--out",
+            "out",
+        ]
+    )
+
+    assert args.feature_equity_sims == 4
+    assert args.feature_equity_mode == "tight-range"
+
+
 def test_shard_hands_for_parallel_policy_training() -> None:
     assert _shard_hands(11, 4) == [3, 3, 3, 2]
     assert _shard_hands(2, 4) == [1, 1]

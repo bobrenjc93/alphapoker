@@ -13,8 +13,10 @@ from alphapoker.holdem import (
     deal_fixed_limit_holdem,
     equity_threshold_policy,
     estimate_holdem_equity,
+    policy_filtered_holdem_equity,
     sampled_holdem_equity,
     turn_river_exact_holdem_equity,
+    turn_river_exact_pot_odds_equity_policy,
 )
 from alphapoker.holdem_equity_feature import HoldemEquityEstimator
 from alphapoker.holdem_features import (
@@ -81,7 +83,7 @@ HOLDEM_EQUITY_VALUE_OPPONENT_POLICIES = (
     "hybrid-pot-odds",
     "random",
 )
-HOLDEM_FEATURE_EQUITY_MODES = ("random", "sampled", "turn-river-exact")
+HOLDEM_FEATURE_EQUITY_MODES = ("random", "sampled", "turn-river-exact", "tight-range")
 
 
 @dataclass(frozen=True)
@@ -95,6 +97,18 @@ class HoldemPolicyExample:
 class HoldemEquityExample:
     features: list[float]
     equity: float
+
+
+def _tight_range_opponent_policy_factory(simulations: int):
+    def factory(_: random.Random) -> HoldemPolicy:
+        return turn_river_exact_pot_odds_equity_policy(
+            simulations=simulations,
+            bet_threshold=0.62,
+            raise_threshold=0.84,
+            call_margin=0.08,
+        )
+
+    return factory
 
 
 def encode_policy_example_features(
@@ -138,6 +152,14 @@ def encode_policy_example_features(
             state.private_cards[player],
             state.visible_board(),
             simulations=feature_equity_sims,
+        )
+    elif feature_equity_mode == "tight-range":
+        equity = policy_filtered_holdem_equity(
+            state,
+            player,
+            feature_rng,
+            simulations=feature_equity_sims,
+            opponent_policy_factory=_tight_range_opponent_policy_factory(feature_equity_sims),
         )
     else:
         raise AssertionError(f"Unhandled feature equity mode: {feature_equity_mode}")

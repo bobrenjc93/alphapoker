@@ -9,9 +9,12 @@ from typing import Any
 
 from alphapoker.holdem import (
     FixedLimitHoldemState,
+    HoldemPolicy,
     estimate_holdem_equity,
+    policy_filtered_holdem_equity,
     sampled_holdem_equity,
     turn_river_exact_holdem_equity,
+    turn_river_exact_pot_odds_equity_policy,
 )
 from alphapoker.holdem_equity_feature import (
     HoldemEquityEstimator,
@@ -20,7 +23,19 @@ from alphapoker.holdem_equity_feature import (
 )
 from alphapoker.holdem_features import adapt_holdem_features, encode_holdem_state
 
-POLICY_FEATURE_EQUITY_MODES = ("random", "sampled", "turn-river-exact")
+POLICY_FEATURE_EQUITY_MODES = ("random", "sampled", "turn-river-exact", "tight-range")
+
+
+def _tight_range_opponent_policy_factory(simulations: int):
+    def factory(_: random.Random) -> HoldemPolicy:
+        return turn_river_exact_pot_odds_equity_policy(
+            simulations=simulations,
+            bet_threshold=0.62,
+            raise_threshold=0.84,
+            call_margin=0.08,
+        )
+
+    return factory
 
 
 @dataclass
@@ -65,6 +80,20 @@ class HoldemPolicyFeatureEncoder:
                     state.private_cards[player],
                     state.visible_board(),
                     simulations=self.feature_equity_sims,
+                )
+            elif mode == "tight-range":
+                feature_rng = self.feature_rng
+                if feature_rng is None:
+                    feature_rng = random.Random()
+                    self.feature_rng = feature_rng
+                equity = policy_filtered_holdem_equity(
+                    state,
+                    player,
+                    feature_rng,
+                    simulations=self.feature_equity_sims,
+                    opponent_policy_factory=_tight_range_opponent_policy_factory(
+                        self.feature_equity_sims
+                    ),
                 )
             features.append(equity)
         elif self.feature_equity_fn is not None:

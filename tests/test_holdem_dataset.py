@@ -1,3 +1,5 @@
+import random
+
 import pytest
 
 
@@ -73,6 +75,19 @@ def test_holdem_policy_features_can_include_deterministic_equity_estimate() -> N
     assert len(first) == HOLDEM_FEATURE_DIM + 1
     assert first[-1] == second[-1]
     assert 0.0 <= first[-1] <= 1.0
+
+
+def test_holdem_policy_features_can_include_tight_range_equity_estimate() -> None:
+    state = deal_fixed_limit_holdem()
+    features = encode_policy_example_features(
+        state,
+        feature_equity_sims=2,
+        feature_equity_mode="tight-range",
+        feature_rng=random.Random(19),
+    )
+
+    assert len(features) == HOLDEM_FEATURE_DIM + 1
+    assert 0.0 <= features[-1] <= 1.0
 
 
 def test_holdem_policy_features_can_include_learned_equity_estimate() -> None:

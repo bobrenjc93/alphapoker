@@ -150,6 +150,25 @@ def test_model_policy_loads_turn_river_exact_feature_mode(tmp_path) -> None:
     assert action in state.legal_actions()
 
 
+def test_model_policy_loads_tight_range_feature_mode(tmp_path) -> None:
+    policy_checkpoint = tmp_path / "policy.pt"
+    torch.save(
+        {
+            "model_state_dict": HoldemPolicyNet(input_dim=HOLDEM_FEATURE_DIM + 1).state_dict(),
+            "input_dim": HOLDEM_FEATURE_DIM + 1,
+            "feature_equity_sims": 2,
+            "feature_equity_mode": "tight-range",
+            "feature_equity_checkpoint": None,
+        },
+        policy_checkpoint,
+    )
+
+    state = deal_fixed_limit_holdem()
+    action = model_policy_from_checkpoint(policy_checkpoint)(state)
+
+    assert action in state.legal_actions()
+
+
 def test_holdem_model_eval_run_smoke(tmp_path) -> None:
     policy_checkpoint = tmp_path / "policy.pt"
     torch.save(
