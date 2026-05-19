@@ -54,12 +54,14 @@ def test_holdem_model_eval_parser_accepts_both_model_players() -> None:
             "--jobs",
             "3",
             "--paired-seats",
+            "--progress",
         ]
     )
 
     assert args.model_player == (0, 1)
     assert args.jobs == 3
     assert args.paired_seats
+    assert args.progress
     assert parse_model_players("both") == (0, 1)
 
 
@@ -199,6 +201,8 @@ def test_holdem_model_eval_run_smoke(tmp_path) -> None:
     assert metrics["jobs"] == 1
     assert metrics["shard_hands"] == [1]
     assert not metrics["paired_seats"]
+    assert sum(metrics["model_action_counts"].values()) > 0
+    assert sum(metrics["opponent_action_counts"].values()) > 0
 
 
 def test_holdem_model_eval_run_paired_seats_smoke(tmp_path) -> None:
@@ -237,6 +241,9 @@ def test_holdem_model_eval_run_paired_seats_smoke(tmp_path) -> None:
     assert metrics["jobs"] == 2
     assert metrics["shard_hands"] == [1, 1]
     assert len(metrics["seat_metrics"]) == 2
+    assert sum(metrics["model_action_counts"].values()) == sum(
+        sum(seat["model_action_counts"].values()) for seat in metrics["seat_metrics"]
+    )
 
 
 def test_holdem_model_eval_paired_seats_requires_both(tmp_path) -> None:

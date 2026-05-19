@@ -12,6 +12,16 @@ from alphapoker.holdem import (
     deal_fixed_limit_holdem,
     play_fixed_limit_holdem_hand,
 )
+from alphapoker.kuhn import BET, CALL, CHECK, FOLD
+from alphapoker.leduc import RAISE
+
+HOLDEM_ACTIONS = (CHECK, BET, CALL, FOLD, RAISE)
+ACTION_COUNT_KEYS = (
+    "model_action_counts",
+    "opponent_action_counts",
+    "p0_action_counts",
+    "p1_action_counts",
+)
 
 
 def policies_for_model_player(
@@ -34,6 +44,42 @@ def _stderr(values: list[float], stdev: float) -> float:
     return stdev / (len(values) ** 0.5) if values else 0.0
 
 
+def empty_action_counts() -> dict[str, int]:
+    return {action: 0 for action in HOLDEM_ACTIONS}
+
+
+def add_action_counts(target: dict[str, int], source: dict[str, int]) -> None:
+    for action in HOLDEM_ACTIONS:
+        target[action] += int(source.get(action, 0))
+
+
+def _summed_action_counts(metrics: list[dict[str, Any]], key: str) -> dict[str, int]:
+    counts = empty_action_counts()
+    for item in metrics:
+        add_action_counts(counts, item[key])
+    return counts
+
+
+def _record_action(
+    *,
+    action: str,
+    player: int,
+    model_player: int,
+    model_action_counts: dict[str, int],
+    opponent_action_counts: dict[str, int],
+    p0_action_counts: dict[str, int],
+    p1_action_counts: dict[str, int],
+) -> None:
+    if player == model_player:
+        model_action_counts[action] += 1
+    else:
+        opponent_action_counts[action] += 1
+    if player == 0:
+        p0_action_counts[action] += 1
+    else:
+        p1_action_counts[action] += 1
+
+
 def _match_metrics(
     *,
     hands: int,
@@ -41,6 +87,10 @@ def _match_metrics(
     model_utilities: list[float],
     p0_utilities: list[float],
     total_actions: int,
+    model_action_counts: dict[str, int],
+    opponent_action_counts: dict[str, int],
+    p0_action_counts: dict[str, int],
+    p1_action_counts: dict[str, int],
     folds: int,
     showdowns: int,
     seed: int,
@@ -57,6 +107,10 @@ def _match_metrics(
         "utility_stdev_p0": p0_stdev,
         "utility_stderr_p0": _stderr(p0_utilities, p0_stdev),
         "avg_actions": total_actions / hands if hands else 0.0,
+        "model_action_counts": model_action_counts,
+        "opponent_action_counts": opponent_action_counts,
+        "p0_action_counts": p0_action_counts,
+        "p1_action_counts": p1_action_counts,
         "folds": folds,
         "showdowns": showdowns,
         "seed": seed,
@@ -138,6 +192,9 @@ def aggregate_policy_match_shards(metrics: list[dict[str, Any]]) -> dict[str, An
         "shards": len(metrics),
         "shard_metrics": metrics,
     }
+    for key in ACTION_COUNT_KEYS:
+        if key in first:
+            aggregated[key] = _summed_action_counts(metrics, key)
     if "hands_per_model_player" in first:
         aggregated["hands_per_model_player"] = sum(
             int(item["hands_per_model_player"]) for item in metrics
@@ -183,6 +240,10 @@ def evaluate_policy_match(
     model_utilities: list[float] = []
     p0_utilities: list[float] = []
     total_actions = 0
+    model_action_counts = empty_action_counts()
+    opponent_action_counts = empty_action_counts()
+    p0_action_counts = empty_action_counts()
+    p1_action_counts = empty_action_counts()
     folds = 0
     showdowns = 0
     for _ in range(hands):
@@ -190,6 +251,16 @@ def evaluate_policy_match(
         model_utilities.append(terminal.utility(model_player))
         p0_utilities.append(terminal.utility(0))
         total_actions += len(actions)
+        for player, action in actions:
+            _record_action(
+                action=action,
+                player=player,
+                model_player=model_player,
+                model_action_counts=model_action_counts,
+                opponent_action_counts=opponent_action_counts,
+                p0_action_counts=p0_action_counts,
+                p1_action_counts=p1_action_counts,
+            )
         if terminal.showdown:
             showdowns += 1
         else:
@@ -201,6 +272,10 @@ def evaluate_policy_match(
         model_utilities=model_utilities,
         p0_utilities=p0_utilities,
         total_actions=total_actions,
+        model_action_counts=model_action_counts,
+        opponent_action_counts=opponent_action_counts,
+        p0_action_counts=p0_action_counts,
+        p1_action_counts=p1_action_counts,
         folds=folds,
         showdowns=showdowns,
         seed=seed,
@@ -219,12 +294,20 @@ def evaluate_policy_match_paired_seats(
     paired_model_utilities: list[float] = []
     paired_p0_utilities: list[float] = []
     total_actions = 0
+    model_action_counts = empty_action_counts()
+    opponent_action_counts = empty_action_counts()
+    p0_action_counts = empty_action_counts()
+    p1_action_counts = empty_action_counts()
     folds = 0
     showdowns = 0
 
     seat_model_utilities: dict[int, list[float]] = {0: [], 1: []}
     seat_p0_utilities: dict[int, list[float]] = {0: [], 1: []}
     seat_actions: dict[int, int] = {0: 0, 1: 0}
+    seat_model_action_counts = {0: empty_action_counts(), 1: empty_action_counts()}
+    seat_opponent_action_counts = {0: empty_action_counts(), 1: empty_action_counts()}
+    seat_p0_action_counts = {0: empty_action_counts(), 1: empty_action_counts()}
+    seat_p1_action_counts = {0: empty_action_counts(), 1: empty_action_counts()}
     seat_folds: dict[int, int] = {0: 0, 1: 0}
     seat_showdowns: dict[int, int] = {0: 0, 1: 0}
 
@@ -248,6 +331,25 @@ def evaluate_policy_match_paired_seats(
             seat_p0_utilities[model_player].append(p0_utility)
             seat_actions[model_player] += action_count
             total_actions += action_count
+            for player, action in actions:
+                _record_action(
+                    action=action,
+                    player=player,
+                    model_player=model_player,
+                    model_action_counts=seat_model_action_counts[model_player],
+                    opponent_action_counts=seat_opponent_action_counts[model_player],
+                    p0_action_counts=seat_p0_action_counts[model_player],
+                    p1_action_counts=seat_p1_action_counts[model_player],
+                )
+                _record_action(
+                    action=action,
+                    player=player,
+                    model_player=model_player,
+                    model_action_counts=model_action_counts,
+                    opponent_action_counts=opponent_action_counts,
+                    p0_action_counts=p0_action_counts,
+                    p1_action_counts=p1_action_counts,
+                )
             if terminal.showdown:
                 seat_showdowns[model_player] += 1
                 showdowns += 1
@@ -267,6 +369,10 @@ def evaluate_policy_match_paired_seats(
                 model_utilities=seat_model_utilities[model_player],
                 p0_utilities=seat_p0_utilities[model_player],
                 total_actions=seat_actions[model_player],
+                model_action_counts=seat_model_action_counts[model_player],
+                opponent_action_counts=seat_opponent_action_counts[model_player],
+                p0_action_counts=seat_p0_action_counts[model_player],
+                p1_action_counts=seat_p1_action_counts[model_player],
                 folds=seat_folds[model_player],
                 showdowns=seat_showdowns[model_player],
                 seed=seed,
@@ -279,6 +385,10 @@ def evaluate_policy_match_paired_seats(
         model_utilities=paired_model_utilities,
         p0_utilities=paired_p0_utilities,
         total_actions=total_actions,
+        model_action_counts=model_action_counts,
+        opponent_action_counts=opponent_action_counts,
+        p0_action_counts=p0_action_counts,
+        p1_action_counts=p1_action_counts,
         folds=folds,
         showdowns=showdowns,
         seed=seed,

@@ -185,6 +185,8 @@ def test_evaluate_holdem_policy_run_smoke(tmp_path) -> None:
     assert metrics["raise_threshold"] == 0.78
     assert metrics["call_margin"] == 0.05
     assert len(metrics["seat_metrics"]) == 2
+    assert sum(metrics["model_action_counts"].values()) > 0
+    assert sum(metrics["opponent_action_counts"].values()) > 0
 
 
 def test_evaluate_holdem_policy_run_paired_seats_smoke(tmp_path) -> None:
@@ -222,6 +224,9 @@ def test_evaluate_holdem_policy_run_paired_seats_smoke(tmp_path) -> None:
     assert metrics["jobs"] == 2
     assert metrics["shard_hands"] == [1, 1]
     assert metrics["opponent_equity_sims"] == 2
+    assert sum(metrics["model_action_counts"].values()) == sum(
+        sum(seat["model_action_counts"].values()) for seat in metrics["seat_metrics"]
+    )
 
 
 def test_evaluate_holdem_policy_run_exact_threshold_override_smoke(tmp_path) -> None:

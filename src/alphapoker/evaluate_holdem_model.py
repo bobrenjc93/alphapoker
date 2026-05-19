@@ -7,6 +7,7 @@ import json
 import math
 import multiprocessing as mp
 import random
+import sys
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
@@ -14,7 +15,10 @@ from typing import Any
 
 from alphapoker.holdem import FixedLimitHoldemState, HoldemPolicy
 from alphapoker.holdem_evaluation import (
+    ACTION_COUNT_KEYS,
+    add_action_counts,
     aggregate_policy_match_shards,
+    empty_action_counts,
     evaluate_policy_match,
     evaluate_policy_match_paired_seats,
 )
@@ -68,6 +72,13 @@ def _pooled_stdev(metrics: list[dict[str, Any]], mean_key: str, stdev_key: str) 
     return math.sqrt(sum_squares / (total_hands - 1))
 
 
+def _summed_action_counts(metrics: list[dict[str, Any]], key: str) -> dict[str, int]:
+    counts = empty_action_counts()
+    for item in metrics:
+        add_action_counts(counts, item[key])
+    return counts
+
+
 def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, Any]:
     if len(metrics) == 1:
         return metrics[0]
@@ -91,6 +102,9 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
         "seed": first["seed"],
         "seat_metrics": metrics,
     }
+    for key in ACTION_COUNT_KEYS:
+        if key in first:
+            aggregated[key] = _summed_action_counts(metrics, key)
     for key in (
         "checkpoint",
         "policy",
@@ -235,7 +249,21 @@ def evaluate_model_paired_shard(
     }
 
 
+def report_progress(enabled: bool, result: dict[str, Any]) -> None:
+    if not enabled:
+        return
+    print(
+        f"player {result['model_player']} shard {result['shard_index']}: "
+        f"hands={result['hands']} "
+        f"avg_utility_model={result['avg_utility_model']:.3f} "
+        f"stderr={result['utility_stderr_model']:.3f}",
+        file=sys.stderr,
+        flush=True,
+    )
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
+    progress = bool(getattr(args, "progress", False))
     model_players = normalize_model_players(args.model_player)
     shard_hands = split_hands(args.hands, args.jobs)
     if args.paired_seats and model_players != (0, 1):
@@ -254,9 +282,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             for shard_index, shard_size in enumerate(shard_hands)
         ]
         if args.jobs == 1:
-            shard_metrics = [
-                evaluate_model_paired_shard(**kwargs) for kwargs in shard_kwargs
-            ]
+            shard_metrics = []
+            for kwargs in shard_kwargs:
+                result = evaluate_model_paired_shard(**kwargs)
+                shard_metrics.append(result)
+                report_progress(progress, result)
         else:
             with ProcessPoolExecutor(
                 max_workers=args.jobs,
@@ -266,7 +296,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     executor.submit(evaluate_model_paired_shard, **kwargs)
                     for kwargs in shard_kwargs
                 ]
-                shard_metrics = [future.result() for future in as_completed(futures)]
+                shard_metrics = []
+                for future in as_completed(futures):
+                    result = future.result()
+                    shard_metrics.append(result)
+                    report_progress(progress, result)
             shard_metrics.sort(key=lambda item: item["shard_index"])
         metrics = aggregate_policy_match_shards(shard_metrics)
         metrics["jobs"] = args.jobs
@@ -296,6 +330,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         for kwargs in shard_kwargs:
             result = evaluate_model_shard(**kwargs)
             shard_metrics_by_player[int(result["model_player"])].append(result)
+            report_progress(progress, result)
     else:
         with ProcessPoolExecutor(
             max_workers=args.jobs,
@@ -305,6 +340,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             for future in as_completed(futures):
                 result = future.result()
                 shard_metrics_by_player[int(result["model_player"])].append(result)
+                report_progress(progress, result)
 
     seat_metrics = []
     for model_player in model_players:
@@ -333,6 +369,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
     parser.add_argument("--jobs", type=int, default=1)
     parser.add_argument("--paired-seats", action="store_true")
+    parser.add_argument("--progress", action="store_true")
     parser.add_argument("--out", type=Path)
     return parser
 

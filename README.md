@@ -76,6 +76,7 @@ uv run --extra train --extra holdem python -m alphapoker.evaluate_holdem_model \
   --hands 1000 \
   --seed 22 \
   --opponent-policy random \
+  --progress \
   --out experiments/holdem_policy_p0_vs_random_1k/metrics.json
 ```
 
@@ -135,6 +136,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Fixed-limit Hold'em neural checkpoint evaluation against random/equity
   baselines.
 - Cross-seat Hold'em neural checkpoint evaluation.
+- Hold'em match-evaluation action-count diagnostics by model/opponent role and
+  player seat, with optional progress reporting for long checkpoint evaluations.
 - Fixed-limit Hold'em equity regression model and threshold-policy evaluation.
 - Both-seat training data for fixed-limit Hold'em equity regression.
 - Cacheable Hold'em equity-value training examples for longer runs.
@@ -158,6 +161,11 @@ Current fixed-limit Hold'em gate:
 - `tight-range` feature 1k distillation from `tight-range-pot-odds`, evaluated
   against `tight-turn-river-exact-pot-odds` e8 with paired seats and 2000 paired
   deals: `+0.5073 +/- 0.0833` chips/hand for the model.
+- A larger fresh-seed evaluation of the same checkpoint against
+  `tight-turn-river-exact-pot-odds` e8 over 4000 paired deals remained positive:
+  `+0.4578 +/- 0.0579` chips/hand. The live action mix was aggressive relative
+  to the opponent: model raises were 9.7% of model actions vs 3.8% for the
+  opponent.
 - Same checkpoint vs `tight-range-pot-odds` e4 with paired seats and 500 paired
   deals: `+0.1630 +/- 0.1107` chips/hand.
 - Unweighted `tight-range` feature 1k distillation improved imitation accuracy
