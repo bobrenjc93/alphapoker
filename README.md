@@ -163,6 +163,9 @@ Current fixed-limit Hold'em gate:
   but collapsed raises; it was weaker in match play: `+0.3795 +/- 0.0618` vs
   tight exact e8 over 2000 paired deals, and `+0.0560 +/- 0.0782` vs
   `tight-range-pot-odds` e4 over 500 paired deals.
+- Balanced `tight-range` feature 2k distillation was roughly tied with the 1k
+  model on the tight exact gate (`+0.4960 +/- 0.0873`) but stronger against
+  `tight-range-pot-odds` e4 (`+0.2980 +/- 0.1141`) over 500 paired deals.
 
 ## Research Roadmap
 
