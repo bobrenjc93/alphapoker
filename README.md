@@ -193,6 +193,7 @@ below keeps the broader context for range-aware and safe-rollout probes.
 | 2026-05-19T14:05:21-07:00 | `bdec05e` | Tried unweighted KL2 safe-rollout DAgger. | Exact was noisy-positive at `+0.2950 +/- 0.4455`, but range failed at `-0.3750 +/- 0.2848` over 100 paired deals. |
 | 2026-05-19T14:12:16-07:00 | `7f3d952` | Tried a 50% robustness-checkpoint logit blend. | Range stayed positive at `+0.2750 +/- 0.2105`, but safe rollout s1 stayed negative at `-0.4000 +/- 0.6534`. |
 | 2026-05-19T14:47:54-07:00 | `26e80b3` | Tried a range-refresh pass from the safe-rollout side checkpoint. | Exact spiked on a small probe at `+0.7950 +/- 0.3197`, but range was only `+0.0950 +/- 0.3300` and safe rollout s1 failed at `-1.1625 +/- 0.6153`. |
+| 2026-05-19T15:03:29-07:00 | `7023b00` | Tried aggression-triggered adaptive checkpoint blends. | Full response weight was strong on small exact/range probes (`+0.6800 +/- 0.2878`, `+0.5800 +/- 0.2753`) but failed safe rollout s1 at `-1.6875 +/- 0.6958`. |
 
 Current fixed-limit Hold'em gate:
 
@@ -249,6 +250,13 @@ Current fixed-limit Hold'em gate:
   0.3197` over 100 paired deals), but the range gate was only weakly positive
   (`+0.0950 +/- 0.3300` over 100 paired deals) and the cheap safe-rollout probe
   failed (`-1.1625 +/- 0.6153` over 40 paired deals). It is not a candidate.
+- An aggression-triggered adaptive blend that switches toward the KL1 robustness
+  checkpoint after an observed opponent bet/raise improved small exact and range
+  probes at full response weight (`+0.6800 +/- 0.2878` vs tight exact e8 and
+  `+0.5800 +/- 0.2753` vs `tight-range-pot-odds` e4, both over 100 paired
+  deals), but made the cheap safe-rollout probe worse (`-1.6875 +/- 0.6958`
+  over 40 paired deals). A 50% response weight was also not a candidate:
+  `+0.0700 +/- 0.3146` on range and `-0.4250 +/- 0.9156` on safe rollout.
 - A lower-dose unweighted KL counterexample pass with 50 player-0 and 50
   player-1 safe-rollout behavior hands was still too disruptive: the completed
   tight exact e8 probe was `-0.2700 +/- 0.3548` over 100 paired deals, so the
