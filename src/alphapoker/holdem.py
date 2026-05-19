@@ -894,6 +894,8 @@ def policy_rollout_policy(
     simulations: int,
     continuation_policy_factory: Callable[[random.Random], HoldemPolicy],
     opponent_policy_factory: Callable[[random.Random], HoldemPolicy],
+    default_policy_factory: Callable[[random.Random], HoldemPolicy] | None = None,
+    improvement_margin: float = 0.0,
 ) -> HoldemPolicy:
     def select_action(state: FixedLimitHoldemState) -> str:
         action_values = policy_rollout_action_values(
@@ -903,7 +905,17 @@ def policy_rollout_policy(
             continuation_policy_factory=continuation_policy_factory,
             opponent_policy_factory=opponent_policy_factory,
         )
-        return max(state.legal_actions(), key=lambda action: action_values[action])
+        legal_actions = state.legal_actions()
+        best_action = max(legal_actions, key=lambda action: action_values[action])
+        if default_policy_factory is None:
+            return best_action
+        default_policy = default_policy_factory(random.Random(rng.randrange(2**63)))
+        default_action = default_policy(state)
+        if default_action not in legal_actions:
+            return best_action
+        if action_values[best_action] >= action_values[default_action] + improvement_margin:
+            return best_action
+        return default_action
 
     return select_action
 

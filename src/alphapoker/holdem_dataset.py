@@ -41,6 +41,8 @@ HOLDEM_EXPERT_POLICIES = (
     "cached-tuned-rollout-pot-odds",
     "tight-rollout-pot-odds",
     "balanced-rollout-pot-odds",
+    "tight-safe-rollout-pot-odds",
+    "balanced-safe-rollout-pot-odds",
 )
 HOLDEM_DATASET_OPPONENT_POLICIES = (
     "equity",
@@ -60,6 +62,8 @@ HOLDEM_DATASET_OPPONENT_POLICIES = (
     "cached-tuned-rollout-pot-odds",
     "tight-rollout-pot-odds",
     "balanced-rollout-pot-odds",
+    "tight-safe-rollout-pot-odds",
+    "balanced-safe-rollout-pot-odds",
 )
 HOLDEM_EQUITY_VALUE_OPPONENT_POLICIES = (
     "equity",

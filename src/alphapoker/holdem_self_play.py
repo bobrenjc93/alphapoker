@@ -43,6 +43,8 @@ HOLDEM_SELF_PLAY_POLICIES = (
     "cached-tuned-rollout-pot-odds",
     "tight-rollout-pot-odds",
     "balanced-rollout-pot-odds",
+    "tight-safe-rollout-pot-odds",
+    "balanced-safe-rollout-pot-odds",
 )
 
 
@@ -51,6 +53,7 @@ def make_policy(
     rng: random.Random,
     equity_sims: int,
     rollout_sims: int | None = None,
+    rollout_margin: float = 1.0,
 ):
     if name == "random":
         return random_holdem_policy(rng)
@@ -155,6 +158,40 @@ def make_policy(
             continuation_policy_factory=baseline,
             opponent_policy_factory=baseline,
         )
+    if name == "tight-safe-rollout-pot-odds":
+        def baseline(_: random.Random):
+            return turn_river_exact_pot_odds_equity_policy(
+                simulations=equity_sims,
+                bet_threshold=0.62,
+                raise_threshold=0.84,
+                call_margin=0.08,
+            )
+
+        return policy_rollout_policy(
+            rng,
+            simulations=rollout_sims if rollout_sims is not None else equity_sims,
+            continuation_policy_factory=baseline,
+            opponent_policy_factory=baseline,
+            default_policy_factory=baseline,
+            improvement_margin=rollout_margin,
+        )
+    if name == "balanced-safe-rollout-pot-odds":
+        def baseline(_: random.Random):
+            return turn_river_exact_pot_odds_equity_policy(
+                simulations=equity_sims,
+                bet_threshold=0.58,
+                raise_threshold=0.82,
+                call_margin=0.08,
+            )
+
+        return policy_rollout_policy(
+            rng,
+            simulations=rollout_sims if rollout_sims is not None else equity_sims,
+            continuation_policy_factory=baseline,
+            opponent_policy_factory=baseline,
+            default_policy_factory=baseline,
+            improvement_margin=rollout_margin,
+        )
     raise ValueError(f"Unknown policy: {name}")
 
 
@@ -162,8 +199,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     deal_rng = random.Random(args.seed)
     policy_rng = random.Random(args.seed + 1)
     policies = (
-        make_policy(args.player0_policy, policy_rng, args.equity_sims, args.rollout_sims),
-        make_policy(args.player1_policy, policy_rng, args.equity_sims, args.rollout_sims),
+        make_policy(
+            args.player0_policy,
+            policy_rng,
+            args.equity_sims,
+            args.rollout_sims,
+            args.rollout_margin,
+        ),
+        make_policy(
+            args.player1_policy,
+            policy_rng,
+            args.equity_sims,
+            args.rollout_sims,
+            args.rollout_margin,
+        ),
     )
 
     total_utility_p0 = 0.0
@@ -199,6 +248,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "player1_policy": args.player1_policy,
         "equity_sims": args.equity_sims,
         "rollout_sims": args.rollout_sims,
+        "rollout_margin": args.rollout_margin,
     }
     if args.out is not None:
         write_json(Path(args.out), metrics)
@@ -213,6 +263,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--player1-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="random")
     parser.add_argument("--equity-sims", type=int, default=128)
     parser.add_argument("--rollout-sims", type=int)
+    parser.add_argument("--rollout-margin", type=float, default=1.0)
     parser.add_argument("--out", type=Path)
     return parser
 

@@ -81,10 +81,11 @@ def make_evaluation_policy(
     *,
     equity_sims: int,
     rollout_sims: int | None,
+    rollout_margin: float,
     thresholds: tuple[float, float, float] | None,
 ) -> HoldemPolicy:
     if thresholds is None:
-        return make_policy(name, rng, equity_sims, rollout_sims)
+        return make_policy(name, rng, equity_sims, rollout_sims, rollout_margin)
     bet_threshold, raise_threshold, call_margin = thresholds
     if name in ("pot-odds", "tuned-pot-odds"):
         return pot_odds_equity_policy(
@@ -134,6 +135,7 @@ def evaluate_policy_shard(
     seed: int,
     equity_sims: int,
     rollout_sims: int | None,
+    rollout_margin: float,
     model_player: int,
     shard_index: int,
     policy_thresholds: tuple[float, float, float] | None = None,
@@ -149,6 +151,7 @@ def evaluate_policy_shard(
                 policy_rng,
                 equity_sims=equity_sims,
                 rollout_sims=rollout_sims,
+                rollout_margin=rollout_margin,
                 thresholds=policy_thresholds,
             ),
             opponent_policy=make_policy(
@@ -156,6 +159,7 @@ def evaluate_policy_shard(
                 opponent_rng,
                 equity_sims,
                 rollout_sims,
+                rollout_margin,
             ),
             hands=hands,
             seed=shard_seed,
@@ -164,6 +168,7 @@ def evaluate_policy_shard(
         "opponent_policy": opponent_policy,
         "equity_sims": equity_sims,
         "rollout_sims": rollout_sims,
+        "rollout_margin": rollout_margin,
         "shard_index": shard_index,
     }
     if policy_thresholds is not None:
@@ -181,6 +186,7 @@ def evaluate_policy_paired_shard(
     seed: int,
     equity_sims: int,
     rollout_sims: int | None,
+    rollout_margin: float,
     shard_index: int,
     policy_thresholds: tuple[float, float, float] | None = None,
 ) -> dict[str, Any]:
@@ -191,6 +197,7 @@ def evaluate_policy_paired_shard(
             random.Random(shard_seed + 10 + model_player),
             equity_sims=equity_sims,
             rollout_sims=rollout_sims,
+            rollout_margin=rollout_margin,
             thresholds=policy_thresholds,
         )
         for model_player in (0, 1)
@@ -201,6 +208,7 @@ def evaluate_policy_paired_shard(
             random.Random(shard_seed + 20 + model_player),
             equity_sims,
             rollout_sims,
+            rollout_margin,
         )
         for model_player in (0, 1)
     )
@@ -215,6 +223,7 @@ def evaluate_policy_paired_shard(
         "opponent_policy": opponent_policy,
         "equity_sims": equity_sims,
         "rollout_sims": rollout_sims,
+        "rollout_margin": rollout_margin,
         "shard_index": shard_index,
     }
     if policy_thresholds is not None:
@@ -259,6 +268,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "seed": args.seed,
                 "equity_sims": args.equity_sims,
                 "rollout_sims": args.rollout_sims,
+                "rollout_margin": args.rollout_margin,
                 "shard_index": shard_index,
                 "policy_thresholds": policy_thresholds,
             }
@@ -290,6 +300,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             metrics["bet_threshold"] = policy_thresholds[0]
             metrics["raise_threshold"] = policy_thresholds[1]
             metrics["call_margin"] = policy_thresholds[2]
+        metrics["rollout_margin"] = args.rollout_margin
         if args.out is not None:
             write_json(args.out, metrics)
         return metrics
@@ -303,6 +314,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "seed": args.seed,
             "equity_sims": args.equity_sims,
             "rollout_sims": args.rollout_sims,
+            "rollout_margin": args.rollout_margin,
             "model_player": model_player,
             "shard_index": shard_index,
             "policy_thresholds": policy_thresholds,
@@ -339,6 +351,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         metrics["bet_threshold"] = policy_thresholds[0]
         metrics["raise_threshold"] = policy_thresholds[1]
         metrics["call_margin"] = policy_thresholds[2]
+    metrics["rollout_margin"] = args.rollout_margin
     if args.out is not None:
         write_json(args.out, metrics)
     return metrics
@@ -352,6 +365,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--equity-sims", type=int, default=128)
     parser.add_argument("--rollout-sims", type=int)
+    parser.add_argument("--rollout-margin", type=float, default=1.0)
     parser.add_argument("--bet-threshold", type=float)
     parser.add_argument("--raise-threshold", type=float)
     parser.add_argument("--call-margin", type=float)

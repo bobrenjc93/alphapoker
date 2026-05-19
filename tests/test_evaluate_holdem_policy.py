@@ -91,6 +91,25 @@ def test_evaluate_holdem_policy_parser_accepts_hybrid_and_both() -> None:
     assert args.progress
 
 
+def test_evaluate_holdem_policy_parser_accepts_safe_rollout_margin() -> None:
+    args = build_parser().parse_args(
+        [
+            "--policy",
+            "tight-safe-rollout-pot-odds",
+            "--opponent-policy",
+            "tight-turn-river-exact-pot-odds",
+            "--rollout-sims",
+            "2",
+            "--rollout-margin",
+            "1.5",
+        ]
+    )
+
+    assert args.policy == "tight-safe-rollout-pot-odds"
+    assert args.rollout_sims == 2
+    assert args.rollout_margin == 1.5
+
+
 def test_evaluate_holdem_policy_run_smoke(tmp_path) -> None:
     out = tmp_path / "metrics.json"
     metrics = run(

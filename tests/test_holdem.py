@@ -362,6 +362,8 @@ def test_policy_rollout_policy_selects_legal_actions() -> None:
         simulations=2,
         continuation_policy_factory=baseline,
         opponent_policy_factory=baseline,
+        default_policy_factory=baseline,
+        improvement_margin=1.0,
     )
     action_values = policy_rollout_action_values(
         state,
