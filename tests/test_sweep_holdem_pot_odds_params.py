@@ -42,7 +42,34 @@ def test_pot_odds_param_sweep_smoke() -> None:
     assert metrics["best"]["bet_threshold"] == 0.5
 
 
+def test_hybrid_pot_odds_param_sweep_smoke() -> None:
+    args = build_parser().parse_args(
+        [
+            "--hands",
+            "2",
+            "--seed",
+            "4",
+            "--equity-sims",
+            "2",
+            "--policy-family",
+            "hybrid-pot-odds",
+            "--opponent-policy",
+            "tuned-pot-odds",
+            "--model-player",
+            "both",
+            "--configs",
+            "0.54,0.76,0.05",
+        ]
+    )
+    metrics = run(args)
+
+    assert metrics["policy_family"] == "hybrid-pot-odds"
+    assert metrics["best"]["policy_family"] == "hybrid-pot-odds"
+    assert metrics["best"]["opponent_policy"] == "tuned-pot-odds"
+
+
 def test_pot_odds_param_sweep_parser_accepts_jobs() -> None:
-    args = build_parser().parse_args(["--jobs", "4"])
+    args = build_parser().parse_args(["--jobs", "4", "--policy-family", "hybrid-pot-odds"])
 
     assert args.jobs == 4
+    assert args.policy_family == "hybrid-pot-odds"

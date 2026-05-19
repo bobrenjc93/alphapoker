@@ -11,7 +11,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
-from alphapoker.holdem import pot_odds_equity_policy
+from alphapoker.holdem import hybrid_pot_odds_equity_policy, pot_odds_equity_policy
 from alphapoker.holdem_evaluation import evaluate_policy_match
 from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES, make_policy
 from alphapoker.train import write_json
@@ -20,6 +20,8 @@ from alphapoker.train_holdem_policy_gradient import (
     normalize_model_players,
     parse_model_players,
 )
+
+POT_ODDS_POLICY_FAMILIES = ("pot-odds", "hybrid-pot-odds")
 
 
 def parse_param_configs(configs: str) -> list[tuple[float, float, float]]:
@@ -82,6 +84,7 @@ def aggregate_seat_metrics(metrics: list[dict[str, Any]]) -> dict[str, Any]:
         "showdowns": sum(int(item["showdowns"]) for item in metrics),
         "opponent_policy": first["opponent_policy"],
         "equity_sims": first["equity_sims"],
+        "policy_family": first["policy_family"],
         "bet_threshold": first["bet_threshold"],
         "raise_threshold": first["raise_threshold"],
         "call_margin": first["call_margin"],
@@ -90,12 +93,41 @@ def aggregate_seat_metrics(metrics: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def make_candidate_policy(
+    policy_family: str,
+    rng: random.Random,
+    *,
+    equity_sims: int,
+    bet_threshold: float,
+    raise_threshold: float,
+    call_margin: float,
+):
+    if policy_family == "pot-odds":
+        return pot_odds_equity_policy(
+            rng,
+            simulations=equity_sims,
+            bet_threshold=bet_threshold,
+            raise_threshold=raise_threshold,
+            call_margin=call_margin,
+        )
+    if policy_family == "hybrid-pot-odds":
+        return hybrid_pot_odds_equity_policy(
+            rng,
+            simulations=equity_sims,
+            bet_threshold=bet_threshold,
+            raise_threshold=raise_threshold,
+            call_margin=call_margin,
+        )
+    raise ValueError(f"Unknown policy family: {policy_family}")
+
+
 def evaluate_param_config(
     index: int,
     config: tuple[float, float, float],
     *,
     hands: int,
     seed: int,
+    policy_family: str,
     opponent_policy: str,
     equity_sims: int,
     rollout_sims: int | None,
@@ -108,9 +140,10 @@ def evaluate_param_config(
         opponent_rng = random.Random(seed + 1_000_003 + index * 10_003 + model_player)
         metrics = {
             **evaluate_policy_match(
-                model_policy=pot_odds_equity_policy(
+                model_policy=make_candidate_policy(
+                    policy_family,
                     model_rng,
-                    simulations=equity_sims,
+                    equity_sims=equity_sims,
                     bet_threshold=bet_threshold,
                     raise_threshold=raise_threshold,
                     call_margin=call_margin,
@@ -127,6 +160,7 @@ def evaluate_param_config(
             ),
             "opponent_policy": opponent_policy,
             "equity_sims": equity_sims,
+            "policy_family": policy_family,
             "bet_threshold": bet_threshold,
             "raise_threshold": raise_threshold,
             "call_margin": call_margin,
@@ -151,6 +185,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 config,
                 hands=args.hands,
                 seed=args.seed,
+                policy_family=args.policy_family,
                 opponent_policy=args.opponent_policy,
                 equity_sims=args.equity_sims,
                 rollout_sims=args.rollout_sims,
@@ -167,6 +202,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     config,
                     hands=args.hands,
                     seed=args.seed,
+                    policy_family=args.policy_family,
                     opponent_policy=args.opponent_policy,
                     equity_sims=args.equity_sims,
                     rollout_sims=args.rollout_sims,
@@ -184,6 +220,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     payload = {
         "hands": args.hands,
         "seed": args.seed,
+        "policy_family": args.policy_family,
         "opponent_policy": args.opponent_policy,
         "equity_sims": args.equity_sims,
         "rollout_sims": args.rollout_sims,
@@ -213,6 +250,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--hands", type=int, default=100)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--policy-family", choices=POT_ODDS_POLICY_FAMILIES, default="pot-odds")
     parser.add_argument("--opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="pot-odds")
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--rollout-sims", type=int)
