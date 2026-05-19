@@ -611,6 +611,7 @@ def pot_odds_rollout_action_values(
     *,
     simulations: int = 16,
     equity_sims: int = 16,
+    cached_equity: bool = False,
 ) -> dict[str, float]:
     if simulations <= 0:
         raise ValueError("simulations must be positive")
@@ -626,8 +627,15 @@ def pot_odds_rollout_action_values(
             sampled_state = sample_holdem_belief_state(state, player, simulation_rng)
             rollout_state = sampled_state.apply(action)
             policy_rng = random.Random(simulation_seed + 50_000_003)
-            continuation_policy = pot_odds_equity_policy(policy_rng, simulations=equity_sims)
-            opponent_policy = pot_odds_equity_policy(policy_rng, simulations=equity_sims)
+            if cached_equity:
+                continuation_policy = cached_pot_odds_equity_policy(simulations=equity_sims)
+                opponent_policy = cached_pot_odds_equity_policy(simulations=equity_sims)
+            else:
+                continuation_policy = pot_odds_equity_policy(
+                    policy_rng,
+                    simulations=equity_sims,
+                )
+                opponent_policy = pot_odds_equity_policy(policy_rng, simulations=equity_sims)
             policies = [opponent_policy, opponent_policy]
             policies[player] = continuation_policy
             terminal, _ = play_fixed_limit_holdem_hand(
@@ -651,6 +659,25 @@ def pot_odds_rollout_policy(
             rng,
             simulations=simulations,
             equity_sims=equity_sims,
+        )
+        return max(state.legal_actions(), key=lambda action: action_values[action])
+
+    return select_action
+
+
+def cached_pot_odds_rollout_policy(
+    rng: random.Random,
+    *,
+    simulations: int = 16,
+    equity_sims: int = 16,
+) -> HoldemPolicy:
+    def select_action(state: FixedLimitHoldemState) -> str:
+        action_values = pot_odds_rollout_action_values(
+            state,
+            rng,
+            simulations=simulations,
+            equity_sims=equity_sims,
+            cached_equity=True,
         )
         return max(state.legal_actions(), key=lambda action: action_values[action])
 

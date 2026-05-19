@@ -8,6 +8,7 @@ import random  # noqa: E402
 from alphapoker.holdem import (  # noqa: E402
     FixedLimitHoldemState,
     cached_pot_odds_equity_policy,
+    cached_pot_odds_rollout_policy,
     deal_fixed_limit_holdem,
     compare_holdem_hands,
     equity_threshold_policy,
@@ -232,6 +233,23 @@ def test_pot_odds_rollout_policy_selects_legal_actions() -> None:
     state = deal_fixed_limit_holdem(rng)
     policy = pot_odds_rollout_policy(rng, simulations=2, equity_sims=2)
     action_values = pot_odds_rollout_action_values(state, rng, simulations=2, equity_sims=2)
+    action = policy(state)
+
+    assert set(action_values) == set(state.legal_actions())
+    assert action in state.legal_actions()
+
+
+def test_cached_pot_odds_rollout_policy_selects_legal_actions() -> None:
+    rng = random.Random(30)
+    state = deal_fixed_limit_holdem(rng)
+    policy = cached_pot_odds_rollout_policy(rng, simulations=2, equity_sims=2)
+    action_values = pot_odds_rollout_action_values(
+        state,
+        rng,
+        simulations=2,
+        equity_sims=2,
+        cached_equity=True,
+    )
     action = policy(state)
 
     assert set(action_values) == set(state.legal_actions())
