@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Callable
 
 from alphapoker.kuhn import BET, CALL, CHECK, FOLD
@@ -41,11 +42,20 @@ def evaluate_holdem_hand(
         Treys-compatible score metadata. Lower scores are stronger.
     """
 
-    if len(private_cards) != 2:
+    private_tuple = tuple(private_cards)
+    board_tuple = tuple(board_cards)
+    if len(private_tuple) != 2:
         raise ValueError("Hold'em evaluation requires exactly two private cards")
-    if not 3 <= len(board_cards) <= 5:
+    if not 3 <= len(board_tuple) <= 5:
         raise ValueError("Hold'em evaluation requires three to five board cards")
+    return _evaluate_holdem_hand_cached(private_tuple, board_tuple)
 
+
+@lru_cache(maxsize=200_000)
+def _evaluate_holdem_hand_cached(
+    private_cards: tuple[str, ...],
+    board_cards: tuple[str, ...],
+) -> HoldemHandResult:
     evaluator = Evaluator()
     score = evaluator.evaluate(parse_cards(list(board_cards)), parse_cards(list(private_cards)))
     rank_class = evaluator.get_rank_class(score)
