@@ -83,7 +83,15 @@ def aggregate_policy_match_shards(metrics: list[dict[str, Any]]) -> dict[str, An
         "shards": len(metrics),
         "shard_metrics": metrics,
     }
-    for key in ("policy", "opponent_policy", "equity_sims", "rollout_sims"):
+    for key in (
+        "policy",
+        "opponent_policy",
+        "equity_sims",
+        "rollout_sims",
+        "bet_threshold",
+        "raise_threshold",
+        "call_margin",
+    ):
         if key in first:
             aggregated[key] = first[key]
     return aggregated

@@ -16,9 +16,19 @@ from alphapoker.evaluate_holdem_model import (
     normalize_model_players,
     parse_model_players,
 )
+from alphapoker.holdem import (
+    HoldemPolicy,
+    hybrid_pot_odds_equity_policy,
+    pot_odds_equity_policy,
+)
 from alphapoker.holdem_evaluation import aggregate_policy_match_shards, evaluate_policy_match
 from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES, make_policy
 from alphapoker.train import write_json
+
+POLICY_THRESHOLD_DEFAULTS = {
+    "pot-odds": (0.58, 0.72, 0.0),
+    "hybrid-pot-odds": (0.54, 0.76, 0.05),
+}
 
 
 def split_hands(hands: int, jobs: int) -> list[int]:
@@ -33,6 +43,55 @@ def split_hands(hands: int, jobs: int) -> list[int]:
     return [base_hands + (1 if shard < extra_hands else 0) for shard in range(shard_count)]
 
 
+def resolve_policy_thresholds(
+    policy: str,
+    *,
+    bet_threshold: float | None,
+    raise_threshold: float | None,
+    call_margin: float | None,
+) -> tuple[float, float, float] | None:
+    if bet_threshold is None and raise_threshold is None and call_margin is None:
+        return None
+    if policy not in POLICY_THRESHOLD_DEFAULTS:
+        raise ValueError("threshold overrides require policy to be pot-odds or hybrid-pot-odds")
+    default_bet, default_raise, default_call_margin = POLICY_THRESHOLD_DEFAULTS[policy]
+    return (
+        default_bet if bet_threshold is None else bet_threshold,
+        default_raise if raise_threshold is None else raise_threshold,
+        default_call_margin if call_margin is None else call_margin,
+    )
+
+
+def make_evaluation_policy(
+    name: str,
+    rng: random.Random,
+    *,
+    equity_sims: int,
+    rollout_sims: int | None,
+    thresholds: tuple[float, float, float] | None,
+) -> HoldemPolicy:
+    if thresholds is None:
+        return make_policy(name, rng, equity_sims, rollout_sims)
+    bet_threshold, raise_threshold, call_margin = thresholds
+    if name == "pot-odds":
+        return pot_odds_equity_policy(
+            rng,
+            simulations=equity_sims,
+            bet_threshold=bet_threshold,
+            raise_threshold=raise_threshold,
+            call_margin=call_margin,
+        )
+    if name == "hybrid-pot-odds":
+        return hybrid_pot_odds_equity_policy(
+            rng,
+            simulations=equity_sims,
+            bet_threshold=bet_threshold,
+            raise_threshold=raise_threshold,
+            call_margin=call_margin,
+        )
+    raise ValueError("threshold overrides require policy to be pot-odds or hybrid-pot-odds")
+
+
 def evaluate_policy_shard(
     *,
     policy: str,
@@ -43,18 +102,20 @@ def evaluate_policy_shard(
     rollout_sims: int | None,
     model_player: int,
     shard_index: int,
+    policy_thresholds: tuple[float, float, float] | None = None,
 ) -> dict[str, Any]:
     shard_seed = seed + shard_index * 1_000_003
     policy_rng = random.Random(shard_seed + 1)
     opponent_rng = random.Random(shard_seed + 2)
-    return {
+    metrics = {
         "policy": policy,
         **evaluate_policy_match(
-            model_policy=make_policy(
+            model_policy=make_evaluation_policy(
                 policy,
                 policy_rng,
-                equity_sims,
-                rollout_sims,
+                equity_sims=equity_sims,
+                rollout_sims=rollout_sims,
+                thresholds=policy_thresholds,
             ),
             opponent_policy=make_policy(
                 opponent_policy,
@@ -71,6 +132,11 @@ def evaluate_policy_shard(
         "rollout_sims": rollout_sims,
         "shard_index": shard_index,
     }
+    if policy_thresholds is not None:
+        metrics["bet_threshold"] = policy_thresholds[0]
+        metrics["raise_threshold"] = policy_thresholds[1]
+        metrics["call_margin"] = policy_thresholds[2]
+    return metrics
 
 
 def report_progress(enabled: bool, result: dict[str, Any]) -> None:
@@ -89,6 +155,12 @@ def report_progress(enabled: bool, result: dict[str, Any]) -> None:
 def run(args: argparse.Namespace) -> dict[str, Any]:
     if args.jobs < 1:
         raise ValueError("jobs must be positive")
+    policy_thresholds = resolve_policy_thresholds(
+        args.policy,
+        bet_threshold=args.bet_threshold,
+        raise_threshold=args.raise_threshold,
+        call_margin=args.call_margin,
+    )
     model_players = normalize_model_players(args.model_player)
     shard_hands = split_hands(args.hands, args.jobs)
     shard_metrics_by_player: dict[int, list[dict[str, Any]]] = defaultdict(list)
@@ -102,6 +174,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "rollout_sims": args.rollout_sims,
             "model_player": model_player,
             "shard_index": shard_index,
+            "policy_thresholds": policy_thresholds,
         }
         for model_player in model_players
         for shard_index, hands in enumerate(shard_hands)
@@ -130,6 +203,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     metrics: dict[str, Any] = aggregate_model_player_metrics(seat_metrics)
     metrics["jobs"] = args.jobs
     metrics["shard_hands"] = shard_hands
+    if policy_thresholds is not None:
+        metrics["bet_threshold"] = policy_thresholds[0]
+        metrics["raise_threshold"] = policy_thresholds[1]
+        metrics["call_margin"] = policy_thresholds[2]
     if args.out is not None:
         write_json(args.out, metrics)
     return metrics
@@ -143,6 +220,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--equity-sims", type=int, default=128)
     parser.add_argument("--rollout-sims", type=int)
+    parser.add_argument("--bet-threshold", type=float)
+    parser.add_argument("--raise-threshold", type=float)
+    parser.add_argument("--call-margin", type=float)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
     parser.add_argument("--jobs", type=int, default=1)
     parser.add_argument("--progress", action="store_true")

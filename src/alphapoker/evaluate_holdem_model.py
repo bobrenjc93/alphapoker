@@ -90,7 +90,16 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
         "seed": first["seed"],
         "seat_metrics": metrics,
     }
-    for key in ("checkpoint", "policy", "opponent_policy", "equity_sims", "rollout_sims"):
+    for key in (
+        "checkpoint",
+        "policy",
+        "opponent_policy",
+        "equity_sims",
+        "rollout_sims",
+        "bet_threshold",
+        "raise_threshold",
+        "call_margin",
+    ):
         if key in first:
             aggregated[key] = first[key]
     return aggregated
