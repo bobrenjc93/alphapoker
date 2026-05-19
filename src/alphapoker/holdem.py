@@ -533,6 +533,25 @@ def exact_turn_holdem_equity(
     )
 
 
+def turn_river_exact_holdem_equity(
+    private_cards: tuple[str, str],
+    visible_board: tuple[str, ...],
+    *,
+    simulations: int = 128,
+) -> float:
+    """Return deterministic sampled equity pre-turn and exact equity on turn/river."""
+
+    if len(visible_board) == 5:
+        return exact_river_holdem_equity(private_cards, visible_board)
+    if len(visible_board) == 4:
+        return exact_turn_holdem_equity(private_cards, visible_board)
+    return sampled_holdem_equity(
+        private_cards,
+        visible_board,
+        simulations=simulations,
+    )
+
+
 def preflop_holdem_equity_heuristic(private_cards: tuple[str, str]) -> float:
     if len(private_cards) != 2:
         raise ValueError("preflop equity heuristic requires exactly two private cards")
@@ -692,16 +711,11 @@ def turn_river_exact_pot_odds_equity_policy(
     def select_action(state: FixedLimitHoldemState) -> str:
         player = state.current_player()
         visible_board = state.visible_board()
-        if len(visible_board) == 5:
-            equity = exact_river_holdem_equity(state.private_cards[player], visible_board)
-        elif len(visible_board) == 4:
-            equity = exact_turn_holdem_equity(state.private_cards[player], visible_board)
-        else:
-            equity = sampled_holdem_equity(
-                state.private_cards[player],
-                visible_board,
-                simulations=simulations,
-            )
+        equity = turn_river_exact_holdem_equity(
+            state.private_cards[player],
+            visible_board,
+            simulations=simulations,
+        )
         legal = state.legal_actions()
         if state.outstanding_call_amount() > 0:
             if RAISE in legal and equity >= raise_threshold:

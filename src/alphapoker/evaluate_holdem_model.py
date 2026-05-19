@@ -12,7 +12,13 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
-from alphapoker.holdem import FixedLimitHoldemState, HoldemPolicy, estimate_holdem_equity
+from alphapoker.holdem import (
+    FixedLimitHoldemState,
+    HoldemPolicy,
+    estimate_holdem_equity,
+    sampled_holdem_equity,
+    turn_river_exact_holdem_equity,
+)
 from alphapoker.holdem_equity_feature import (
     equity_estimator_from_checkpoint,
     resolve_equity_checkpoint_path,
@@ -139,6 +145,10 @@ def model_policy_from_checkpoint(checkpoint_path: Path, *, feature_seed: int = 0
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     input_dim = int(checkpoint["input_dim"])
     feature_equity_sims = checkpoint.get("feature_equity_sims")
+    feature_equity_mode = checkpoint.get(
+        "feature_equity_mode",
+        "random" if feature_equity_sims is not None else None,
+    )
     feature_equity_checkpoint = checkpoint.get("feature_equity_checkpoint")
     if feature_equity_sims is not None and feature_equity_checkpoint is not None:
         raise ValueError("Policy checkpoint cannot set both equity feature modes")
@@ -158,14 +168,28 @@ def model_policy_from_checkpoint(checkpoint_path: Path, *, feature_seed: int = 0
         raw_features = encode_holdem_state(state)
         if feature_equity_sims is not None:
             player = state.current_player()
-            raw_features.append(
-                estimate_holdem_equity(
+            if feature_equity_mode == "random":
+                equity = estimate_holdem_equity(
                     state.private_cards[player],
                     state.visible_board(),
                     simulations=int(feature_equity_sims),
                     rng=feature_rng,
                 )
-            )
+            elif feature_equity_mode == "sampled":
+                equity = sampled_holdem_equity(
+                    state.private_cards[player],
+                    state.visible_board(),
+                    simulations=int(feature_equity_sims),
+                )
+            elif feature_equity_mode == "turn-river-exact":
+                equity = turn_river_exact_holdem_equity(
+                    state.private_cards[player],
+                    state.visible_board(),
+                    simulations=int(feature_equity_sims),
+                )
+            else:
+                raise ValueError(f"Unknown feature equity mode: {feature_equity_mode}")
+            raw_features.append(equity)
         elif feature_equity_fn is not None:
             raw_features.append(feature_equity_fn(state))
         features = torch.tensor([adapt_holdem_features(raw_features, input_dim)], dtype=torch.float32)

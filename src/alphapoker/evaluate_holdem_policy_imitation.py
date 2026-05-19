@@ -28,6 +28,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     checkpoint = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
     feature_equity_sims = checkpoint.get("feature_equity_sims")
+    feature_equity_mode = checkpoint.get(
+        "feature_equity_mode",
+        "random" if feature_equity_sims is not None else None,
+    )
     feature_equity_checkpoint = checkpoint.get("feature_equity_checkpoint")
     if feature_equity_sims is not None and feature_equity_checkpoint is not None:
         raise ValueError("Policy checkpoint cannot set both equity feature modes")
@@ -47,6 +51,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         opponent_policy=args.opponent_policy,
         rollout_sims=args.rollout_sims,
         feature_equity_sims=feature_equity_sims,
+        feature_equity_mode=feature_equity_mode or "random",
         feature_equity_fn=feature_equity_fn,
     )
     input_dim = int(checkpoint["input_dim"])
@@ -85,6 +90,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "opponent_policy": args.opponent_policy,
         "rollout_sims": args.rollout_sims,
         "feature_equity_sims": feature_equity_sims,
+        "feature_equity_mode": feature_equity_mode,
         "feature_equity_checkpoint": feature_equity_checkpoint,
         "loss": float(loss.cpu()),
         "accuracy": accuracy,

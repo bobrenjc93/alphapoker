@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from alphapoker.holdem_dataset import (
+    HOLDEM_FEATURE_EQUITY_MODES,
     HOLDEM_DATASET_OPPONENT_POLICIES,
     HOLDEM_EXPERT_POLICIES,
     generate_equity_policy_examples,
@@ -54,6 +55,7 @@ def generate_policy_examples_shard(
     opponent_policy: str,
     rollout_sims: int | None,
     feature_equity_sims: int | None,
+    feature_equity_mode: str,
     feature_equity_checkpoint: Path | None,
     behavior_checkpoint: Path | None,
 ):
@@ -76,6 +78,7 @@ def generate_policy_examples_shard(
         opponent_policy=opponent_policy,
         rollout_sims=rollout_sims,
         feature_equity_sims=feature_equity_sims,
+        feature_equity_mode=feature_equity_mode,
         feature_equity_fn=feature_equity_fn,
         expert_behavior_policy=behavior_policy,
     )
@@ -91,6 +94,7 @@ def generate_policy_training_examples(
     opponent_policy: str,
     rollout_sims: int | None,
     feature_equity_sims: int | None,
+    feature_equity_mode: str,
     feature_equity_checkpoint: Path | None,
     behavior_checkpoint: Path | None,
     jobs: int,
@@ -108,6 +112,7 @@ def generate_policy_training_examples(
             opponent_policy=opponent_policy,
             rollout_sims=rollout_sims,
             feature_equity_sims=feature_equity_sims,
+            feature_equity_mode=feature_equity_mode,
             feature_equity_checkpoint=feature_equity_checkpoint,
             behavior_checkpoint=behavior_checkpoint,
         )
@@ -129,6 +134,7 @@ def generate_policy_training_examples(
                 opponent_policy=opponent_policy,
                 rollout_sims=rollout_sims,
                 feature_equity_sims=feature_equity_sims,
+                feature_equity_mode=feature_equity_mode,
                 feature_equity_checkpoint=feature_equity_checkpoint,
                 behavior_checkpoint=behavior_checkpoint,
             ): index
@@ -150,6 +156,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     if args.feature_equity_sims is not None and args.feature_equity_checkpoint is not None:
         raise ValueError("Set only one of --feature-equity-sims or --feature-equity-checkpoint")
+    if args.feature_equity_mode != "random" and args.feature_equity_sims is None:
+        raise ValueError("--feature-equity-mode requires --feature-equity-sims")
+    if args.feature_equity_checkpoint is not None and args.feature_equity_mode != "random":
+        raise ValueError("--feature-equity-mode is only used with --feature-equity-sims")
 
     examples_in = getattr(args, "examples_in", None)
     examples_out = getattr(args, "examples_out", None)
@@ -166,6 +176,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             opponent_policy=args.opponent_policy,
             rollout_sims=args.rollout_sims,
             feature_equity_sims=args.feature_equity_sims,
+            feature_equity_mode=args.feature_equity_mode,
             feature_equity_checkpoint=args.feature_equity_checkpoint,
             behavior_checkpoint=args.behavior_checkpoint,
             jobs=jobs,
@@ -224,6 +235,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "canonical_actions": list(HOLDEM_CANONICAL_ACTIONS),
             "input_dim": features.shape[1],
             "feature_equity_sims": args.feature_equity_sims,
+            "feature_equity_mode": (
+                args.feature_equity_mode if args.feature_equity_sims is not None else None
+            ),
             "feature_equity_checkpoint": (
                 str(args.feature_equity_checkpoint)
                 if args.feature_equity_checkpoint is not None
@@ -241,6 +255,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "opponent_policy": args.opponent_policy,
         "rollout_sims": args.rollout_sims,
         "feature_equity_sims": args.feature_equity_sims,
+        "feature_equity_mode": (
+            args.feature_equity_mode if args.feature_equity_sims is not None else None
+        ),
         "feature_equity_checkpoint": (
             str(args.feature_equity_checkpoint)
             if args.feature_equity_checkpoint is not None
@@ -281,6 +298,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--feature-equity-sims", type=int)
+    parser.add_argument(
+        "--feature-equity-mode",
+        choices=HOLDEM_FEATURE_EQUITY_MODES,
+        default="random",
+    )
     parser.add_argument("--feature-equity-checkpoint", type=Path)
     parser.add_argument("--behavior-checkpoint", type=Path)
     parser.add_argument("--epochs", type=int, default=200)

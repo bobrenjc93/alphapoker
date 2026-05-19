@@ -17,6 +17,8 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "2",
             "--feature-equity-sims",
             "3",
+            "--feature-equity-mode",
+            "sampled",
             "--examples-in",
             "examples.json",
             "--examples-out",
@@ -34,6 +36,7 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.opponent_policy == "pot-odds"
     assert args.rollout_sims == 2
     assert args.feature_equity_sims == 3
+    assert args.feature_equity_mode == "sampled"
     assert args.class_weighting == "balanced"
     assert args.jobs == 4
     assert str(args.examples_in) == "examples.json"
@@ -101,6 +104,22 @@ def test_train_holdem_policy_parser_accepts_tight_exact_expert() -> None:
 
     assert args.expert_policy == "tight-turn-river-exact-pot-odds"
     assert args.opponent_policy == "tight-turn-river-exact-pot-odds"
+
+
+def test_train_holdem_policy_parser_accepts_turn_river_exact_feature() -> None:
+    args = build_parser().parse_args(
+        [
+            "--feature-equity-sims",
+            "8",
+            "--feature-equity-mode",
+            "turn-river-exact",
+            "--out",
+            "out",
+        ]
+    )
+
+    assert args.feature_equity_sims == 8
+    assert args.feature_equity_mode == "turn-river-exact"
 
 
 def test_shard_hands_for_parallel_policy_training() -> None:

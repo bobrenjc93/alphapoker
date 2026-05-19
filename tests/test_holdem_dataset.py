@@ -57,6 +57,24 @@ def test_holdem_policy_features_can_include_equity_estimate() -> None:
     assert 0.0 <= features[-1] <= 1.0
 
 
+def test_holdem_policy_features_can_include_deterministic_equity_estimate() -> None:
+    state = deal_fixed_limit_holdem()
+    first = encode_policy_example_features(
+        state,
+        feature_equity_sims=2,
+        feature_equity_mode="turn-river-exact",
+    )
+    second = encode_policy_example_features(
+        state,
+        feature_equity_sims=2,
+        feature_equity_mode="turn-river-exact",
+    )
+
+    assert len(first) == HOLDEM_FEATURE_DIM + 1
+    assert first[-1] == second[-1]
+    assert 0.0 <= first[-1] <= 1.0
+
+
 def test_holdem_policy_features_can_include_learned_equity_estimate() -> None:
     state = deal_fixed_limit_holdem()
     features = encode_policy_example_features(state, feature_equity_fn=lambda _: 0.42)
@@ -73,6 +91,17 @@ def test_holdem_policy_features_reject_two_equity_feature_modes() -> None:
             state,
             feature_equity_sims=2,
             feature_equity_fn=lambda _: 0.42,
+        )
+
+
+def test_holdem_policy_features_reject_bad_equity_feature_mode() -> None:
+    state = deal_fixed_limit_holdem()
+
+    with pytest.raises(ValueError, match="Unknown feature equity mode"):
+        encode_policy_example_features(
+            state,
+            feature_equity_sims=2,
+            feature_equity_mode="bad",
         )
 
 

@@ -13,6 +13,8 @@ from alphapoker.holdem import (
     deal_fixed_limit_holdem,
     equity_threshold_policy,
     estimate_holdem_equity,
+    sampled_holdem_equity,
+    turn_river_exact_holdem_equity,
 )
 from alphapoker.holdem_equity_feature import HoldemEquityEstimator
 from alphapoker.holdem_features import (
@@ -61,6 +63,7 @@ HOLDEM_EQUITY_VALUE_OPPONENT_POLICIES = (
     "hybrid-pot-odds",
     "random",
 )
+HOLDEM_FEATURE_EQUITY_MODES = ("random", "sampled", "turn-river-exact")
 
 
 @dataclass(frozen=True)
@@ -80,11 +83,16 @@ def encode_policy_example_features(
     state: FixedLimitHoldemState,
     *,
     feature_equity_sims: int | None = None,
+    feature_equity_mode: str = "random",
     feature_rng: random.Random | None = None,
     feature_equity_fn: HoldemEquityEstimator | None = None,
 ) -> list[float]:
+    if feature_equity_mode not in HOLDEM_FEATURE_EQUITY_MODES:
+        raise ValueError(f"Unknown feature equity mode: {feature_equity_mode}")
     if feature_equity_sims is not None and feature_equity_fn is not None:
         raise ValueError("Set only one of feature_equity_sims or feature_equity_fn")
+    if feature_equity_fn is not None and feature_equity_mode != "random":
+        raise ValueError("feature_equity_mode is only used with feature_equity_sims")
     features = encode_holdem_state(state)
     if feature_equity_fn is not None:
         features.append(float(feature_equity_fn(state)))
@@ -94,14 +102,28 @@ def encode_policy_example_features(
     if feature_rng is None:
         feature_rng = random.Random()
     player = state.current_player()
-    features.append(
-        estimate_holdem_equity(
+    if feature_equity_mode == "random":
+        equity = estimate_holdem_equity(
             state.private_cards[player],
             state.visible_board(),
             simulations=feature_equity_sims,
             rng=feature_rng,
         )
-    )
+    elif feature_equity_mode == "sampled":
+        equity = sampled_holdem_equity(
+            state.private_cards[player],
+            state.visible_board(),
+            simulations=feature_equity_sims,
+        )
+    elif feature_equity_mode == "turn-river-exact":
+        equity = turn_river_exact_holdem_equity(
+            state.private_cards[player],
+            state.visible_board(),
+            simulations=feature_equity_sims,
+        )
+    else:
+        raise AssertionError(f"Unhandled feature equity mode: {feature_equity_mode}")
+    features.append(equity)
     return features
 
 
@@ -157,11 +179,16 @@ def generate_equity_policy_examples(
     opponent_policy: str = "equity",
     rollout_sims: int | None = None,
     feature_equity_sims: int | None = None,
+    feature_equity_mode: str = "random",
     feature_equity_fn: HoldemEquityEstimator | None = None,
     expert_behavior_policy: HoldemPolicy | None = None,
 ) -> list[HoldemPolicyExample]:
+    if feature_equity_mode not in HOLDEM_FEATURE_EQUITY_MODES:
+        raise ValueError(f"Unknown feature equity mode: {feature_equity_mode}")
     if feature_equity_sims is not None and feature_equity_fn is not None:
         raise ValueError("Set only one of feature_equity_sims or feature_equity_fn")
+    if feature_equity_fn is not None and feature_equity_mode != "random":
+        raise ValueError("feature_equity_mode is only used with feature_equity_sims")
     deal_rng = random.Random(seed)
     policy_rng = random.Random(seed + 1)
     feature_rng = random.Random(seed + 3)
@@ -186,6 +213,7 @@ def generate_equity_policy_examples(
                         features=encode_policy_example_features(
                             state,
                             feature_equity_sims=feature_equity_sims,
+                            feature_equity_mode=feature_equity_mode,
                             feature_rng=feature_rng,
                             feature_equity_fn=feature_equity_fn,
                         ),

@@ -27,6 +27,7 @@ from alphapoker.holdem import (  # noqa: E402
     river_exact_pot_odds_equity_policy,
     sample_holdem_belief_state,
     sampled_holdem_equity,
+    turn_river_exact_holdem_equity,
     turn_river_exact_pot_odds_equity_policy,
 )
 from alphapoker.kuhn import BET, CALL, CHECK, FOLD  # noqa: E402
@@ -189,6 +190,15 @@ def test_exact_turn_holdem_equity_scores_unbeatable_hand() -> None:
 def test_exact_turn_holdem_equity_validates_turn_board() -> None:
     with pytest.raises(ValueError, match="four board"):
         exact_turn_holdem_equity(("As", "Ks"), ("Qs", "Js", "Ts"))
+
+
+def test_turn_river_exact_holdem_equity_uses_exact_turn_and_river() -> None:
+    private_cards = ("As", "Ks")
+    turn_board = ("Qs", "Js", "Ts", "2c")
+    river_board = ("Qs", "Js", "Ts", "2c", "3d")
+
+    assert turn_river_exact_holdem_equity(private_cards, turn_board, simulations=2) == 1.0
+    assert turn_river_exact_holdem_equity(private_cards, river_board, simulations=2) == 1.0
 
 
 def test_preflop_holdem_equity_heuristic_orders_hands() -> None:
