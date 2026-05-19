@@ -3,7 +3,7 @@ import pytest
 
 pytest.importorskip("treys")
 
-from alphapoker.train_holdem_policy import build_parser  # noqa: E402
+from alphapoker.train_holdem_policy import _shard_hands, build_parser  # noqa: E402
 
 
 def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
@@ -23,6 +23,8 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "cached.json",
             "--class-weighting",
             "balanced",
+            "--jobs",
+            "4",
             "--out",
             "out",
         ]
@@ -33,6 +35,7 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.rollout_sims == 2
     assert args.feature_equity_sims == 3
     assert args.class_weighting == "balanced"
+    assert args.jobs == 4
     assert str(args.examples_in) == "examples.json"
     assert str(args.examples_out) == "cached.json"
 
@@ -82,3 +85,8 @@ def test_train_holdem_policy_parser_accepts_tuned_expert() -> None:
 
     assert args.expert_policy == "tuned-pot-odds"
     assert args.opponent_policy == "tuned-pot-odds"
+
+
+def test_shard_hands_for_parallel_policy_training() -> None:
+    assert _shard_hands(11, 4) == [3, 3, 3, 2]
+    assert _shard_hands(2, 4) == [1, 1]
