@@ -6,6 +6,7 @@ import pytest
 pytest.importorskip("treys")
 
 from alphapoker.holdem import FixedLimitHoldemState, deal_fixed_limit_holdem  # noqa: E402
+from alphapoker.kuhn import CALL  # noqa: E402
 from alphapoker.holdem_mccfr import (  # noqa: E402
     HoldemAbstractionCFRTrainer,
     abstract_holdem_information_key,
@@ -26,6 +27,18 @@ def test_holdem_abstraction_key_includes_player_street_and_history() -> None:
     assert key.endswith(":-")
 
 
+def test_holdem_coarse_abstraction_summarizes_history() -> None:
+    state = FixedLimitHoldemState.initial(
+        (("As", "Ad"), ("Kc", "Kd")),
+        ("2h", "3d", "4s", "5c", "6h"),
+    ).apply(CALL)
+
+    key = abstract_holdem_information_key(state, abstraction="coarse")
+
+    assert key.startswith("p1:s1:")
+    assert "to1:call0" in key
+
+
 def test_holdem_mccfr_trainer_smoke_and_checkpoint(tmp_path) -> None:
     trainer = HoldemAbstractionCFRTrainer(seed=3, max_bets_per_round=4, traversal="external")
     result = trainer.train(2)
@@ -38,6 +51,7 @@ def test_holdem_mccfr_trainer_smoke_and_checkpoint(tmp_path) -> None:
     assert result.infosets > 0
     assert loaded.iterations == trainer.iterations
     assert loaded.traversal == "external"
+    assert loaded.abstraction == "coarse"
     assert loaded.average_strategy().keys() == trainer.average_strategy().keys()
 
 
@@ -48,6 +62,7 @@ def test_holdem_mccfr_policy_selects_legal_action() -> None:
     policy = holdem_policy_from_abstract_strategy(
         trainer.average_strategy(),
         random.Random(6),
+        abstraction=trainer.abstraction,
     )
 
     assert policy(state) in state.legal_actions()

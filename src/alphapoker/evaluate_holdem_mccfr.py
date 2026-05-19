@@ -70,6 +70,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     metrics: dict[str, Any] = aggregate_model_player_metrics(seat_metrics)
     metrics["fallback_policy"] = args.fallback_policy
     metrics["min_strategy_weight"] = args.min_strategy_weight
+    metrics["traversal"] = trainer.traversal
+    metrics["abstraction"] = trainer.abstraction
+    metrics["iterations"] = trainer.iterations
+    metrics["infosets"] = len(trainer.infosets)
     if args.out is not None:
         write_json(args.out, metrics)
     return metrics

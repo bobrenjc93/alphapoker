@@ -35,6 +35,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         linear_averaging=not args.uniform_averaging,
         max_bets_per_round=args.max_bets_per_round,
         traversal=args.traversal,
+        abstraction=args.abstraction,
     )
     result = trainer.train(args.iterations)
 
@@ -53,6 +54,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "average_weighting": "uniform" if args.uniform_averaging else "linear",
         "max_bets_per_round": args.max_bets_per_round,
         "traversal": args.traversal,
+        "abstraction": args.abstraction,
         "min_strategy_weight": args.min_strategy_weight,
     }
 
@@ -114,6 +116,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--uniform-averaging", action="store_true")
     parser.add_argument("--max-bets-per-round", type=int, default=4)
     parser.add_argument("--traversal", choices=["external", "full"], default="external")
+    parser.add_argument("--abstraction", choices=["fine", "coarse"], default="coarse")
     parser.add_argument("--eval-hands", type=int, default=0)
     parser.add_argument("--opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="pot-odds")
     parser.add_argument("--fallback-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="pot-odds")

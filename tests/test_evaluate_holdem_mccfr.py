@@ -51,3 +51,4 @@ def test_evaluate_holdem_mccfr_run_smoke(tmp_path) -> None:
 
     assert metrics["hands"] == 1
     assert metrics["checkpoint"] == str(checkpoint)
+    assert metrics["abstraction"] == "coarse"

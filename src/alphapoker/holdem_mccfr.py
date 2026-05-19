@@ -17,6 +17,8 @@ from alphapoker.holdem import (
     evaluate_holdem_hand,
 )
 from alphapoker.holdem_features import HOLDEM_RANKS
+from alphapoker.kuhn import BET, CALL, CHECK, FOLD
+from alphapoker.leduc import RAISE
 
 HoldemAbstractStrategy = dict[str, dict[str, float]]
 
@@ -44,6 +46,15 @@ def _preflop_bucket(private_cards: tuple[str, str]) -> str:
     return f"hi{ranks[0] // 2}:lo{ranks[1] // 3}:g{gap_bucket}:{suited_label}"
 
 
+def _coarse_preflop_bucket(private_cards: tuple[str, str]) -> str:
+    ranks = sorted((_rank_index(card) for card in private_cards), reverse=True)
+    suited = private_cards[0][1] == private_cards[1][1]
+    gap = ranks[0] - ranks[1]
+    if ranks[0] == ranks[1]:
+        return f"pp{ranks[0] // 4}"
+    return f"h{ranks[0] // 4}:l{ranks[1] // 4}:c{int(gap <= 2)}:s{int(suited)}"
+
+
 def _board_texture_bucket(board: tuple[str, ...]) -> str:
     ranks = [_rank_index(card) for card in board]
     suits = [card[1] for card in board]
@@ -51,6 +62,15 @@ def _board_texture_bucket(board: tuple[str, ...]) -> str:
     max_suit_count = max((suits.count(suit) for suit in set(suits)), default=0)
     high_rank = max(ranks) if ranks else 0
     return f"b{len(board)}:p{int(paired)}:f{min(3, max_suit_count)}:h{high_rank // 3}"
+
+
+def _coarse_board_texture_bucket(board: tuple[str, ...]) -> str:
+    ranks = [_rank_index(card) for card in board]
+    suits = [card[1] for card in board]
+    paired = len(set(ranks)) < len(ranks)
+    max_suit_count = max((suits.count(suit) for suit in set(suits)), default=0)
+    high_rank = max(ranks) if ranks else 0
+    return f"b{len(board)}:p{int(paired)}:f{int(max_suit_count >= 3)}:h{high_rank // 5}"
 
 
 def _postflop_bucket(state: FixedLimitHoldemState, player: int) -> str:
@@ -62,16 +82,68 @@ def _postflop_bucket(state: FixedLimitHoldemState, player: int) -> str:
     return f"hc{result.rank_class}:sb{strength_bucket}:{_board_texture_bucket(board)}"
 
 
-def abstract_holdem_information_key(state: FixedLimitHoldemState) -> str:
-    player = state.current_player()
-    if state.street == 0:
-        hand_bucket = _preflop_bucket(state.private_cards[player])
+def _coarse_postflop_bucket(state: FixedLimitHoldemState, player: int) -> str:
+    board = state.visible_board()
+    result = evaluate_holdem_hand(state.private_cards[player], board)
+    if result.rank_class <= 5:
+        made_group = "strong"
+    elif result.rank_class <= 7:
+        made_group = "made"
+    elif result.rank_class == 8:
+        made_group = "pair"
     else:
-        hand_bucket = _postflop_bucket(state, player)
-    histories = "|".join(
+        made_group = "high"
+    rank_strength = 1.0 - ((result.rank_class - 1) / 8.0)
+    score_strength = (7463.0 - result.score) / 7462.0
+    strength_bucket = int(max(0.0, min(0.999, (rank_strength + score_strength) / 2.0)) * 3)
+    return f"{made_group}:s{strength_bucket}:{_coarse_board_texture_bucket(board)}"
+
+
+def _exact_history_key(state: FixedLimitHoldemState) -> str:
+    return "|".join(
         ",".join(history) if history else "-"
         for history in state.histories[: state.street + 1]
     )
+
+
+def _coarse_history_key(state: FixedLimitHoldemState) -> str:
+    street_summaries = []
+    for history in state.histories[: state.street + 1]:
+        aggressive = sum(1 for action in history if action in (BET, RAISE))
+        calls = sum(1 for action in history if action == CALL)
+        checks = sum(1 for action in history if action == CHECK)
+        folds = sum(1 for action in history if action == FOLD)
+        street_summaries.append(
+            f"a{min(4, aggressive)}c{min(2, calls)}x{min(2, checks)}f{folds}"
+        )
+    state_summary = (
+        f"to{state.to_act}:call{int(state.outstanding_call_amount() > 0)}:"
+        f"rb{min(4, state.bets_this_round)}:pot{min(10, sum(state.contributions) // 4)}"
+    )
+    return "|".join([*street_summaries, state_summary])
+
+
+def abstract_holdem_information_key(
+    state: FixedLimitHoldemState,
+    *,
+    abstraction: str = "fine",
+) -> str:
+    if abstraction not in ("fine", "coarse"):
+        raise ValueError("abstraction must be fine or coarse")
+    player = state.current_player()
+    if state.street == 0:
+        hand_bucket = (
+            _coarse_preflop_bucket(state.private_cards[player])
+            if abstraction == "coarse"
+            else _preflop_bucket(state.private_cards[player])
+        )
+    else:
+        hand_bucket = (
+            _coarse_postflop_bucket(state, player)
+            if abstraction == "coarse"
+            else _postflop_bucket(state, player)
+        )
+    histories = _coarse_history_key(state) if abstraction == "coarse" else _exact_history_key(state)
     return f"p{player}:s{state.street}:{hand_bucket}:{histories}"
 
 
@@ -86,17 +158,21 @@ class HoldemAbstractionCFRTrainer:
         linear_averaging: bool = True,
         max_bets_per_round: int = 4,
         traversal: str = "external",
+        abstraction: str = "coarse",
     ) -> None:
         if max_bets_per_round < 1:
             raise ValueError("max_bets_per_round must be positive")
         if traversal not in ("external", "full"):
             raise ValueError("traversal must be external or full")
+        if abstraction not in ("fine", "coarse"):
+            raise ValueError("abstraction must be fine or coarse")
         self.rng = random.Random(seed)
         self.seed = seed
         self.cfr_plus = cfr_plus
         self.linear_averaging = linear_averaging
         self.max_bets_per_round = max_bets_per_round
         self.traversal = traversal
+        self.abstraction = abstraction
         self.iterations = 0
         self.infosets: dict[str, InfoSet] = {}
         self.sampled_utility_sum = 0.0
@@ -110,6 +186,7 @@ class HoldemAbstractionCFRTrainer:
             "seed": self.seed,
             "max_bets_per_round": self.max_bets_per_round,
             "traversal": self.traversal,
+            "abstraction": self.abstraction,
             "sampled_utility_sum": self.sampled_utility_sum,
             "infosets": {
                 key: infoset.to_dict()
@@ -127,6 +204,7 @@ class HoldemAbstractionCFRTrainer:
             linear_averaging=payload.get("average_weighting", "linear") == "linear",
             max_bets_per_round=int(payload.get("max_bets_per_round", 2)),
             traversal=str(payload.get("traversal", "full")),
+            abstraction=str(payload.get("abstraction", "fine")),
         )
         trainer.iterations = int(payload["iterations"])
         trainer.sampled_utility_sum = float(payload.get("sampled_utility_sum", 0.0))
@@ -146,7 +224,7 @@ class HoldemAbstractionCFRTrainer:
         return cls.from_state_dict(json.loads(Path(path).read_text()))
 
     def _infoset_for_state(self, state: FixedLimitHoldemState) -> InfoSet:
-        key = abstract_holdem_information_key(state)
+        key = abstract_holdem_information_key(state, abstraction=self.abstraction)
         actions = state.legal_actions()
         if key not in self.infosets:
             self.infosets[key] = InfoSet(actions=actions)
@@ -264,10 +342,11 @@ def holdem_policy_from_abstract_strategy(
     rng: random.Random,
     *,
     fallback_policy: HoldemPolicy | None = None,
+    abstraction: str = "fine",
 ) -> HoldemPolicy:
     def select_action(state: FixedLimitHoldemState) -> str:
         actions = state.legal_actions()
-        key = abstract_holdem_information_key(state)
+        key = abstract_holdem_information_key(state, abstraction=abstraction)
         if key not in strategy and fallback_policy is not None:
             return fallback_policy(state)
         distribution = normalize_distribution(actions, strategy.get(key, {}))
@@ -291,7 +370,7 @@ def holdem_policy_from_trainer(
 ) -> HoldemPolicy:
     def select_action(state: FixedLimitHoldemState) -> str:
         actions = state.legal_actions()
-        key = abstract_holdem_information_key(state)
+        key = abstract_holdem_information_key(state, abstraction=trainer.abstraction)
         infoset = trainer.infosets.get(key)
         if infoset is None:
             if fallback_policy is not None:
