@@ -202,7 +202,8 @@ Current fixed-limit Hold'em gate:
   `tight-safe-rollout-pot-odds` with `rollout_sims=4`, default margin 1.0, and
   200 paired deals: `-1.3000 +/- 0.4036` chips/hand. The safe-rollout opponent
   raised on 22.6% of its actions, while the model folded on 22.3% of its
-  actions.
+  actions. The cheaper `rollout_sims=1` probe also stayed negative at
+  `-0.9750 +/- 0.6183` over 40 paired deals.
 - A small DAgger-style counterexample fine-tune on 200 player-0 and 200
   player-1 hands against that safe-rollout opponent repaired the rollout probe
   to `+0.2250 +/- 0.4165`, but it damaged the main tight exact gate to
