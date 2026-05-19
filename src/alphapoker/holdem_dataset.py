@@ -219,6 +219,7 @@ def generate_equity_policy_examples(
     expert_policy: str = "equity",
     opponent_policy: str = "equity",
     rollout_sims: int | None = None,
+    rollout_margin: float = 1.0,
     feature_equity_sims: int | None = None,
     feature_equity_mode: str = "random",
     feature_equity_fn: HoldemEquityEstimator | None = None,
@@ -235,11 +236,23 @@ def generate_equity_policy_examples(
     feature_rng = random.Random(seed + 3)
     if expert_policy not in HOLDEM_EXPERT_POLICIES:
         raise ValueError(f"Unknown expert policy: {expert_policy}")
-    expert_action_policy = make_policy(expert_policy, policy_rng, equity_sims, rollout_sims)
+    expert_action_policy = make_policy(
+        expert_policy,
+        policy_rng,
+        equity_sims,
+        rollout_sims,
+        rollout_margin,
+    )
 
     if opponent_policy not in HOLDEM_DATASET_OPPONENT_POLICIES:
         raise ValueError(f"Unknown opponent policy: {opponent_policy}")
-    non_expert_policy = make_policy(opponent_policy, policy_rng, equity_sims, rollout_sims)
+    non_expert_policy = make_policy(
+        opponent_policy,
+        policy_rng,
+        equity_sims,
+        rollout_sims,
+        rollout_margin,
+    )
 
     examples: list[HoldemPolicyExample] = []
     for _ in range(hands):

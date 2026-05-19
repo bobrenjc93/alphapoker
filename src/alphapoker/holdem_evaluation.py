@@ -215,6 +215,7 @@ def aggregate_policy_match_shards(metrics: list[dict[str, Any]]) -> dict[str, An
         "opponent_policy",
         "equity_sims",
         "rollout_sims",
+        "rollout_margin",
         "fallback_policy",
         "min_strategy_weight",
         "bet_threshold",

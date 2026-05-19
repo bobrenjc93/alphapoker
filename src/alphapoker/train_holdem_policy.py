@@ -6,6 +6,7 @@ import argparse
 import copy
 import json
 import random
+import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
@@ -99,6 +100,7 @@ def generate_policy_examples_shard(
     expert_policy: str,
     opponent_policy: str,
     rollout_sims: int | None,
+    rollout_margin: float,
     feature_equity_sims: int | None,
     feature_equity_mode: str,
     feature_equity_checkpoint: Path | None,
@@ -122,6 +124,7 @@ def generate_policy_examples_shard(
         expert_policy=expert_policy,
         opponent_policy=opponent_policy,
         rollout_sims=rollout_sims,
+        rollout_margin=rollout_margin,
         feature_equity_sims=feature_equity_sims,
         feature_equity_mode=feature_equity_mode,
         feature_equity_fn=feature_equity_fn,
@@ -138,16 +141,18 @@ def generate_policy_training_examples(
     expert_policy: str,
     opponent_policy: str,
     rollout_sims: int | None,
+    rollout_margin: float,
     feature_equity_sims: int | None,
     feature_equity_mode: str,
     feature_equity_checkpoint: Path | None,
     behavior_checkpoint: Path | None,
     jobs: int,
+    progress: bool = False,
 ):
     if jobs < 1:
         raise ValueError("jobs must be positive")
     if jobs == 1:
-        return generate_policy_examples_shard(
+        examples = generate_policy_examples_shard(
             0,
             hands=hands,
             seed=seed,
@@ -156,11 +161,19 @@ def generate_policy_training_examples(
             expert_policy=expert_policy,
             opponent_policy=opponent_policy,
             rollout_sims=rollout_sims,
+            rollout_margin=rollout_margin,
             feature_equity_sims=feature_equity_sims,
             feature_equity_mode=feature_equity_mode,
             feature_equity_checkpoint=feature_equity_checkpoint,
             behavior_checkpoint=behavior_checkpoint,
         )
+        if progress:
+            print(
+                f"examples shard 0: hands={hands} examples={len(examples)}",
+                file=sys.stderr,
+                flush=True,
+            )
+        return examples
 
     examples = []
     shard_hands = _shard_hands(hands, jobs)
@@ -178,6 +191,7 @@ def generate_policy_training_examples(
                 expert_policy=expert_policy,
                 opponent_policy=opponent_policy,
                 rollout_sims=rollout_sims,
+                rollout_margin=rollout_margin,
                 feature_equity_sims=feature_equity_sims,
                 feature_equity_mode=feature_equity_mode,
                 feature_equity_checkpoint=feature_equity_checkpoint,
@@ -187,7 +201,16 @@ def generate_policy_training_examples(
         }
         shard_results = {}
         for future in as_completed(future_to_index):
-            shard_results[future_to_index[future]] = future.result()
+            index = future_to_index[future]
+            result = future.result()
+            shard_results[index] = result
+            if progress:
+                print(
+                    f"examples shard {index}: hands={shard_hands[index]} "
+                    f"examples={len(result)}",
+                    file=sys.stderr,
+                    flush=True,
+                )
     for index in sorted(shard_results):
         examples.extend(shard_results[index])
     return examples
@@ -209,6 +232,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     examples_in = getattr(args, "examples_in", None)
     examples_out = getattr(args, "examples_out", None)
     jobs = getattr(args, "jobs", 1)
+    rollout_margin = float(getattr(args, "rollout_margin", 1.0))
     if examples_in is not None:
         examples = read_policy_examples(examples_in)
     else:
@@ -220,11 +244,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             expert_policy=args.expert_policy,
             opponent_policy=args.opponent_policy,
             rollout_sims=args.rollout_sims,
+            rollout_margin=rollout_margin,
             feature_equity_sims=args.feature_equity_sims,
             feature_equity_mode=args.feature_equity_mode,
             feature_equity_checkpoint=args.feature_equity_checkpoint,
             behavior_checkpoint=args.behavior_checkpoint,
             jobs=jobs,
+            progress=bool(getattr(args, "progress", False)),
         )
     if examples_out is not None:
         write_policy_examples(examples_out, examples)
@@ -246,6 +272,27 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     torch.manual_seed(0)
     model = HoldemPolicyNet(input_dim=features.shape[1])
+    init_checkpoint = getattr(args, "init_checkpoint", None)
+    init_kl_weight = float(getattr(args, "init_kl_weight", 0.0))
+    if init_kl_weight < 0.0:
+        raise ValueError("--init-kl-weight must be non-negative")
+    if init_kl_weight > 0.0 and init_checkpoint is None:
+        raise ValueError("--init-kl-weight requires --init-checkpoint")
+    if init_checkpoint is not None:
+        init_data = torch.load(init_checkpoint, map_location="cpu", weights_only=False)
+        init_input_dim = init_data.get("input_dim")
+        if init_input_dim is not None and int(init_input_dim) != features.shape[1]:
+            raise ValueError(
+                "init checkpoint input_dim does not match generated feature dimension: "
+                f"{init_input_dim} != {features.shape[1]}"
+            )
+        model.load_state_dict(init_data["model_state_dict"])
+    anchor_model = None
+    if init_kl_weight > 0.0:
+        anchor_model = copy.deepcopy(model)
+        anchor_model.eval()
+        for parameter in anchor_model.parameters():
+            parameter.requires_grad_(False)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     class_weighting = getattr(args, "class_weighting", "none")
     class_weight_exponent = getattr(args, "class_weight_exponent", None)
@@ -263,7 +310,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     def loss_for(batch_features, batch_targets, batch_masks):
         logits = model(batch_features)
         masked_logits = logits.masked_fill(~batch_masks, -1e9)
-        return F.cross_entropy(masked_logits, batch_targets, weight=class_weights)
+        loss = F.cross_entropy(masked_logits, batch_targets, weight=class_weights)
+        if anchor_model is None:
+            return loss
+        with torch.no_grad():
+            anchor_logits = anchor_model(batch_features).masked_fill(~batch_masks, -1e9)
+            anchor_probs = F.softmax(anchor_logits, dim=1)
+        policy_kl = F.kl_div(
+            F.log_softmax(masked_logits, dim=1),
+            anchor_probs,
+            reduction="batchmean",
+        )
+        return loss + init_kl_weight * policy_kl
 
     best_loss = float("inf")
     best_epoch = 0
@@ -352,6 +410,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "expert_policy": args.expert_policy,
         "opponent_policy": args.opponent_policy,
         "rollout_sims": args.rollout_sims,
+        "rollout_margin": rollout_margin,
         "feature_equity_sims": args.feature_equity_sims,
         "feature_equity_mode": (
             args.feature_equity_mode if args.feature_equity_sims is not None else None
@@ -364,6 +423,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "jobs": jobs,
         "epochs": args.epochs,
         "lr": args.lr,
+        "init_kl_weight": init_kl_weight,
         "class_weighting": class_weighting,
         "class_weight_exponent": resolved_class_weight_exponent,
         "validation_fraction": validation_fraction,
@@ -387,6 +447,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     }
     if args.behavior_checkpoint is not None:
         metrics["behavior_checkpoint"] = str(args.behavior_checkpoint)
+    if init_checkpoint is not None:
+        metrics["init_checkpoint"] = str(init_checkpoint)
     if examples_in is not None:
         metrics["examples_in"] = str(examples_in)
     if examples_out is not None:
@@ -407,6 +469,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="equity",
     )
     parser.add_argument("--rollout-sims", type=int)
+    parser.add_argument("--rollout-margin", type=float, default=1.0)
     parser.add_argument("--feature-equity-sims", type=int)
     parser.add_argument(
         "--feature-equity-mode",
@@ -415,12 +478,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--feature-equity-checkpoint", type=Path)
     parser.add_argument("--behavior-checkpoint", type=Path)
+    parser.add_argument("--init-checkpoint", type=Path)
+    parser.add_argument("--init-kl-weight", type=float, default=0.0)
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--lr", type=float, default=3e-3)
     parser.add_argument("--class-weighting", choices=CLASS_WEIGHTING_MODES, default="none")
     parser.add_argument("--class-weight-exponent", type=float)
     parser.add_argument("--validation-fraction", type=float, default=0.0)
     parser.add_argument("--jobs", type=int, default=1)
+    parser.add_argument("--progress", action="store_true")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--examples-in", type=Path)
     parser.add_argument("--examples-out", type=Path)

@@ -87,11 +87,14 @@ def test_holdem_model_eval_parser_accepts_rollout_opponent() -> None:
             "rollout-pot-odds",
             "--rollout-sims",
             "2",
+            "--rollout-margin",
+            "1.5",
         ]
     )
 
     assert args.opponent_policy == "rollout-pot-odds"
     assert args.rollout_sims == 2
+    assert args.rollout_margin == 1.5
 
 
 def test_holdem_model_eval_parser_accepts_tuned_pot_odds_opponent() -> None:
@@ -298,4 +301,5 @@ def test_holdem_model_eval_run_parallel_smoke(tmp_path) -> None:
     assert metrics["hands"] == 2
     assert metrics["jobs"] == 2
     assert metrics["shard_hands"] == [1, 1]
+    assert metrics["rollout_margin"] == 1.0
     assert not metrics["paired_seats"]

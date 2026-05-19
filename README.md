@@ -124,6 +124,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Held-out Hold'em policy-imitation evaluation for cloned experts.
 - Optional balanced, sqrt-balanced, and custom-exponent action-class weighting
   for Hold'em policy distillation.
+- Hold'em policy-distillation checkpoint initialization, optional KL anchoring,
+  rollout-margin control, and shard progress for long example-generation runs.
 - REINFORCE-style Hold'em policy-gradient training against fixed opponents,
   with supervised checkpoint initialization, weighted opponent mixtures, and
   weighted seat-balanced training.
@@ -172,6 +174,17 @@ Current fixed-limit Hold'em gate:
 - Same checkpoint vs `tight-range-pot-odds` e4 with paired seats and 1000 paired
   deals: `+0.2860 +/- 0.0843` chips/hand. The model raised on 9.8% of its
   actions vs 3.3% for the range-aware opponent.
+- The same checkpoint exposed a rollout robustness gap against
+  `tight-safe-rollout-pot-odds` with `rollout_sims=4`, default margin 1.0, and
+  200 paired deals: `-1.3000 +/- 0.4036` chips/hand. The safe-rollout opponent
+  raised on 22.6% of its actions, while the model folded on 22.3% of its
+  actions.
+- A small DAgger-style counterexample fine-tune on 200 player-0 and 200
+  player-1 hands against that safe-rollout opponent repaired the rollout probe
+  to `+0.2250 +/- 0.4165`, but it damaged the main tight exact gate to
+  `-0.0445 +/- 0.1324` over 1000 paired deals, so it is not the current best.
+  A KL-anchored variant with weight 2.0 also failed to repair the rollout probe
+  (`-0.5400 +/- 0.5295`) and over-raised in live play.
 - Unweighted `tight-range` feature 1k distillation improved imitation accuracy
   but collapsed raises; it was weaker in match play: `+0.3795 +/- 0.0618` vs
   tight exact e8 over 2000 paired deals, and `+0.0560 +/- 0.0782` vs

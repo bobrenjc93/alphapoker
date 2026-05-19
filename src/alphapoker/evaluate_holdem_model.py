@@ -111,6 +111,7 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
         "opponent_policy",
         "equity_sims",
         "rollout_sims",
+        "rollout_margin",
         "fallback_policy",
         "min_strategy_weight",
         "bet_threshold",
@@ -172,8 +173,9 @@ def make_opponent_policy(
     rng: random.Random,
     equity_sims: int,
     rollout_sims: int | None = None,
+    rollout_margin: float = 1.0,
 ) -> HoldemPolicy:
-    return make_policy(name, rng, equity_sims, rollout_sims)
+    return make_policy(name, rng, equity_sims, rollout_sims, rollout_margin)
 
 
 def evaluate_model_shard(
@@ -184,6 +186,7 @@ def evaluate_model_shard(
     opponent_policy: str,
     equity_sims: int,
     rollout_sims: int | None,
+    rollout_margin: float,
     model_player: int,
     shard_index: int,
 ) -> dict[str, Any]:
@@ -198,6 +201,7 @@ def evaluate_model_shard(
                 opponent_rng,
                 equity_sims,
                 rollout_sims,
+                rollout_margin,
             ),
             hands=hands,
             seed=eval_seed,
@@ -206,6 +210,7 @@ def evaluate_model_shard(
         "opponent_policy": opponent_policy,
         "equity_sims": equity_sims,
         "rollout_sims": rollout_sims,
+        "rollout_margin": rollout_margin,
         "shard_index": shard_index,
     }
 
@@ -218,6 +223,7 @@ def evaluate_model_paired_shard(
     opponent_policy: str,
     equity_sims: int,
     rollout_sims: int | None,
+    rollout_margin: float,
     shard_index: int,
 ) -> dict[str, Any]:
     eval_seed = seed + shard_index * 1_000_003
@@ -231,6 +237,7 @@ def evaluate_model_paired_shard(
             random.Random(eval_seed + 10 + model_player),
             equity_sims,
             rollout_sims,
+            rollout_margin,
         )
         for model_player in (0, 1)
     )
@@ -245,6 +252,7 @@ def evaluate_model_paired_shard(
         "opponent_policy": opponent_policy,
         "equity_sims": equity_sims,
         "rollout_sims": rollout_sims,
+        "rollout_margin": rollout_margin,
         "shard_index": shard_index,
     }
 
@@ -264,6 +272,7 @@ def report_progress(enabled: bool, result: dict[str, Any]) -> None:
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     progress = bool(getattr(args, "progress", False))
+    rollout_margin = float(getattr(args, "rollout_margin", 1.0))
     model_players = normalize_model_players(args.model_player)
     shard_hands = split_hands(args.hands, args.jobs)
     if args.paired_seats and model_players != (0, 1):
@@ -277,6 +286,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "opponent_policy": args.opponent_policy,
                 "equity_sims": args.equity_sims,
                 "rollout_sims": args.rollout_sims,
+                "rollout_margin": rollout_margin,
                 "shard_index": shard_index,
             }
             for shard_index, shard_size in enumerate(shard_hands)
@@ -319,6 +329,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "opponent_policy": args.opponent_policy,
             "equity_sims": args.equity_sims,
             "rollout_sims": args.rollout_sims,
+            "rollout_margin": rollout_margin,
             "model_player": model_player,
             "shard_index": shard_index,
         }
@@ -366,6 +377,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="random")
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--rollout-sims", type=int)
+    parser.add_argument("--rollout-margin", type=float, default=1.0)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
     parser.add_argument("--jobs", type=int, default=1)
     parser.add_argument("--paired-seats", action="store_true")

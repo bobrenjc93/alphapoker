@@ -23,10 +23,16 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "pot-odds",
             "--rollout-sims",
             "2",
+            "--rollout-margin",
+            "1.5",
             "--feature-equity-sims",
             "3",
             "--feature-equity-mode",
             "sampled",
+            "--init-checkpoint",
+            "policy.pt",
+            "--init-kl-weight",
+            "0.5",
             "--examples-in",
             "examples.json",
             "--examples-out",
@@ -37,6 +43,7 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "0.75",
             "--jobs",
             "4",
+            "--progress",
             "--validation-fraction",
             "0.2",
             "--out",
@@ -47,11 +54,15 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.expert_policy == "pot-odds"
     assert args.opponent_policy == "pot-odds"
     assert args.rollout_sims == 2
+    assert args.rollout_margin == 1.5
     assert args.feature_equity_sims == 3
     assert args.feature_equity_mode == "sampled"
+    assert str(args.init_checkpoint) == "policy.pt"
+    assert args.init_kl_weight == 0.5
     assert args.class_weighting == "balanced"
     assert args.class_weight_exponent == 0.75
     assert args.jobs == 4
+    assert args.progress
     assert args.validation_fraction == 0.2
     assert str(args.examples_in) == "examples.json"
     assert str(args.examples_out) == "cached.json"
@@ -296,3 +307,33 @@ def test_train_holdem_policy_records_validation_metrics(tmp_path) -> None:
     assert metrics["selection_metric"] == "validation_loss"
     assert metrics["best_validation_loss"] is not None
     assert metrics["validation_accuracy"] is not None
+    assert metrics["rollout_margin"] == 1.0
+    assert metrics["init_kl_weight"] == 0.0
+
+
+def test_init_kl_weight_requires_init_checkpoint(tmp_path) -> None:
+    examples_path = tmp_path / "examples.json"
+    write_policy_examples(
+        examples_path,
+        [
+            HoldemPolicyExample(
+                features=[1.0],
+                action_index=0,
+                legal_mask=[True, False, False, False, False],
+            )
+        ],
+    )
+
+    args = build_parser().parse_args(
+        [
+            "--examples-in",
+            str(examples_path),
+            "--init-kl-weight",
+            "0.5",
+            "--out",
+            str(tmp_path / "out"),
+        ]
+    )
+
+    with pytest.raises(ValueError, match="requires --init-checkpoint"):
+        run(args)
