@@ -179,6 +179,11 @@ commit that first recorded the metric.
 | 2026-05-19T10:31:16-07:00 | `2861fdb` | Found a KL-anchored safe-rollout side checkpoint. | `+0.4415 +/- 0.0986` vs tight exact e8 and `+0.2400 +/- 0.3793` vs safe rollout s4, but only `+0.0470 +/- 0.0813` vs tight range e4. |
 | 2026-05-19T12:09:32-07:00 | `2d027bd` | Best-batch rollout actor-critic side pilot. | Good side probes, but exact gate was only `+0.0650 +/- 0.2337` over 200 paired deals. |
 | 2026-05-19T12:39:31-07:00 | `38718c9` | 25% robustness-checkpoint logit blend. | Stayed positive on small exact/range probes, but failed safe rollout s1 at `-0.7375 +/- 0.5386`; not a candidate. |
+| 2026-05-19T13:16:01-07:00 | `cc55a67` | Quantified the cheap safe-rollout baseline. | Current best stayed negative vs `tight-safe-rollout-pot-odds` s1 at `-0.9750 +/- 0.6183` over 40 paired deals. |
+| 2026-05-19T13:23:23-07:00 | `fa8948c` | Tried exact-selected rollout actor-critic. | Exact-only selection chose the initial checkpoint; follow-up range gate was flat at `-0.0100 +/- 0.3449` over 100 paired deals. |
+| 2026-05-19T13:35:55-07:00 | `1d32683` | Tried multi-gate actor-critic selection. | Minimum selection over exact/range also chose the initial checkpoint; best minimum score was `-0.1750`, limited by exact. |
+| 2026-05-19T13:45:42-07:00 | `5d88477` | Added per-gate actor-critic selection including safe rollout. | The 20-hand checkpoint was selected, but best minimum score was still `-2.2500`, again limited by exact. |
+| 2026-05-19T14:05:21-07:00 | `bdec05e` | Tried unweighted KL2 safe-rollout DAgger. | Exact was noisy-positive at `+0.2950 +/- 0.4455`, but range failed at `-0.3750 +/- 0.2848` over 100 paired deals. |
 
 Current fixed-limit Hold'em gate:
 
@@ -229,6 +234,11 @@ Current fixed-limit Hold'em gate:
   player-1 safe-rollout behavior hands was still too disruptive: the completed
   tight exact e8 probe was `-0.2700 +/- 0.3548` over 100 paired deals, so the
   slow range/safe probes were not extended.
+- A more conservative unweighted KL2 counterexample pass with 100 player-0 and
+  100 player-1 safe-rollout behavior hands kept the small tight exact probe
+  noisy-positive (`+0.2950 +/- 0.4455` over 100 paired deals), but failed the
+  `tight-range-pot-odds` gate (`-0.3750 +/- 0.2848` over 100 paired deals), so
+  the safe-rollout extension was skipped.
 - A mixed replay pilot combining the original 1k tight-range self-play examples
   with 200 player-0 and 200 player-1 safe-rollout counterexample hands, trained
   with sqrt-balanced weighting and KL weight 1.0, did not repair the rollout
