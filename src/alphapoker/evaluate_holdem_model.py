@@ -112,6 +112,8 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
         "equity_sims",
         "rollout_sims",
         "rollout_margin",
+        "blend_checkpoint",
+        "blend_weight",
         "fallback_policy",
         "min_strategy_weight",
         "bet_threshold",
@@ -140,12 +142,42 @@ def evaluation_process_context() -> mp.context.BaseContext:
     return mp.get_context(start_method)
 
 
-def model_policy_from_checkpoint(checkpoint_path: Path, *, feature_seed: int = 0) -> HoldemPolicy:
+def checkpoint_feature_metadata(checkpoint: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "input_dim": int(checkpoint["input_dim"]),
+        "feature_equity_sims": checkpoint.get("feature_equity_sims"),
+        "feature_equity_mode": checkpoint.get("feature_equity_mode", "random"),
+        "feature_equity_checkpoint": checkpoint.get("feature_equity_checkpoint"),
+    }
+
+
+def validate_blend_checkpoint_compatibility(
+    primary_checkpoint: dict[str, Any],
+    blend_checkpoint: dict[str, Any],
+) -> None:
+    primary_metadata = checkpoint_feature_metadata(primary_checkpoint)
+    blend_metadata = checkpoint_feature_metadata(blend_checkpoint)
+    if primary_metadata != blend_metadata:
+        raise ValueError(
+            "blended checkpoints must have compatible feature metadata: "
+            f"{primary_metadata} != {blend_metadata}"
+        )
+
+
+def model_policy_from_checkpoint(
+    checkpoint_path: Path,
+    *,
+    feature_seed: int = 0,
+    blend_checkpoint_path: Path | None = None,
+    blend_weight: float = 0.5,
+) -> HoldemPolicy:
     import torch
 
     from alphapoker.holdem_features import HOLDEM_CANONICAL_ACTIONS
     from alphapoker.holdem_model import HoldemPolicyNet
 
+    if not 0.0 <= blend_weight <= 1.0:
+        raise ValueError("blend_weight must be between 0.0 and 1.0")
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     feature_encoder = policy_feature_encoder_from_checkpoint_data(
         checkpoint,
@@ -155,12 +187,22 @@ def model_policy_from_checkpoint(checkpoint_path: Path, *, feature_seed: int = 0
     model = HoldemPolicyNet(input_dim=feature_encoder.input_dim)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
+    blend_model = None
+    if blend_checkpoint_path is not None:
+        blend_checkpoint = torch.load(blend_checkpoint_path, map_location="cpu", weights_only=False)
+        validate_blend_checkpoint_compatibility(checkpoint, blend_checkpoint)
+        blend_model = HoldemPolicyNet(input_dim=feature_encoder.input_dim)
+        blend_model.load_state_dict(blend_checkpoint["model_state_dict"])
+        blend_model.eval()
 
     def select_action(state: FixedLimitHoldemState) -> str:
         features = torch.tensor([feature_encoder.encode(state)], dtype=torch.float32)
         mask = torch.tensor(holdem_legal_action_mask(state), dtype=torch.bool)
         with torch.no_grad():
             logits = model(features).squeeze(0)
+            if blend_model is not None:
+                blend_logits = blend_model(features).squeeze(0)
+                logits = (1.0 - blend_weight) * logits + blend_weight * blend_logits
             logits = logits.masked_fill(~mask, -1e9)
             action_index = int(logits.argmax().item())
         return HOLDEM_CANONICAL_ACTIONS[action_index]
@@ -187,6 +229,8 @@ def evaluate_model_shard(
     equity_sims: int,
     rollout_sims: int | None,
     rollout_margin: float,
+    blend_checkpoint: Path | None,
+    blend_weight: float,
     model_player: int,
     shard_index: int,
 ) -> dict[str, Any]:
@@ -195,7 +239,12 @@ def evaluate_model_shard(
     return {
         "checkpoint": str(checkpoint),
         **evaluate_policy_match(
-            model_policy=model_policy_from_checkpoint(checkpoint, feature_seed=eval_seed),
+            model_policy=model_policy_from_checkpoint(
+                checkpoint,
+                feature_seed=eval_seed,
+                blend_checkpoint_path=blend_checkpoint,
+                blend_weight=blend_weight,
+            ),
             opponent_policy=make_opponent_policy(
                 opponent_policy,
                 opponent_rng,
@@ -211,6 +260,8 @@ def evaluate_model_shard(
         "equity_sims": equity_sims,
         "rollout_sims": rollout_sims,
         "rollout_margin": rollout_margin,
+        "blend_checkpoint": str(blend_checkpoint) if blend_checkpoint is not None else None,
+        "blend_weight": blend_weight if blend_checkpoint is not None else None,
         "shard_index": shard_index,
     }
 
@@ -224,11 +275,18 @@ def evaluate_model_paired_shard(
     equity_sims: int,
     rollout_sims: int | None,
     rollout_margin: float,
+    blend_checkpoint: Path | None,
+    blend_weight: float,
     shard_index: int,
 ) -> dict[str, Any]:
     eval_seed = seed + shard_index * 1_000_003
     model_policies = tuple(
-        model_policy_from_checkpoint(checkpoint, feature_seed=eval_seed + model_player)
+        model_policy_from_checkpoint(
+            checkpoint,
+            feature_seed=eval_seed + model_player,
+            blend_checkpoint_path=blend_checkpoint,
+            blend_weight=blend_weight,
+        )
         for model_player in (0, 1)
     )
     opponent_policies = tuple(
@@ -253,6 +311,8 @@ def evaluate_model_paired_shard(
         "equity_sims": equity_sims,
         "rollout_sims": rollout_sims,
         "rollout_margin": rollout_margin,
+        "blend_checkpoint": str(blend_checkpoint) if blend_checkpoint is not None else None,
+        "blend_weight": blend_weight if blend_checkpoint is not None else None,
         "shard_index": shard_index,
     }
 
@@ -273,6 +333,10 @@ def report_progress(enabled: bool, result: dict[str, Any]) -> None:
 def run(args: argparse.Namespace) -> dict[str, Any]:
     progress = bool(getattr(args, "progress", False))
     rollout_margin = float(getattr(args, "rollout_margin", 1.0))
+    blend_checkpoint = getattr(args, "blend_checkpoint", None)
+    blend_weight = float(getattr(args, "blend_weight", 0.5))
+    if not 0.0 <= blend_weight <= 1.0:
+        raise ValueError("--blend-weight must be between 0.0 and 1.0")
     model_players = normalize_model_players(args.model_player)
     shard_hands = split_hands(args.hands, args.jobs)
     if args.paired_seats and model_players != (0, 1):
@@ -287,6 +351,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "equity_sims": args.equity_sims,
                 "rollout_sims": args.rollout_sims,
                 "rollout_margin": rollout_margin,
+                "blend_checkpoint": blend_checkpoint,
+                "blend_weight": blend_weight,
                 "shard_index": shard_index,
             }
             for shard_index, shard_size in enumerate(shard_hands)
@@ -330,6 +396,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "equity_sims": args.equity_sims,
             "rollout_sims": args.rollout_sims,
             "rollout_margin": rollout_margin,
+            "blend_checkpoint": blend_checkpoint,
+            "blend_weight": blend_weight,
             "model_player": model_player,
             "shard_index": shard_index,
         }
@@ -372,6 +440,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path, required=True)
+    parser.add_argument("--blend-checkpoint", type=Path)
+    parser.add_argument("--blend-weight", type=float, default=0.5)
     parser.add_argument("--hands", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="random")

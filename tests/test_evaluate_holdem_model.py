@@ -14,8 +14,24 @@ from alphapoker.evaluate_holdem_model import (  # noqa: E402
     split_hands,
 )
 from alphapoker.holdem import deal_fixed_limit_holdem  # noqa: E402
-from alphapoker.holdem_features import HOLDEM_FEATURE_DIM  # noqa: E402
+from alphapoker.holdem_features import HOLDEM_CANONICAL_ACTIONS, HOLDEM_FEATURE_DIM  # noqa: E402
 from alphapoker.holdem_model import HoldemEquityNet, HoldemPolicyNet  # noqa: E402
+
+
+def write_biased_policy_checkpoint(path, action: str, *, input_dim: int = HOLDEM_FEATURE_DIM) -> None:
+    model = HoldemPolicyNet(input_dim=input_dim)
+    for parameter in model.parameters():
+        parameter.data.zero_()
+    bias = model.net[-1].bias
+    assert bias is not None
+    bias.data[HOLDEM_CANONICAL_ACTIONS.index(action)] = 10.0
+    torch.save(
+        {
+            "model_state_dict": model.state_dict(),
+            "input_dim": input_dim,
+        },
+        path,
+    )
 
 
 def test_make_opponent_policy_rejects_unknown() -> None:
@@ -36,12 +52,18 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
         [
             "--checkpoint",
             "model.pt",
+            "--blend-checkpoint",
+            "blend.pt",
+            "--blend-weight",
+            "0.25",
             "--model-player",
             "1",
         ]
     )
 
     assert args.model_player == (1,)
+    assert str(args.blend_checkpoint) == "blend.pt"
+    assert args.blend_weight == 0.25
 
 
 def test_holdem_model_eval_parser_accepts_both_model_players() -> None:
@@ -174,8 +196,53 @@ def test_model_policy_loads_tight_range_feature_mode(tmp_path) -> None:
     assert action in state.legal_actions()
 
 
+def test_model_policy_blends_compatible_checkpoints(tmp_path) -> None:
+    state = deal_fixed_limit_holdem()
+    legal_actions = state.legal_actions()
+    primary_action = legal_actions[0]
+    blend_action = legal_actions[-1]
+    primary_checkpoint = tmp_path / "primary.pt"
+    blend_checkpoint = tmp_path / "blend.pt"
+    write_biased_policy_checkpoint(primary_checkpoint, primary_action)
+    write_biased_policy_checkpoint(blend_checkpoint, blend_action)
+
+    primary_policy = model_policy_from_checkpoint(
+        primary_checkpoint,
+        blend_checkpoint_path=blend_checkpoint,
+        blend_weight=0.0,
+    )
+    blend_policy = model_policy_from_checkpoint(
+        primary_checkpoint,
+        blend_checkpoint_path=blend_checkpoint,
+        blend_weight=1.0,
+    )
+
+    assert primary_policy(state) == primary_action
+    assert blend_policy(state) == blend_action
+
+
+def test_model_policy_blend_rejects_incompatible_features(tmp_path) -> None:
+    state = deal_fixed_limit_holdem()
+    legal_action = state.legal_actions()[0]
+    primary_checkpoint = tmp_path / "primary.pt"
+    blend_checkpoint = tmp_path / "blend.pt"
+    write_biased_policy_checkpoint(primary_checkpoint, legal_action)
+    write_biased_policy_checkpoint(
+        blend_checkpoint,
+        legal_action,
+        input_dim=HOLDEM_FEATURE_DIM + 1,
+    )
+
+    with pytest.raises(ValueError, match="compatible feature metadata"):
+        model_policy_from_checkpoint(
+            primary_checkpoint,
+            blend_checkpoint_path=blend_checkpoint,
+        )(state)
+
+
 def test_holdem_model_eval_run_smoke(tmp_path) -> None:
     policy_checkpoint = tmp_path / "policy.pt"
+    blend_checkpoint = tmp_path / "blend.pt"
     torch.save(
         {
             "model_state_dict": HoldemPolicyNet(input_dim=HOLDEM_FEATURE_DIM).state_dict(),
@@ -183,12 +250,23 @@ def test_holdem_model_eval_run_smoke(tmp_path) -> None:
         },
         policy_checkpoint,
     )
+    torch.save(
+        {
+            "model_state_dict": HoldemPolicyNet(input_dim=HOLDEM_FEATURE_DIM).state_dict(),
+            "input_dim": HOLDEM_FEATURE_DIM,
+        },
+        blend_checkpoint,
+    )
 
     metrics = run(
         build_parser().parse_args(
             [
                 "--checkpoint",
                 str(policy_checkpoint),
+                "--blend-checkpoint",
+                str(blend_checkpoint),
+                "--blend-weight",
+                "0.25",
                 "--hands",
                 "1",
                 "--model-player",
@@ -203,6 +281,8 @@ def test_holdem_model_eval_run_smoke(tmp_path) -> None:
     assert metrics["hands_per_model_player"] == 1
     assert metrics["jobs"] == 1
     assert metrics["shard_hands"] == [1]
+    assert metrics["blend_checkpoint"] == str(blend_checkpoint)
+    assert metrics["blend_weight"] == 0.25
     assert not metrics["paired_seats"]
     assert sum(metrics["model_action_counts"].values()) > 0
     assert sum(metrics["opponent_action_counts"].values()) > 0
