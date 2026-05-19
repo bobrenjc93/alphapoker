@@ -96,6 +96,7 @@ def make_evaluation_policy(
             bet_threshold=bet_threshold,
             raise_threshold=raise_threshold,
             call_margin=call_margin,
+            cache_policy_matches=True,
         )
     if name in ("cached-pot-odds", "cached-tuned-pot-odds"):
         return cached_pot_odds_equity_policy(

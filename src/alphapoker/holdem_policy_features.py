@@ -94,6 +94,7 @@ class HoldemPolicyFeatureEncoder:
                     opponent_policy_factory=_tight_range_opponent_policy_factory(
                         self.feature_equity_sims
                     ),
+                    cache_policy_matches=True,
                 )
             features.append(equity)
         elif self.feature_equity_fn is not None:

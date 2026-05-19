@@ -160,6 +160,7 @@ def encode_policy_example_features(
             feature_rng,
             simulations=feature_equity_sims,
             opponent_policy_factory=_tight_range_opponent_policy_factory(feature_equity_sims),
+            cache_policy_matches=True,
         )
     else:
         raise AssertionError(f"Unhandled feature equity mode: {feature_equity_mode}")

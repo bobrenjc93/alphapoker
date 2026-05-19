@@ -114,6 +114,7 @@ def make_policy(
             bet_threshold=0.62,
             raise_threshold=0.84,
             call_margin=0.08,
+            cache_policy_matches=True,
         )
     if name == "hybrid-pot-odds":
         return hybrid_pot_odds_equity_policy(rng, simulations=equity_sims)

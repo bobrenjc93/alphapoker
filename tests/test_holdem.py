@@ -20,6 +20,7 @@ from alphapoker.holdem import (  # noqa: E402
     hybrid_pot_odds_equity_policy,
     opponent_range_pot_odds_equity_policy,
     play_fixed_limit_holdem_hand,
+    policy_filtered_holdem_equity,
     pot_odds_call_threshold,
     pot_odds_equity_policy,
     preflop_holdem_equity_heuristic,
@@ -349,6 +350,78 @@ def test_holdem_belief_state_policy_filter_rejects_inconsistent_samples() -> Non
 
     assert accepted is not None
     assert rejected is None
+
+
+def test_holdem_belief_state_policy_filter_can_cache_matches() -> None:
+    state = FixedLimitHoldemState.initial(
+        (("As", "Ad"), ("Kc", "Kd")),
+        ("2h", "3d", "4s", "5c", "6h"),
+    )
+    state = state.apply(CALL).apply(CHECK)
+    policy_calls = 0
+
+    def checking_policy(state: FixedLimitHoldemState) -> str:
+        legal = state.legal_actions()
+        return CHECK if CHECK in legal else CALL
+
+    def policy_factory(_: random.Random):
+        nonlocal policy_calls
+        policy_calls += 1
+        return checking_policy
+
+    match_cache: dict[tuple[str, str], bool] = {}
+    first = sample_holdem_belief_state_matching_opponent_policy(
+        state,
+        0,
+        random.Random(24),
+        opponent_policy_factory=policy_factory,
+        max_attempts=1,
+        match_cache=match_cache,
+    )
+    second = sample_holdem_belief_state_matching_opponent_policy(
+        state,
+        0,
+        random.Random(24),
+        opponent_policy_factory=policy_factory,
+        max_attempts=1,
+        match_cache=match_cache,
+    )
+
+    assert first is not None
+    assert second is not None
+    assert policy_calls == 1
+
+
+def test_policy_filtered_holdem_equity_cache_preserves_deterministic_result() -> None:
+    state = FixedLimitHoldemState.initial(
+        (("As", "Ad"), ("Kc", "Kd")),
+        ("2h", "3d", "4s", "5c", "6h"),
+    )
+    state = state.apply(CALL).apply(CHECK)
+
+    def checking_policy(state: FixedLimitHoldemState) -> str:
+        legal = state.legal_actions()
+        return CHECK if CHECK in legal else CALL
+
+    no_cache = policy_filtered_holdem_equity(
+        state,
+        0,
+        random.Random(26),
+        simulations=8,
+        opponent_policy_factory=lambda _: checking_policy,
+        max_attempts_per_sample=4,
+    )
+    cached = policy_filtered_holdem_equity(
+        state,
+        0,
+        random.Random(26),
+        simulations=8,
+        opponent_policy_factory=lambda _: checking_policy,
+        max_attempts_per_sample=4,
+        cache_policy_matches=True,
+    )
+
+    assert cached == no_cache
 
 
 def test_opponent_range_pot_odds_equity_policy_selects_legal_actions() -> None:

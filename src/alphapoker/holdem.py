@@ -840,14 +840,26 @@ def sample_holdem_belief_state_matching_opponent_policy(
     *,
     opponent_policy_factory: Callable[[random.Random], HoldemPolicy],
     max_attempts: int = 32,
+    match_cache: dict[tuple[str, str], bool] | None = None,
 ) -> FixedLimitHoldemState | None:
     if max_attempts <= 0:
         raise ValueError("max_attempts must be positive")
 
+    opponent = 1 - player
     for _ in range(max_attempts):
         candidate = sample_holdem_belief_state(state, player, rng)
-        opponent_policy = opponent_policy_factory(random.Random(rng.randrange(2**63)))
-        if holdem_belief_state_matches_opponent_policy(candidate, player, opponent_policy):
+        policy_seed = rng.randrange(2**63)
+        cache_key = candidate.private_cards[opponent]
+        if match_cache is not None and cache_key in match_cache:
+            if match_cache[cache_key]:
+                return candidate
+            continue
+
+        opponent_policy = opponent_policy_factory(random.Random(policy_seed))
+        matches = holdem_belief_state_matches_opponent_policy(candidate, player, opponent_policy)
+        if match_cache is not None:
+            match_cache[cache_key] = matches
+        if matches:
             return candidate
     return None
 
@@ -860,6 +872,7 @@ def policy_filtered_holdem_equity(
     simulations: int = 64,
     opponent_policy_factory: Callable[[random.Random], HoldemPolicy],
     max_attempts_per_sample: int = 32,
+    cache_policy_matches: bool = False,
 ) -> float:
     """Estimate equity from hidden states consistent with observed opponent actions."""
 
@@ -868,6 +881,7 @@ def policy_filtered_holdem_equity(
     if player not in (0, 1):
         raise ValueError(f"Unknown player: {player}")
 
+    match_cache: dict[tuple[str, str], bool] | None = {} if cache_policy_matches else None
     wins = 0.0
     for _ in range(simulations):
         sampled_state = sample_holdem_belief_state_matching_opponent_policy(
@@ -876,6 +890,7 @@ def policy_filtered_holdem_equity(
             rng,
             opponent_policy_factory=opponent_policy_factory,
             max_attempts=max_attempts_per_sample,
+            match_cache=match_cache,
         )
         if sampled_state is None:
             sampled_state = sample_holdem_belief_state(state, player, rng)
@@ -903,6 +918,7 @@ def opponent_range_pot_odds_equity_policy(
     raise_threshold: float = 0.82,
     call_margin: float = 0.08,
     max_attempts_per_sample: int = 32,
+    cache_policy_matches: bool = False,
 ) -> HoldemPolicy:
     def select_action(state: FixedLimitHoldemState) -> str:
         player = state.current_player()
@@ -913,6 +929,7 @@ def opponent_range_pot_odds_equity_policy(
             simulations=simulations,
             opponent_policy_factory=opponent_policy_factory,
             max_attempts_per_sample=max_attempts_per_sample,
+            cache_policy_matches=cache_policy_matches,
         )
         legal = state.legal_actions()
         if state.outstanding_call_amount() > 0:
