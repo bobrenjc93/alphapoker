@@ -102,6 +102,27 @@ def test_holdem_self_play_tuned_pot_odds_policy_smoke() -> None:
     assert metrics["player0_policy"] == "tuned-pot-odds"
 
 
+def test_holdem_self_play_cached_tuned_pot_odds_policy_smoke() -> None:
+    args = build_parser().parse_args(
+        [
+            "--hands",
+            "3",
+            "--seed",
+            "10",
+            "--player0-policy",
+            "cached-tuned-pot-odds",
+            "--player1-policy",
+            "cached-pot-odds",
+            "--equity-sims",
+            "4",
+        ]
+    )
+    metrics = run(args)
+
+    assert metrics["hands"] == 3
+    assert metrics["player0_policy"] == "cached-tuned-pot-odds"
+
+
 def test_holdem_self_play_hybrid_pot_odds_policy_smoke() -> None:
     args = build_parser().parse_args(
         [

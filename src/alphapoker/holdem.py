@@ -10,6 +10,7 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 from functools import lru_cache
+from hashlib import blake2b
 from typing import Callable
 
 from alphapoker.kuhn import BET, CALL, CHECK, FOLD
@@ -386,6 +387,51 @@ def estimate_holdem_equity(
     return wins / simulations
 
 
+def _stable_equity_seed(
+    private_cards: tuple[str, str],
+    visible_board: tuple[str, ...],
+    simulations: int,
+) -> int:
+    payload = ",".join(
+        (*sorted(private_cards), "|", *sorted(visible_board), str(simulations))
+    ).encode()
+    return int.from_bytes(blake2b(payload, digest_size=8).digest(), "big")
+
+
+@lru_cache(maxsize=500_000)
+def _sampled_holdem_equity_cached(
+    private_cards: tuple[str, str],
+    visible_board: tuple[str, ...],
+    simulations: int,
+) -> float:
+    return estimate_holdem_equity(
+        private_cards,
+        visible_board,
+        simulations=simulations,
+        rng=random.Random(_stable_equity_seed(private_cards, visible_board, simulations)),
+    )
+
+
+def sampled_holdem_equity(
+    private_cards: tuple[str, str],
+    visible_board: tuple[str, ...],
+    *,
+    simulations: int = 128,
+) -> float:
+    """Return a deterministic cached Monte Carlo equity estimate."""
+
+    if simulations <= 0:
+        raise ValueError("simulations must be positive")
+    sorted_private = tuple(sorted(private_cards))
+    if len(sorted_private) != 2:
+        raise ValueError("sampled equity requires exactly two private cards")
+    return _sampled_holdem_equity_cached(
+        (sorted_private[0], sorted_private[1]),
+        tuple(sorted(visible_board)),
+        simulations,
+    )
+
+
 def preflop_holdem_equity_heuristic(private_cards: tuple[str, str]) -> float:
     if len(private_cards) != 2:
         raise ValueError("preflop equity heuristic requires exactly two private cards")
@@ -457,6 +503,35 @@ def pot_odds_equity_policy(
             state.visible_board(),
             simulations=simulations,
             rng=rng,
+        )
+        legal = state.legal_actions()
+        if state.outstanding_call_amount() > 0:
+            if RAISE in legal and equity >= raise_threshold:
+                return RAISE
+            if equity >= pot_odds_call_threshold(state, margin=call_margin):
+                return CALL
+            return FOLD
+
+        if BET in legal and equity >= bet_threshold:
+            return BET
+        return CHECK
+
+    return select_action
+
+
+def cached_pot_odds_equity_policy(
+    *,
+    simulations: int = 128,
+    bet_threshold: float = 0.58,
+    raise_threshold: float = 0.72,
+    call_margin: float = 0.0,
+) -> HoldemPolicy:
+    def select_action(state: FixedLimitHoldemState) -> str:
+        player = state.current_player()
+        equity = sampled_holdem_equity(
+            state.private_cards[player],
+            state.visible_board(),
+            simulations=simulations,
         )
         legal = state.legal_actions()
         if state.outstanding_call_amount() > 0:

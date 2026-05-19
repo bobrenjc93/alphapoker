@@ -7,6 +7,7 @@ import random  # noqa: E402
 
 from alphapoker.holdem import (  # noqa: E402
     FixedLimitHoldemState,
+    cached_pot_odds_equity_policy,
     deal_fixed_limit_holdem,
     compare_holdem_hands,
     equity_threshold_policy,
@@ -21,6 +22,7 @@ from alphapoker.holdem import (  # noqa: E402
     pot_odds_rollout_policy,
     random_holdem_policy,
     sample_holdem_belief_state,
+    sampled_holdem_equity,
 )
 from alphapoker.kuhn import BET, CALL, CHECK, FOLD  # noqa: E402
 from alphapoker.leduc import RAISE  # noqa: E402
@@ -148,6 +150,14 @@ def test_holdem_equity_estimator_orders_premium_and_weak_hands() -> None:
     assert weak < 0.45
 
 
+def test_sampled_holdem_equity_is_deterministic() -> None:
+    first = sampled_holdem_equity(("As", "Ad"), (), simulations=32)
+    second = sampled_holdem_equity(("Ad", "As"), (), simulations=32)
+
+    assert first == second
+    assert 0.0 <= first <= 1.0
+
+
 def test_preflop_holdem_equity_heuristic_orders_hands() -> None:
     premium = preflop_holdem_equity_heuristic(("As", "Ad"))
     suited_broadway = preflop_holdem_equity_heuristic(("As", "Ks"))
@@ -179,6 +189,15 @@ def test_pot_odds_equity_policy_selects_legal_actions() -> None:
     rng = random.Random(19)
     state = deal_fixed_limit_holdem(rng)
     policy = pot_odds_equity_policy(rng, simulations=16)
+    action = policy(state)
+
+    assert action in state.legal_actions()
+
+
+def test_cached_pot_odds_equity_policy_selects_legal_actions() -> None:
+    rng = random.Random(20)
+    state = deal_fixed_limit_holdem(rng)
+    policy = cached_pot_odds_equity_policy(simulations=16)
     action = policy(state)
 
     assert action in state.legal_actions()

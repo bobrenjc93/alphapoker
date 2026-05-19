@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from alphapoker.holdem import (
+    cached_pot_odds_equity_policy,
     deal_fixed_limit_holdem,
     equity_threshold_policy,
     hybrid_pot_odds_equity_policy,
@@ -24,7 +25,9 @@ HOLDEM_SELF_PLAY_POLICIES = (
     "random",
     "equity",
     "pot-odds",
+    "cached-pot-odds",
     "tuned-pot-odds",
+    "cached-tuned-pot-odds",
     "hybrid-pot-odds",
     "rollout-pot-odds",
 )
@@ -42,9 +45,18 @@ def make_policy(
         return equity_threshold_policy(rng, simulations=equity_sims)
     if name == "pot-odds":
         return pot_odds_equity_policy(rng, simulations=equity_sims)
+    if name == "cached-pot-odds":
+        return cached_pot_odds_equity_policy(simulations=equity_sims)
     if name == "tuned-pot-odds":
         return pot_odds_equity_policy(
             rng,
+            simulations=equity_sims,
+            bet_threshold=0.54,
+            raise_threshold=0.76,
+            call_margin=0.05,
+        )
+    if name == "cached-tuned-pot-odds":
+        return cached_pot_odds_equity_policy(
             simulations=equity_sims,
             bet_threshold=0.54,
             raise_threshold=0.76,
