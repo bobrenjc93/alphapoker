@@ -11,6 +11,10 @@ from pathlib import Path
 from typing import Any
 
 from alphapoker.holdem import FixedLimitHoldemState, HoldemPolicy, estimate_holdem_equity
+from alphapoker.holdem_equity_feature import (
+    equity_estimator_from_checkpoint,
+    resolve_equity_checkpoint_path,
+)
 from alphapoker.holdem_evaluation import evaluate_policy_match
 from alphapoker.holdem_features import (
     adapt_holdem_features,
@@ -101,6 +105,16 @@ def model_policy_from_checkpoint(checkpoint_path: Path) -> HoldemPolicy:
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     input_dim = int(checkpoint["input_dim"])
     feature_equity_sims = checkpoint.get("feature_equity_sims")
+    feature_equity_checkpoint = checkpoint.get("feature_equity_checkpoint")
+    if feature_equity_sims is not None and feature_equity_checkpoint is not None:
+        raise ValueError("Policy checkpoint cannot set both equity feature modes")
+    feature_equity_fn = None
+    if feature_equity_checkpoint is not None:
+        feature_equity_path = resolve_equity_checkpoint_path(
+            feature_equity_checkpoint,
+            relative_to=checkpoint_path,
+        )
+        feature_equity_fn = equity_estimator_from_checkpoint(feature_equity_path)
     feature_rng = random.Random(0)
     model = HoldemPolicyNet(input_dim=input_dim)
     model.load_state_dict(checkpoint["model_state_dict"])
@@ -118,6 +132,8 @@ def model_policy_from_checkpoint(checkpoint_path: Path) -> HoldemPolicy:
                     rng=feature_rng,
                 )
             )
+        elif feature_equity_fn is not None:
+            raw_features.append(feature_equity_fn(state))
         features = torch.tensor([adapt_holdem_features(raw_features, input_dim)], dtype=torch.float32)
         mask = torch.tensor(holdem_legal_action_mask(state), dtype=torch.bool)
         with torch.no_grad():

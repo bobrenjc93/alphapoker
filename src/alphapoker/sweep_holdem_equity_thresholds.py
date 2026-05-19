@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from alphapoker.evaluate_holdem_equity_model import run as run_evaluation
+from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES
 from alphapoker.train import write_json
 
 
@@ -96,6 +97,7 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
         "showdowns": sum(int(item["showdowns"]) for item in metrics),
         "opponent_policy": first["opponent_policy"],
         "equity_sims": first["equity_sims"],
+        "rollout_sims": first["rollout_sims"],
         "bet_threshold": first["bet_threshold"],
         "raise_threshold": first["raise_threshold"],
         "call_threshold": first["call_threshold"],
@@ -118,6 +120,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 seed=args.seed,
                 opponent_policy=args.opponent_policy,
                 equity_sims=args.equity_sims,
+                rollout_sims=args.rollout_sims,
                 model_player=model_player,
                 bet_threshold=bet_threshold,
                 raise_threshold=raise_threshold,
@@ -136,6 +139,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "seed": args.seed,
         "opponent_policy": args.opponent_policy,
         "equity_sims": args.equity_sims,
+        "rollout_sims": args.rollout_sims,
         "model_player": model_player_label(model_players),
         "best": best,
         "results": results,
@@ -150,8 +154,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--hands", type=int, default=100)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--opponent-policy", choices=["random", "equity", "pot-odds"], default="equity")
+    parser.add_argument("--opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="equity")
     parser.add_argument("--equity-sims", type=int, default=8)
+    parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
     parser.add_argument(
         "--configs",

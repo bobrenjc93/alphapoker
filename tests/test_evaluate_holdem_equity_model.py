@@ -46,3 +46,16 @@ def test_equity_model_eval_parser_accepts_pot_odds_opponent() -> None:
     )
 
     assert args.opponent_policy == "pot-odds"
+
+
+def test_equity_model_eval_parser_accepts_tuned_pot_odds_opponent() -> None:
+    args = build_parser().parse_args(
+        [
+            "--checkpoint",
+            "model.pt",
+            "--opponent-policy",
+            "tuned-pot-odds",
+        ]
+    )
+
+    assert args.opponent_policy == "tuned-pot-odds"

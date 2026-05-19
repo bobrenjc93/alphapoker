@@ -37,3 +37,16 @@ def test_train_holdem_equity_parser_accepts_both() -> None:
     assert args.player is None
     assert str(args.examples_in) == "examples.json"
     assert str(args.examples_out) == "cached.json"
+
+
+def test_train_holdem_equity_parser_accepts_tuned_pot_odds() -> None:
+    args = build_parser().parse_args(
+        [
+            "--opponent-policy",
+            "tuned-pot-odds",
+            "--out",
+            "out",
+        ]
+    )
+
+    assert args.opponent_policy == "tuned-pot-odds"

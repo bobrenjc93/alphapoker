@@ -60,6 +60,7 @@ def test_sweep_aggregates_both_model_players(monkeypatch) -> None:
             "showdowns": 3,
             "opponent_policy": args.opponent_policy,
             "equity_sims": args.equity_sims,
+            "rollout_sims": args.rollout_sims,
             "bet_threshold": args.bet_threshold,
             "raise_threshold": args.raise_threshold,
             "call_threshold": args.call_threshold,

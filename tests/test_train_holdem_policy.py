@@ -37,6 +37,19 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert str(args.examples_out) == "cached.json"
 
 
+def test_train_holdem_policy_parser_accepts_feature_equity_checkpoint() -> None:
+    args = build_parser().parse_args(
+        [
+            "--feature-equity-checkpoint",
+            "equity.pt",
+            "--out",
+            "out",
+        ]
+    )
+
+    assert str(args.feature_equity_checkpoint) == "equity.pt"
+
+
 def test_train_holdem_policy_parser_accepts_rollout_expert() -> None:
     args = build_parser().parse_args(
         [

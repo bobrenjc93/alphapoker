@@ -13,9 +13,8 @@ from alphapoker.holdem import (
     deal_fixed_limit_holdem,
     equity_threshold_policy,
     estimate_holdem_equity,
-    pot_odds_equity_policy,
-    random_holdem_policy,
 )
+from alphapoker.holdem_equity_feature import HoldemEquityEstimator
 from alphapoker.holdem_features import (
     encode_holdem_state,
     holdem_action_index,
@@ -30,6 +29,12 @@ HOLDEM_DATASET_OPPONENT_POLICIES = (
     "tuned-pot-odds",
     "random",
     "rollout-pot-odds",
+)
+HOLDEM_EQUITY_VALUE_OPPONENT_POLICIES = (
+    "equity",
+    "pot-odds",
+    "tuned-pot-odds",
+    "random",
 )
 
 
@@ -51,8 +56,14 @@ def encode_policy_example_features(
     *,
     feature_equity_sims: int | None = None,
     feature_rng: random.Random | None = None,
+    feature_equity_fn: HoldemEquityEstimator | None = None,
 ) -> list[float]:
+    if feature_equity_sims is not None and feature_equity_fn is not None:
+        raise ValueError("Set only one of feature_equity_sims or feature_equity_fn")
     features = encode_holdem_state(state)
+    if feature_equity_fn is not None:
+        features.append(float(feature_equity_fn(state)))
+        return features
     if feature_equity_sims is None:
         return features
     if feature_rng is None:
@@ -121,8 +132,11 @@ def generate_equity_policy_examples(
     opponent_policy: str = "equity",
     rollout_sims: int | None = None,
     feature_equity_sims: int | None = None,
+    feature_equity_fn: HoldemEquityEstimator | None = None,
     expert_behavior_policy: HoldemPolicy | None = None,
 ) -> list[HoldemPolicyExample]:
+    if feature_equity_sims is not None and feature_equity_fn is not None:
+        raise ValueError("Set only one of feature_equity_sims or feature_equity_fn")
     deal_rng = random.Random(seed)
     policy_rng = random.Random(seed + 1)
     feature_rng = random.Random(seed + 3)
@@ -148,6 +162,7 @@ def generate_equity_policy_examples(
                             state,
                             feature_equity_sims=feature_equity_sims,
                             feature_rng=feature_rng,
+                            feature_equity_fn=feature_equity_fn,
                         ),
                         action_index=holdem_action_index(expert_action),
                         legal_mask=holdem_legal_action_mask(state),
@@ -191,14 +206,9 @@ def generate_equity_value_examples(
     policy_rng = random.Random(seed + 1)
     label_rng = random.Random(seed + 2)
     player_policy = equity_threshold_policy(policy_rng, simulations=equity_sims)
-    if opponent_policy == "random":
-        other_policy = random_holdem_policy(policy_rng)
-    elif opponent_policy == "equity":
-        other_policy = equity_threshold_policy(policy_rng, simulations=equity_sims)
-    elif opponent_policy == "pot-odds":
-        other_policy = pot_odds_equity_policy(policy_rng, simulations=equity_sims)
-    else:
+    if opponent_policy not in HOLDEM_EQUITY_VALUE_OPPONENT_POLICIES:
         raise ValueError(f"Unknown opponent policy: {opponent_policy}")
+    other_policy = make_policy(opponent_policy, policy_rng, equity_sims)
 
     examples: list[HoldemEquityExample] = []
     for _ in range(hands):

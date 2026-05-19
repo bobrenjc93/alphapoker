@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from alphapoker.holdem_dataset import (
+    HOLDEM_EQUITY_VALUE_OPPONENT_POLICIES,
     generate_equity_value_examples,
     read_equity_value_examples,
     write_equity_value_examples,
@@ -110,7 +111,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--hands", type=int, default=500)
     parser.add_argument("--equity-sims", type=int, default=16)
     parser.add_argument("--player", type=parse_player, default=0)
-    parser.add_argument("--opponent-policy", choices=["equity", "pot-odds", "random"], default="random")
+    parser.add_argument(
+        "--opponent-policy",
+        choices=HOLDEM_EQUITY_VALUE_OPPONENT_POLICIES,
+        default="random",
+    )
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--lr", type=float, default=3e-3)
     parser.add_argument("--seed", type=int, default=0)

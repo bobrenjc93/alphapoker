@@ -12,6 +12,10 @@ from alphapoker.holdem_dataset import (
     HOLDEM_EXPERT_POLICIES,
     generate_equity_policy_examples,
 )
+from alphapoker.holdem_equity_feature import (
+    equity_estimator_from_checkpoint,
+    resolve_equity_checkpoint_path,
+)
 from alphapoker.holdem_features import HOLDEM_CANONICAL_ACTIONS, adapt_holdem_features
 from alphapoker.train import write_json
 
@@ -24,6 +28,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     checkpoint = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
     feature_equity_sims = checkpoint.get("feature_equity_sims")
+    feature_equity_checkpoint = checkpoint.get("feature_equity_checkpoint")
+    if feature_equity_sims is not None and feature_equity_checkpoint is not None:
+        raise ValueError("Policy checkpoint cannot set both equity feature modes")
+    feature_equity_fn = None
+    if feature_equity_checkpoint is not None:
+        feature_equity_path = resolve_equity_checkpoint_path(
+            feature_equity_checkpoint,
+            relative_to=args.checkpoint,
+        )
+        feature_equity_fn = equity_estimator_from_checkpoint(feature_equity_path)
     examples = generate_equity_policy_examples(
         hands=args.hands,
         seed=args.seed,
@@ -33,6 +47,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         opponent_policy=args.opponent_policy,
         rollout_sims=args.rollout_sims,
         feature_equity_sims=feature_equity_sims,
+        feature_equity_fn=feature_equity_fn,
     )
     input_dim = int(checkpoint["input_dim"])
     features = torch.tensor(
@@ -70,6 +85,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "opponent_policy": args.opponent_policy,
         "rollout_sims": args.rollout_sims,
         "feature_equity_sims": feature_equity_sims,
+        "feature_equity_checkpoint": feature_equity_checkpoint,
         "loss": float(loss.cpu()),
         "accuracy": accuracy,
         "target_action_counts": target_action_counts,

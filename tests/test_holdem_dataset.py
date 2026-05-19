@@ -57,6 +57,25 @@ def test_holdem_policy_features_can_include_equity_estimate() -> None:
     assert 0.0 <= features[-1] <= 1.0
 
 
+def test_holdem_policy_features_can_include_learned_equity_estimate() -> None:
+    state = deal_fixed_limit_holdem()
+    features = encode_policy_example_features(state, feature_equity_fn=lambda _: 0.42)
+
+    assert len(features) == HOLDEM_FEATURE_DIM + 1
+    assert features[-1] == 0.42
+
+
+def test_holdem_policy_features_reject_two_equity_feature_modes() -> None:
+    state = deal_fixed_limit_holdem()
+
+    with pytest.raises(ValueError, match="only one"):
+        encode_policy_example_features(
+            state,
+            feature_equity_sims=2,
+            feature_equity_fn=lambda _: 0.42,
+        )
+
+
 def test_generate_equity_policy_examples_smoke() -> None:
     examples = generate_equity_policy_examples(hands=2, seed=5, equity_sims=4)
 
@@ -153,6 +172,17 @@ def test_generate_equity_value_examples_for_both_seats() -> None:
     assert examples
     assert any(example.features[108] == 1.0 for example in examples)
     assert any(example.features[109] == 1.0 for example in examples)
+
+
+def test_generate_equity_value_examples_vs_tuned_pot_odds() -> None:
+    examples = generate_equity_value_examples(
+        hands=2,
+        seed=15,
+        equity_sims=4,
+        opponent_policy="tuned-pot-odds",
+    )
+
+    assert examples
 
 
 def test_equity_value_example_cache_round_trip(tmp_path) -> None:
