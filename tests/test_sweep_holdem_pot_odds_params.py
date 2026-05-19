@@ -3,6 +3,7 @@ import pytest
 
 pytest.importorskip("treys")
 
+from alphapoker import sweep_holdem_pot_odds_params  # noqa: E402
 from alphapoker.sweep_holdem_pot_odds_params import (  # noqa: E402
     build_parser,
     parse_param_configs,
@@ -73,3 +74,44 @@ def test_pot_odds_param_sweep_parser_accepts_jobs() -> None:
 
     assert args.jobs == 4
     assert args.policy_family == "hybrid-pot-odds"
+
+
+def test_pot_odds_param_sweep_reuses_deals_across_seats(monkeypatch) -> None:
+    seen: list[tuple[int, int]] = []
+
+    def fake_evaluate_policy_match(**kwargs):
+        seen.append((kwargs["seed"], kwargs["model_player"]))
+        return {
+            "hands": kwargs["hands"],
+            "model_player": kwargs["model_player"],
+            "avg_utility_model": 0.0,
+            "utility_stdev_model": 0.0,
+            "utility_stderr_model": 0.0,
+            "avg_utility_p0": 0.0,
+            "utility_stdev_p0": 0.0,
+            "utility_stderr_p0": 0.0,
+            "avg_actions": 0.0,
+            "folds": 0,
+            "showdowns": 0,
+            "seed": kwargs["seed"],
+        }
+
+    monkeypatch.setattr(
+        sweep_holdem_pot_odds_params,
+        "evaluate_policy_match",
+        fake_evaluate_policy_match,
+    )
+
+    sweep_holdem_pot_odds_params.evaluate_param_config(
+        2,
+        (0.5, 0.7, 0.0),
+        hands=1,
+        seed=17,
+        policy_family="pot-odds",
+        opponent_policy="random",
+        equity_sims=2,
+        rollout_sims=None,
+        model_players=(0, 1),
+    )
+
+    assert seen == [(200_023, 0), (200_023, 1)]

@@ -155,7 +155,7 @@ def evaluate_param_config(
                     rollout_sims,
                 ),
                 hands=hands,
-                seed=seed + index * 100_003 + model_player * 1_000_003,
+                seed=seed + index * 100_003,
                 model_player=model_player,
             ),
             "opponent_policy": opponent_policy,
