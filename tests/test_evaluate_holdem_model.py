@@ -9,6 +9,8 @@ from alphapoker.evaluate_holdem_model import (  # noqa: E402
     make_opponent_policy,
     model_policy_from_checkpoint,
     parse_model_players,
+    run,
+    split_hands,
 )
 from alphapoker.holdem import deal_fixed_limit_holdem  # noqa: E402
 from alphapoker.holdem_features import HOLDEM_FEATURE_DIM  # noqa: E402
@@ -18,6 +20,10 @@ from alphapoker.holdem_model import HoldemEquityNet, HoldemPolicyNet  # noqa: E4
 def test_make_opponent_policy_rejects_unknown() -> None:
     with pytest.raises(ValueError, match="Unknown"):
         make_opponent_policy("bad", __import__("random").Random(0), 8)
+
+
+def test_holdem_model_eval_split_hands_balances_jobs() -> None:
+    assert split_hands(10, 4) == [3, 3, 2, 2]
 
 
 def test_holdem_model_eval_parser_accepts_model_player() -> None:
@@ -40,10 +46,13 @@ def test_holdem_model_eval_parser_accepts_both_model_players() -> None:
             "model.pt",
             "--model-player",
             "both",
+            "--jobs",
+            "3",
         ]
     )
 
     assert args.model_player == (0, 1)
+    assert args.jobs == 3
     assert parse_model_players("both") == (0, 1)
 
 
@@ -113,3 +122,34 @@ def test_model_policy_loads_relative_feature_equity_checkpoint(tmp_path) -> None
     action = model_policy_from_checkpoint(policy_checkpoint)(state)
 
     assert action in state.legal_actions()
+
+
+def test_holdem_model_eval_run_smoke(tmp_path) -> None:
+    policy_checkpoint = tmp_path / "policy.pt"
+    torch.save(
+        {
+            "model_state_dict": HoldemPolicyNet(input_dim=HOLDEM_FEATURE_DIM).state_dict(),
+            "input_dim": HOLDEM_FEATURE_DIM,
+        },
+        policy_checkpoint,
+    )
+
+    metrics = run(
+        build_parser().parse_args(
+            [
+                "--checkpoint",
+                str(policy_checkpoint),
+                "--hands",
+                "1",
+                "--model-player",
+                "both",
+                "--opponent-policy",
+                "random",
+            ]
+        )
+    )
+
+    assert metrics["hands"] == 2
+    assert metrics["hands_per_model_player"] == 1
+    assert metrics["jobs"] == 1
+    assert metrics["shard_hands"] == [1]

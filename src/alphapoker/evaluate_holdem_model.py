@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import argparse
-import copy
 import json
 import math
 import random
+from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -15,7 +16,7 @@ from alphapoker.holdem_equity_feature import (
     equity_estimator_from_checkpoint,
     resolve_equity_checkpoint_path,
 )
-from alphapoker.holdem_evaluation import evaluate_policy_match
+from alphapoker.holdem_evaluation import aggregate_policy_match_shards, evaluate_policy_match
 from alphapoker.holdem_features import (
     adapt_holdem_features,
     encode_holdem_state,
@@ -107,7 +108,19 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
     return aggregated
 
 
-def model_policy_from_checkpoint(checkpoint_path: Path) -> HoldemPolicy:
+def split_hands(hands: int, jobs: int) -> list[int]:
+    if jobs < 1:
+        raise ValueError("jobs must be positive")
+    if hands < 0:
+        raise ValueError("hands must be non-negative")
+    if hands == 0:
+        return [0]
+    shard_count = min(hands, jobs)
+    base_hands, extra_hands = divmod(hands, shard_count)
+    return [base_hands + (1 if shard < extra_hands else 0) for shard in range(shard_count)]
+
+
+def model_policy_from_checkpoint(checkpoint_path: Path, *, feature_seed: int = 0) -> HoldemPolicy:
     import torch
 
     from alphapoker.holdem_features import HOLDEM_CANONICAL_ACTIONS
@@ -126,7 +139,7 @@ def model_policy_from_checkpoint(checkpoint_path: Path) -> HoldemPolicy:
             relative_to=checkpoint_path,
         )
         feature_equity_fn = equity_estimator_from_checkpoint(feature_equity_path)
-    feature_rng = random.Random(0)
+    feature_rng = random.Random(feature_seed)
     model = HoldemPolicyNet(input_dim=input_dim)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
@@ -165,39 +178,80 @@ def make_opponent_policy(
     return make_policy(name, rng, equity_sims, rollout_sims)
 
 
+def evaluate_model_shard(
+    *,
+    checkpoint: Path,
+    hands: int,
+    seed: int,
+    opponent_policy: str,
+    equity_sims: int,
+    rollout_sims: int | None,
+    model_player: int,
+    shard_index: int,
+) -> dict[str, Any]:
+    eval_seed = seed + shard_index * 1_000_003
+    opponent_rng = random.Random(eval_seed + 1)
+    return {
+        "checkpoint": str(checkpoint),
+        **evaluate_policy_match(
+            model_policy=model_policy_from_checkpoint(checkpoint, feature_seed=eval_seed),
+            opponent_policy=make_opponent_policy(
+                opponent_policy,
+                opponent_rng,
+                equity_sims,
+                rollout_sims,
+            ),
+            hands=hands,
+            seed=eval_seed,
+            model_player=model_player,
+        ),
+        "opponent_policy": opponent_policy,
+        "equity_sims": equity_sims,
+        "rollout_sims": rollout_sims,
+        "shard_index": shard_index,
+    }
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     model_players = normalize_model_players(args.model_player)
-    if len(model_players) > 1:
-        seat_metrics = []
-        for model_player in model_players:
-            seat_args = copy.copy(args)
-            seat_args.model_player = model_player
-            seat_args.out = None
-            seat_metrics.append(run(seat_args))
-        metrics = aggregate_model_player_metrics(seat_metrics)
-        if args.out is not None:
-            write_json(args.out, metrics)
-        return metrics
+    shard_hands = split_hands(args.hands, args.jobs)
+    shard_metrics_by_player: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    shard_kwargs = [
+        {
+            "checkpoint": args.checkpoint,
+            "hands": shard_size,
+            "seed": args.seed,
+            "opponent_policy": args.opponent_policy,
+            "equity_sims": args.equity_sims,
+            "rollout_sims": args.rollout_sims,
+            "model_player": model_player,
+            "shard_index": shard_index,
+        }
+        for model_player in model_players
+        for shard_index, shard_size in enumerate(shard_hands)
+    ]
 
-    opponent_rng = random.Random(args.seed + 1)
-    metrics = {
-        "checkpoint": str(args.checkpoint),
-        **evaluate_policy_match(
-            model_policy=model_policy_from_checkpoint(args.checkpoint),
-            opponent_policy=make_opponent_policy(
-                args.opponent_policy,
-                opponent_rng,
-                args.equity_sims,
-                args.rollout_sims,
-            ),
-            hands=args.hands,
-            seed=args.seed,
-            model_player=model_players[0],
-        ),
-        "opponent_policy": args.opponent_policy,
-        "equity_sims": args.equity_sims,
-        "rollout_sims": args.rollout_sims,
-    }
+    if args.jobs == 1:
+        for kwargs in shard_kwargs:
+            result = evaluate_model_shard(**kwargs)
+            shard_metrics_by_player[int(result["model_player"])].append(result)
+    else:
+        with ProcessPoolExecutor(max_workers=args.jobs) as executor:
+            futures = [executor.submit(evaluate_model_shard, **kwargs) for kwargs in shard_kwargs]
+            for future in as_completed(futures):
+                result = future.result()
+                shard_metrics_by_player[int(result["model_player"])].append(result)
+
+    seat_metrics = []
+    for model_player in model_players:
+        player_shards = sorted(
+            shard_metrics_by_player[model_player],
+            key=lambda item: item["shard_index"],
+        )
+        seat_metrics.append(aggregate_policy_match_shards(player_shards))
+    metrics = aggregate_model_player_metrics(seat_metrics)
+    metrics["jobs"] = args.jobs
+    metrics["shard_hands"] = shard_hands
     if args.out is not None:
         write_json(args.out, metrics)
     return metrics
@@ -212,6 +266,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
+    parser.add_argument("--jobs", type=int, default=1)
     parser.add_argument("--out", type=Path)
     return parser
 
