@@ -16,6 +16,10 @@ from alphapoker.holdem_features import (
     encode_holdem_state,
     holdem_legal_action_mask,
 )
+from alphapoker.holdem_policy_features import (
+    HoldemPolicyFeatureEncoder,
+    policy_feature_encoder_from_checkpoint_data,
+)
 from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES, make_policy
 from alphapoker.train import write_json
 from alphapoker.train_holdem_policy_gradient import (
@@ -29,10 +33,15 @@ from alphapoker.train_holdem_policy_gradient import (
 )
 
 
-def sample_actor_action(policy_model, value_model, state: FixedLimitHoldemState):
+def sample_actor_action(
+    policy_model,
+    value_model,
+    state: FixedLimitHoldemState,
+    feature_encoder: HoldemPolicyFeatureEncoder,
+):
     import torch
 
-    features = torch.tensor([encode_holdem_state(state)], dtype=torch.float32)
+    features = torch.tensor([feature_encoder.encode(state)], dtype=torch.float32)
     mask = torch.tensor(holdem_legal_action_mask(state), dtype=torch.bool)
     logits = policy_model(features).squeeze(0).masked_fill(~mask, -1e9)
     distribution = torch.distributions.Categorical(logits=logits)
@@ -57,7 +66,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     model_player_weights = args.model_player_weights
     if model_player_weights is not None and len(model_player_weights) != len(model_players):
         raise ValueError("model player weights must match model players")
-    input_dim = len(encode_holdem_state(deal_fixed_limit_holdem(random.Random(args.seed + 3))))
+    init_checkpoint_data = None
+    if args.init_checkpoint is not None:
+        init_checkpoint_data = torch.load(args.init_checkpoint, map_location="cpu", weights_only=False)
+        feature_encoder = policy_feature_encoder_from_checkpoint_data(
+            init_checkpoint_data,
+            checkpoint_path=args.init_checkpoint,
+            feature_seed=args.seed + 5,
+        )
+        input_dim = feature_encoder.input_dim
+    else:
+        input_dim = len(encode_holdem_state(deal_fixed_limit_holdem(random.Random(args.seed + 3))))
+        feature_encoder = HoldemPolicyFeatureEncoder.base(input_dim)
     deal_rng = random.Random(args.seed + 1)
     opponent_selector_rng = random.Random(args.seed + 2)
     model_player_selector_rng = random.Random(args.seed + 4)
@@ -73,14 +93,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     ]
 
     policy_model = HoldemPolicyNet(input_dim=input_dim)
-    if args.init_checkpoint is not None:
-        checkpoint_data = torch.load(args.init_checkpoint, map_location="cpu", weights_only=False)
-        checkpoint_input_dim = int(checkpoint_data["input_dim"])
-        if checkpoint_input_dim != input_dim:
-            raise ValueError(
-                f"init checkpoint input_dim {checkpoint_input_dim} does not match current {input_dim}"
-            )
-        policy_model.load_state_dict(checkpoint_data["model_state_dict"])
+    if init_checkpoint_data is not None:
+        policy_model.load_state_dict(init_checkpoint_data["model_state_dict"])
     value_model = HoldemValueNet(input_dim=input_dim)
     optimizer = torch.optim.AdamW(
         [*policy_model.parameters(), *value_model.parameters()],
@@ -118,6 +132,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                         policy_model,
                         value_model,
                         state,
+                        feature_encoder,
                     )
                     action_terms.append((log_prob, entropy, value))
                 else:
@@ -164,6 +179,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "model_state_dict": policy_model.state_dict(),
             "canonical_actions": list(HOLDEM_CANONICAL_ACTIONS),
             "input_dim": input_dim,
+            **feature_encoder.checkpoint_metadata(),
         },
         policy_checkpoint,
     )
@@ -171,9 +187,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         {
             "model_state_dict": value_model.state_dict(),
             "input_dim": input_dim,
+            **feature_encoder.checkpoint_metadata(),
         },
         value_checkpoint,
     )
+    feature_metadata = feature_encoder.checkpoint_metadata()
     metrics: dict[str, Any] = {
         "hands": args.hands,
         "batch_hands": args.batch_hands,
@@ -188,6 +206,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "entropy_coef": args.entropy_coef,
         "value_loss_coef": args.value_loss_coef,
         "init_checkpoint": str(args.init_checkpoint) if args.init_checkpoint is not None else None,
+        **feature_metadata,
         "best_batch_avg_utility_model": best_batch_avg_utility,
         "train_avg_utility_model": sum(utilities) / len(utilities) if utilities else 0.0,
         "train_utility_stdev_model": utility_stdev,

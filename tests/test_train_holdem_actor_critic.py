@@ -1,9 +1,11 @@
 import pytest
 
 
-pytest.importorskip("torch")
+torch = pytest.importorskip("torch")
 pytest.importorskip("treys")
 
+from alphapoker.holdem_features import HOLDEM_FEATURE_DIM  # noqa: E402
+from alphapoker.holdem_model import HoldemPolicyNet  # noqa: E402
 from alphapoker.train_holdem_actor_critic import build_parser, run  # noqa: E402
 
 
@@ -81,3 +83,43 @@ def test_actor_critic_run_records_evaluation(tmp_path) -> None:
 
     assert metrics["evaluation"]["hands"] == 1
     assert metrics["evaluation"]["opponent_policy"] == "random"
+
+
+def test_actor_critic_preserves_exact_feature_checkpoint(tmp_path) -> None:
+    init_checkpoint = tmp_path / "init_policy.pt"
+    out_dir = tmp_path / "out"
+    torch.save(
+        {
+            "model_state_dict": HoldemPolicyNet(input_dim=HOLDEM_FEATURE_DIM + 1).state_dict(),
+            "canonical_actions": ["bet", "call", "check", "fold", "raise"],
+            "input_dim": HOLDEM_FEATURE_DIM + 1,
+            "feature_equity_sims": 2,
+            "feature_equity_mode": "turn-river-exact",
+            "feature_equity_checkpoint": None,
+        },
+        init_checkpoint,
+    )
+
+    metrics = run(
+        build_parser().parse_args(
+            [
+                "--hands",
+                "2",
+                "--batch-hands",
+                "1",
+                "--opponent-policy",
+                "random",
+                "--init-checkpoint",
+                str(init_checkpoint),
+                "--out",
+                str(out_dir),
+            ]
+        )
+    )
+    checkpoint = torch.load(out_dir / "holdem_policy.pt", map_location="cpu", weights_only=False)
+
+    assert checkpoint["input_dim"] == HOLDEM_FEATURE_DIM + 1
+    assert checkpoint["feature_equity_sims"] == 2
+    assert checkpoint["feature_equity_mode"] == "turn-river-exact"
+    assert metrics["feature_equity_sims"] == 2
+    assert metrics["feature_equity_mode"] == "turn-river-exact"

@@ -12,26 +12,15 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
-from alphapoker.holdem import (
-    FixedLimitHoldemState,
-    HoldemPolicy,
-    estimate_holdem_equity,
-    sampled_holdem_equity,
-    turn_river_exact_holdem_equity,
-)
-from alphapoker.holdem_equity_feature import (
-    equity_estimator_from_checkpoint,
-    resolve_equity_checkpoint_path,
-)
+from alphapoker.holdem import FixedLimitHoldemState, HoldemPolicy
 from alphapoker.holdem_evaluation import (
     aggregate_policy_match_shards,
     evaluate_policy_match,
     evaluate_policy_match_paired_seats,
 )
-from alphapoker.holdem_features import (
-    adapt_holdem_features,
-    encode_holdem_state,
-    holdem_legal_action_mask,
+from alphapoker.holdem_features import holdem_legal_action_mask
+from alphapoker.holdem_policy_features import (
+    policy_feature_encoder_from_checkpoint_data,
 )
 from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES, make_policy
 from alphapoker.train import write_json
@@ -143,56 +132,17 @@ def model_policy_from_checkpoint(checkpoint_path: Path, *, feature_seed: int = 0
     from alphapoker.holdem_model import HoldemPolicyNet
 
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-    input_dim = int(checkpoint["input_dim"])
-    feature_equity_sims = checkpoint.get("feature_equity_sims")
-    feature_equity_mode = checkpoint.get(
-        "feature_equity_mode",
-        "random" if feature_equity_sims is not None else None,
+    feature_encoder = policy_feature_encoder_from_checkpoint_data(
+        checkpoint,
+        checkpoint_path=checkpoint_path,
+        feature_seed=feature_seed,
     )
-    feature_equity_checkpoint = checkpoint.get("feature_equity_checkpoint")
-    if feature_equity_sims is not None and feature_equity_checkpoint is not None:
-        raise ValueError("Policy checkpoint cannot set both equity feature modes")
-    feature_equity_fn = None
-    if feature_equity_checkpoint is not None:
-        feature_equity_path = resolve_equity_checkpoint_path(
-            feature_equity_checkpoint,
-            relative_to=checkpoint_path,
-        )
-        feature_equity_fn = equity_estimator_from_checkpoint(feature_equity_path)
-    feature_rng = random.Random(feature_seed)
-    model = HoldemPolicyNet(input_dim=input_dim)
+    model = HoldemPolicyNet(input_dim=feature_encoder.input_dim)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
     def select_action(state: FixedLimitHoldemState) -> str:
-        raw_features = encode_holdem_state(state)
-        if feature_equity_sims is not None:
-            player = state.current_player()
-            if feature_equity_mode == "random":
-                equity = estimate_holdem_equity(
-                    state.private_cards[player],
-                    state.visible_board(),
-                    simulations=int(feature_equity_sims),
-                    rng=feature_rng,
-                )
-            elif feature_equity_mode == "sampled":
-                equity = sampled_holdem_equity(
-                    state.private_cards[player],
-                    state.visible_board(),
-                    simulations=int(feature_equity_sims),
-                )
-            elif feature_equity_mode == "turn-river-exact":
-                equity = turn_river_exact_holdem_equity(
-                    state.private_cards[player],
-                    state.visible_board(),
-                    simulations=int(feature_equity_sims),
-                )
-            else:
-                raise ValueError(f"Unknown feature equity mode: {feature_equity_mode}")
-            raw_features.append(equity)
-        elif feature_equity_fn is not None:
-            raw_features.append(feature_equity_fn(state))
-        features = torch.tensor([adapt_holdem_features(raw_features, input_dim)], dtype=torch.float32)
+        features = torch.tensor([feature_encoder.encode(state)], dtype=torch.float32)
         mask = torch.tensor(holdem_legal_action_mask(state), dtype=torch.bool)
         with torch.no_grad():
             logits = model(features).squeeze(0)
