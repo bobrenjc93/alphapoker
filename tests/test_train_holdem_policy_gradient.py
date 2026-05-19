@@ -63,6 +63,7 @@ def test_policy_gradient_parser_accepts_pot_odds() -> None:
             "--selection-eval-paired-seats",
             "--selection-eval-seed",
             "222",
+            "--progress",
             "--out",
             "out",
         ]
@@ -88,6 +89,7 @@ def test_policy_gradient_parser_accepts_pot_odds() -> None:
     assert args.selection_eval_jobs == 1
     assert args.selection_eval_paired_seats
     assert args.selection_eval_seed == 222
+    assert args.progress
 
 
 def test_parse_policy_mix_rejects_unknown_policy() -> None:

@@ -7,6 +7,7 @@ import copy
 import json
 import random
 import statistics
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -281,6 +282,24 @@ def selection_evaluation_metadata(
     }
 
 
+def report_training_progress(
+    enabled: bool,
+    *,
+    hands_played: int,
+    batch_avg_utility: float,
+    train_avg_utility: float,
+) -> None:
+    if not enabled:
+        return
+    print(
+        f"hands={hands_played} "
+        f"batch_avg_utility_model={batch_avg_utility:.3f} "
+        f"train_avg_utility_model={train_avg_utility:.3f}",
+        file=sys.stderr,
+        flush=True,
+    )
+
+
 def sample_model_action(
     model,
     state: FixedLimitHoldemState,
@@ -306,6 +325,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     from alphapoker.holdem_model import HoldemPolicyNet
 
     torch.manual_seed(args.seed)
+    progress = bool(getattr(args, "progress", False))
     checkpoint_selection = getattr(args, "checkpoint_selection", "best-batch")
     validate_checkpoint_selection_args(args, checkpoint_selection)
     model_players = normalize_model_players(args.model_player)
@@ -446,6 +466,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if baseline > best_batch_avg_utility:
             best_batch_avg_utility = baseline
             best_state = state_before_batch
+        report_training_progress(
+            progress,
+            hands_played=hands_played,
+            batch_avg_utility=baseline,
+            train_avg_utility=sum(utilities) / len(utilities),
+        )
         losses = [
             -log_prob_sum * (reward - baseline) - args.entropy_coef * entropy_sum
             for log_prob_sum, entropy_sum, reward in batch_terms
@@ -567,6 +593,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--feature-equity-mode", choices=POLICY_FEATURE_EQUITY_MODES)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--progress", action="store_true")
     parser.add_argument("--eval-hands", type=int, default=0)
     parser.add_argument("--eval-opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="pot-odds")
     parser.add_argument("--eval-equity-sims", type=int)

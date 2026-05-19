@@ -55,6 +55,7 @@ def test_actor_critic_parser_accepts_weighted_mix() -> None:
             "--selection-eval-paired-seats",
             "--selection-eval-seed",
             "222",
+            "--progress",
             "--out",
             "out",
         ]
@@ -79,6 +80,7 @@ def test_actor_critic_parser_accepts_weighted_mix() -> None:
     assert args.selection_eval_jobs == 1
     assert args.selection_eval_paired_seats
     assert args.selection_eval_seed == 222
+    assert args.progress
 
 
 def test_actor_critic_parser_accepts_evaluation_options() -> None:

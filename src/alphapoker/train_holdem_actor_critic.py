@@ -33,6 +33,7 @@ from alphapoker.train_holdem_policy_gradient import (
     parse_model_players,
     parse_policy_mix,
     parse_policy_weights,
+    report_training_progress,
     save_policy_checkpoint,
     selection_evaluation_metadata,
     should_run_selection_evaluation,
@@ -69,6 +70,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     from alphapoker.holdem_model import HoldemPolicyNet, HoldemValueNet
 
     torch.manual_seed(args.seed)
+    progress = bool(getattr(args, "progress", False))
     checkpoint_selection = getattr(args, "checkpoint_selection", "best-batch")
     validate_checkpoint_selection_args(args, checkpoint_selection)
     model_players = normalize_model_players(args.model_player)
@@ -219,6 +221,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             best_batch_avg_utility = baseline
             best_policy_state = policy_state_before_batch
             best_value_state = value_state_before_batch
+        report_training_progress(
+            progress,
+            hands_played=hands_played,
+            batch_avg_utility=baseline,
+            train_avg_utility=sum(utilities) / len(utilities),
+        )
 
         losses = []
         for log_prob, entropy, value, reward in batch_terms:
@@ -371,6 +379,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--feature-equity-mode", choices=POLICY_FEATURE_EQUITY_MODES)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--progress", action="store_true")
     parser.add_argument("--eval-hands", type=int, default=0)
     parser.add_argument("--eval-opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="pot-odds")
     parser.add_argument("--eval-equity-sims", type=int)
