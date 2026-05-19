@@ -184,6 +184,7 @@ commit that first recorded the metric.
 | 2026-05-19T13:35:55-07:00 | `1d32683` | Tried multi-gate actor-critic selection. | Minimum selection over exact/range also chose the initial checkpoint; best minimum score was `-0.1750`, limited by exact. |
 | 2026-05-19T13:45:42-07:00 | `5d88477` | Added per-gate actor-critic selection including safe rollout. | The 20-hand checkpoint was selected, but best minimum score was still `-2.2500`, again limited by exact. |
 | 2026-05-19T14:05:21-07:00 | `bdec05e` | Tried unweighted KL2 safe-rollout DAgger. | Exact was noisy-positive at `+0.2950 +/- 0.4455`, but range failed at `-0.3750 +/- 0.2848` over 100 paired deals. |
+| 2026-05-19T14:12:16-07:00 | `7f3d952` | Tried a 50% robustness-checkpoint logit blend. | Range stayed positive at `+0.2750 +/- 0.2105`, but safe rollout s1 stayed negative at `-0.4000 +/- 0.6534`. |
 
 Current fixed-limit Hold'em gate:
 
@@ -230,6 +231,11 @@ Current fixed-limit Hold'em gate:
   `tight-range-pot-odds` e4, both over 100 paired deals), but failed the cheap
   `tight-safe-rollout-pot-odds` `rollout_sims=1` probe (`-0.7375 +/- 0.5386`
   over 40 paired deals). It is not a candidate.
+- A 50% logit blend toward the same robustness checkpoint improved the small
+  range probe (`+0.2750 +/- 0.2105` vs `tight-range-pot-odds` e4 over 100 paired
+  deals) but still failed the cheap safe-rollout probe (`-0.4000 +/- 0.6534`
+  over 40 paired deals). Stronger 75% blend probes timed out before writing
+  complete metrics, so they are not recorded.
 - A lower-dose unweighted KL counterexample pass with 50 player-0 and 50
   player-1 safe-rollout behavior hands was still too disruptive: the completed
   tight exact e8 probe was `-0.2700 +/- 0.3548` over 100 paired deals, so the
