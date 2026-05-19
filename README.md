@@ -190,6 +190,7 @@ below keeps the broader context for range-aware and safe-rollout probes.
 | 2026-05-19T13:45:42-07:00 | `5d88477` | Added per-gate actor-critic selection including safe rollout. | The 20-hand checkpoint was selected, but best minimum score was still `-2.2500`, again limited by exact. |
 | 2026-05-19T14:05:21-07:00 | `bdec05e` | Tried unweighted KL2 safe-rollout DAgger. | Exact was noisy-positive at `+0.2950 +/- 0.4455`, but range failed at `-0.3750 +/- 0.2848` over 100 paired deals. |
 | 2026-05-19T14:12:16-07:00 | `7f3d952` | Tried a 50% robustness-checkpoint logit blend. | Range stayed positive at `+0.2750 +/- 0.2105`, but safe rollout s1 stayed negative at `-0.4000 +/- 0.6534`. |
+| 2026-05-19T14:47:54-07:00 | `26e80b3` | Tried a range-refresh pass from the safe-rollout side checkpoint. | Exact spiked on a small probe at `+0.7950 +/- 0.3197`, but range was only `+0.0950 +/- 0.3300` and safe rollout s1 failed at `-1.1625 +/- 0.6153`. |
 
 Current fixed-limit Hold'em gate:
 
@@ -241,6 +242,11 @@ Current fixed-limit Hold'em gate:
   deals) but still failed the cheap safe-rollout probe (`-0.4000 +/- 0.6534`
   over 40 paired deals). Stronger 75% blend probes timed out before writing
   complete metrics, so they are not recorded.
+- A 50-hand-per-seat balanced range-refresh fine-tune from the unweighted KL1
+  robustness checkpoint produced a strong small exact probe (`+0.7950 +/-
+  0.3197` over 100 paired deals), but the range gate was only weakly positive
+  (`+0.0950 +/- 0.3300` over 100 paired deals) and the cheap safe-rollout probe
+  failed (`-1.1625 +/- 0.6153` over 40 paired deals). It is not a candidate.
 - A lower-dose unweighted KL counterexample pass with 50 player-0 and 50
   player-1 safe-rollout behavior hands was still too disruptive: the completed
   tight exact e8 probe was `-0.2700 +/- 0.3548` over 100 paired deals, so the
