@@ -21,6 +21,8 @@ def test_train_holdem_mccfr_parser_accepts_eval_options() -> None:
             "medium",
             "--model-player",
             "both",
+            "--eval-jobs",
+            "2",
             "--opponent-policy",
             "tuned-pot-odds",
             "--fallback-policy",
@@ -38,6 +40,7 @@ def test_train_holdem_mccfr_parser_accepts_eval_options() -> None:
     assert args.traversal == "external"
     assert args.abstraction == "medium"
     assert args.model_player == (0, 1)
+    assert args.eval_jobs == 2
     assert args.opponent_policy == "tuned-pot-odds"
     assert args.fallback_policy == "tuned-pot-odds"
     assert args.min_strategy_weight == 10
@@ -72,3 +75,4 @@ def test_train_holdem_mccfr_run_smoke(tmp_path) -> None:
     assert metrics["abstraction"] == "coarse"
     assert metrics["min_strategy_weight"] == 0.0
     assert metrics["evaluation"]["hands"] == 1
+    assert metrics["evaluation"]["jobs"] == 1

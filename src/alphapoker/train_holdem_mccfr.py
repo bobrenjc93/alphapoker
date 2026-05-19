@@ -4,21 +4,15 @@ from __future__ import annotations
 
 import argparse
 import json
-import random
 from pathlib import Path
 from typing import Any
 
-from alphapoker.evaluate_holdem_model import (
-    aggregate_model_player_metrics,
-    make_opponent_policy,
-    parse_model_players,
-)
-from alphapoker.holdem_evaluation import evaluate_policy_match
+from alphapoker.evaluate_holdem_mccfr import evaluate_checkpoint
+from alphapoker.evaluate_holdem_model import parse_model_players
 from alphapoker.holdem_mccfr import (
     HoldemAbstractionCFRTrainer,
-    holdem_policy_from_trainer,
 )
-from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES, make_policy
+from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES
 from alphapoker.train import write_json
 
 
@@ -59,49 +53,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     }
 
     if args.eval_hands > 0:
-        model_players = normalize_model_players(args.model_player)
-        seat_metrics = []
-        for model_player in model_players:
-            eval_seed = args.seed + 10_000_019 + model_player
-            model_rng = random.Random(eval_seed)
-            fallback_rng = random.Random(eval_seed + 1)
-            opponent_rng = random.Random(eval_seed + 2)
-            fallback_policy = make_policy(
-                args.fallback_policy,
-                fallback_rng,
-                args.equity_sims,
-                args.rollout_sims,
-            )
-            seat_metrics.append(
-                {
-                    "checkpoint": str(checkpoint),
-                    **evaluate_policy_match(
-                        model_policy=holdem_policy_from_trainer(
-                            trainer,
-                            model_rng,
-                            fallback_policy=fallback_policy,
-                            min_strategy_weight=args.min_strategy_weight,
-                        ),
-                        opponent_policy=make_opponent_policy(
-                            args.opponent_policy,
-                            opponent_rng,
-                            args.equity_sims,
-                            args.rollout_sims,
-                        ),
-                        hands=args.eval_hands,
-                        seed=eval_seed,
-                        model_player=model_player,
-                    ),
-                    "opponent_policy": args.opponent_policy,
-                    "equity_sims": args.equity_sims,
-                    "rollout_sims": args.rollout_sims,
-                    "fallback_policy": args.fallback_policy,
-                    "min_strategy_weight": args.min_strategy_weight,
-                }
-            )
-        eval_metrics = aggregate_model_player_metrics(seat_metrics)
-        eval_metrics["fallback_policy"] = args.fallback_policy
-        eval_metrics["min_strategy_weight"] = args.min_strategy_weight
+        eval_metrics = evaluate_checkpoint(
+            checkpoint=checkpoint,
+            hands=args.eval_hands,
+            seed=args.seed + 10_000_019,
+            opponent_policy=args.opponent_policy,
+            fallback_policy=args.fallback_policy,
+            min_strategy_weight=args.min_strategy_weight,
+            equity_sims=args.equity_sims,
+            rollout_sims=args.rollout_sims,
+            model_players=normalize_model_players(args.model_player),
+            jobs=args.eval_jobs,
+        )
         metrics["evaluation"] = eval_metrics
 
     write_json(out_dir / "metrics.json", metrics)
@@ -124,6 +87,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
+    parser.add_argument("--eval-jobs", type=int, default=1)
     parser.add_argument("--out", type=Path, required=True)
     return parser
 

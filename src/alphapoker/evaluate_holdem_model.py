@@ -96,6 +96,8 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
         "opponent_policy",
         "equity_sims",
         "rollout_sims",
+        "fallback_policy",
+        "min_strategy_weight",
         "bet_threshold",
         "raise_threshold",
         "call_margin",

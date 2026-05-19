@@ -16,6 +16,8 @@ def test_evaluate_holdem_mccfr_parser_accepts_options() -> None:
             "2",
             "--model-player",
             "both",
+            "--jobs",
+            "2",
             "--fallback-policy",
             "tuned-pot-odds",
             "--min-strategy-weight",
@@ -26,6 +28,7 @@ def test_evaluate_holdem_mccfr_parser_accepts_options() -> None:
     assert args.checkpoint.name == "holdem_mccfr.json"
     assert args.hands == 2
     assert args.model_player == (0, 1)
+    assert args.jobs == 2
     assert args.fallback_policy == "tuned-pot-odds"
     assert args.min_strategy_weight == 5
 
@@ -52,3 +55,5 @@ def test_evaluate_holdem_mccfr_run_smoke(tmp_path) -> None:
     assert metrics["hands"] == 1
     assert metrics["checkpoint"] == str(checkpoint)
     assert metrics["abstraction"] == "coarse"
+    assert metrics["jobs"] == 1
+    assert metrics["shard_hands"] == [1]

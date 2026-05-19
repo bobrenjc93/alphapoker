@@ -85,9 +85,12 @@ def aggregate_policy_match_shards(metrics: list[dict[str, Any]]) -> dict[str, An
     }
     for key in (
         "policy",
+        "checkpoint",
         "opponent_policy",
         "equity_sims",
         "rollout_sims",
+        "fallback_policy",
+        "min_strategy_weight",
         "bet_threshold",
         "raise_threshold",
         "call_margin",
