@@ -146,6 +146,12 @@ def validate_checkpoint_selection_args(args: argparse.Namespace, checkpoint_sele
     selection_eval_hands = getattr(args, "selection_eval_hands", 0)
     selection_eval_interval_hands = getattr(args, "selection_eval_interval_hands", 0)
     selection_eval_jobs = getattr(args, "selection_eval_jobs", 1)
+    selection_eval_opponent_policies = getattr(args, "selection_eval_opponent_policies", None)
+    selection_eval_opponent_policy_weights = getattr(
+        args,
+        "selection_eval_opponent_policy_weights",
+        None,
+    )
     if checkpoint_selection == "evaluation":
         if selection_eval_hands <= 0:
             raise ValueError(
@@ -157,6 +163,24 @@ def validate_checkpoint_selection_args(args: argparse.Namespace, checkpoint_sele
         raise ValueError("--selection-eval-interval-hands must be non-negative")
     if selection_eval_jobs < 1:
         raise ValueError("--selection-eval-jobs must be positive")
+    if (
+        selection_eval_opponent_policies is not None
+        and getattr(args, "selection_eval_opponent_policy", None) is not None
+    ):
+        raise ValueError(
+            "Set only one of --selection-eval-opponent-policy or "
+            "--selection-eval-opponent-policies"
+        )
+    if selection_eval_opponent_policy_weights is not None:
+        if selection_eval_opponent_policies is None:
+            raise ValueError(
+                "--selection-eval-opponent-policy-weights requires "
+                "--selection-eval-opponent-policies"
+            )
+        if len(selection_eval_opponent_policy_weights) != len(selection_eval_opponent_policies):
+            raise ValueError(
+                "selection eval opponent policy weights must match selection eval opponents"
+            )
 
 
 def should_run_selection_evaluation(
@@ -175,6 +199,87 @@ def should_run_selection_evaluation(
     return hands_played - last_evaluated_hands >= interval_hands
 
 
+def resolve_selection_eval_opponent_policies(args: argparse.Namespace) -> tuple[str, ...]:
+    opponent_policies = getattr(args, "selection_eval_opponent_policies", None)
+    if opponent_policies is not None:
+        return opponent_policies
+    return (
+        getattr(args, "selection_eval_opponent_policy", None)
+        or getattr(args, "eval_opponent_policy", "pot-odds"),
+    )
+
+
+def resolve_selection_eval_opponent_weights(
+    args: argparse.Namespace,
+    opponent_policies: tuple[str, ...],
+) -> tuple[float, ...]:
+    weights = getattr(args, "selection_eval_opponent_policy_weights", None)
+    if weights is None:
+        return tuple(1.0 for _ in opponent_policies)
+    return weights
+
+
+def aggregate_selection_evaluation_metrics(
+    *,
+    component_metrics: list[dict[str, Any]],
+    opponent_policies: tuple[str, ...],
+    opponent_policy_weights: tuple[float, ...],
+    aggregation: str,
+) -> dict[str, Any]:
+    if len(component_metrics) == 1:
+        metrics = dict(component_metrics[0])
+        metrics["selection_eval_score_model"] = metrics["avg_utility_model"]
+        metrics["selection_eval_score_stderr_model"] = metrics["utility_stderr_model"]
+        metrics["selection_eval_aggregation"] = aggregation
+        metrics["opponent_policies"] = list(opponent_policies)
+        metrics["opponent_policy_weights"] = list(opponent_policy_weights)
+        return metrics
+
+    total_weight = sum(opponent_policy_weights)
+    normalized_weights = [weight / total_weight for weight in opponent_policy_weights]
+    weighted_avg = sum(
+        weight * float(metrics["avg_utility_model"])
+        for weight, metrics in zip(normalized_weights, component_metrics, strict=True)
+    )
+    weighted_stderr = sum(
+        (weight * float(metrics["utility_stderr_model"])) ** 2
+        for weight, metrics in zip(normalized_weights, component_metrics, strict=True)
+    ) ** 0.5
+    min_index = min(
+        range(len(component_metrics)),
+        key=lambda index: float(component_metrics[index]["avg_utility_model"]),
+    )
+    if aggregation == "min":
+        score = float(component_metrics[min_index]["avg_utility_model"])
+        score_stderr = float(component_metrics[min_index]["utility_stderr_model"])
+    else:
+        score = weighted_avg
+        score_stderr = weighted_stderr
+    paired_deals = [
+        metrics["paired_deals"]
+        for metrics in component_metrics
+        if metrics.get("paired_deals") is not None
+    ]
+    return {
+        "avg_utility_model": weighted_avg,
+        "utility_stderr_model": weighted_stderr,
+        "selection_eval_score_model": score,
+        "selection_eval_score_stderr_model": score_stderr,
+        "selection_eval_aggregation": aggregation,
+        "selection_eval_min_opponent_policy": component_metrics[min_index]["opponent_policy"],
+        "opponent_policy": opponent_policy_label(opponent_policies),
+        "opponent_policies": list(opponent_policies),
+        "opponent_policy_weights": list(opponent_policy_weights),
+        "hands": sum(int(metrics["hands"]) for metrics in component_metrics),
+        "paired_deals": sum(int(value) for value in paired_deals) if paired_deals else None,
+        "seed": component_metrics[0]["seed"],
+        "paired_seats": component_metrics[0].get("paired_seats", False),
+        "rollout_sims": component_metrics[0].get("rollout_sims"),
+        "rollout_margin": component_metrics[0].get("rollout_margin"),
+        "selection_eval_components": component_metrics,
+    }
+
+
 def evaluate_selection_checkpoint(
     args: argparse.Namespace,
     checkpoint: Path,
@@ -187,11 +292,12 @@ def evaluate_selection_checkpoint(
         or getattr(args, "eval_model_player", None)
         or model_players
     )
-    eval_opponent_policy = getattr(args, "selection_eval_opponent_policy", None) or getattr(
+    eval_opponent_policies = resolve_selection_eval_opponent_policies(args)
+    eval_opponent_policy_weights = resolve_selection_eval_opponent_weights(
         args,
-        "eval_opponent_policy",
-        "pot-odds",
+        eval_opponent_policies,
     )
+    eval_aggregation = getattr(args, "selection_eval_aggregation", "mean")
     eval_equity_sims = getattr(args, "selection_eval_equity_sims", None)
     if eval_equity_sims is None:
         eval_equity_sims = getattr(args, "eval_equity_sims", None)
@@ -204,20 +310,29 @@ def evaluate_selection_checkpoint(
     if eval_rollout_margin is None:
         eval_rollout_margin = getattr(args, "rollout_margin", 1.0)
     eval_seed = getattr(args, "selection_eval_seed", None)
-    return evaluate_model(
-        argparse.Namespace(
-            checkpoint=checkpoint,
-            hands=getattr(args, "selection_eval_hands"),
-            seed=eval_seed if eval_seed is not None else args.seed + 20_000,
-            opponent_policy=eval_opponent_policy,
-            equity_sims=eval_equity_sims if eval_equity_sims is not None else args.equity_sims,
-            rollout_sims=eval_rollout_sims,
-            rollout_margin=eval_rollout_margin,
-            model_player=eval_model_players,
-            jobs=getattr(args, "selection_eval_jobs", 1),
-            paired_seats=getattr(args, "selection_eval_paired_seats", False),
-            out=None,
+    component_metrics = [
+        evaluate_model(
+            argparse.Namespace(
+                checkpoint=checkpoint,
+                hands=getattr(args, "selection_eval_hands"),
+                seed=eval_seed if eval_seed is not None else args.seed + 20_000,
+                opponent_policy=opponent_policy,
+                equity_sims=eval_equity_sims if eval_equity_sims is not None else args.equity_sims,
+                rollout_sims=eval_rollout_sims,
+                rollout_margin=eval_rollout_margin,
+                model_player=eval_model_players,
+                jobs=getattr(args, "selection_eval_jobs", 1),
+                paired_seats=getattr(args, "selection_eval_paired_seats", False),
+                out=None,
+            )
         )
+        for opponent_policy in eval_opponent_policies
+    ]
+    return aggregate_selection_evaluation_metrics(
+        component_metrics=component_metrics,
+        opponent_policies=eval_opponent_policies,
+        opponent_policy_weights=eval_opponent_policy_weights,
+        aggregation=eval_aggregation,
     )
 
 
@@ -241,6 +356,31 @@ def compact_selection_evaluation(
         compact["rollout_sims"] = metrics["rollout_sims"]
     if "rollout_margin" in metrics:
         compact["rollout_margin"] = metrics["rollout_margin"]
+    if "selection_eval_score_model" in metrics:
+        compact["selection_eval_score_model"] = metrics["selection_eval_score_model"]
+    if "selection_eval_score_stderr_model" in metrics:
+        compact["selection_eval_score_stderr_model"] = metrics["selection_eval_score_stderr_model"]
+    if "selection_eval_aggregation" in metrics:
+        compact["selection_eval_aggregation"] = metrics["selection_eval_aggregation"]
+    if "selection_eval_min_opponent_policy" in metrics:
+        compact["selection_eval_min_opponent_policy"] = metrics[
+            "selection_eval_min_opponent_policy"
+        ]
+    if "opponent_policies" in metrics:
+        compact["opponent_policies"] = metrics["opponent_policies"]
+    if "opponent_policy_weights" in metrics:
+        compact["opponent_policy_weights"] = metrics["opponent_policy_weights"]
+    if "selection_eval_components" in metrics:
+        compact["selection_eval_components"] = [
+            {
+                "opponent_policy": component["opponent_policy"],
+                "avg_utility_model": component["avg_utility_model"],
+                "utility_stderr_model": component["utility_stderr_model"],
+                "hands": component["hands"],
+                "paired_deals": component.get("paired_deals"),
+            }
+            for component in metrics["selection_eval_components"]
+        ]
     return compact
 
 
@@ -248,10 +388,10 @@ def selection_evaluation_metadata(
     args: argparse.Namespace,
     model_players: tuple[int, ...],
 ) -> dict[str, Any]:
-    eval_opponent_policy = getattr(args, "selection_eval_opponent_policy", None) or getattr(
+    eval_opponent_policies = resolve_selection_eval_opponent_policies(args)
+    eval_opponent_policy_weights = resolve_selection_eval_opponent_weights(
         args,
-        "eval_opponent_policy",
-        "pot-odds",
+        eval_opponent_policies,
     )
     eval_equity_sims = getattr(args, "selection_eval_equity_sims", None)
     if eval_equity_sims is None:
@@ -273,7 +413,10 @@ def selection_evaluation_metadata(
     return {
         "selection_eval_hands": getattr(args, "selection_eval_hands", 0),
         "selection_eval_interval_hands": getattr(args, "selection_eval_interval_hands", 0),
-        "selection_eval_opponent_policy": eval_opponent_policy,
+        "selection_eval_opponent_policy": opponent_policy_label(eval_opponent_policies),
+        "selection_eval_opponent_policies": list(eval_opponent_policies),
+        "selection_eval_opponent_policy_weights": list(eval_opponent_policy_weights),
+        "selection_eval_aggregation": getattr(args, "selection_eval_aggregation", "mean"),
         "selection_eval_equity_sims": (
             eval_equity_sims if eval_equity_sims is not None else args.equity_sims
         ),
@@ -409,9 +552,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             metrics=eval_metrics,
         )
         selection_evaluations.append(summary)
-        avg_utility = float(summary["avg_utility_model"])
-        if avg_utility > best_selection_eval_avg_utility:
-            best_selection_eval_avg_utility = avg_utility
+        selection_score = float(
+            summary.get("selection_eval_score_model", summary["avg_utility_model"])
+        )
+        if selection_score > best_selection_eval_avg_utility:
+            best_selection_eval_avg_utility = selection_score
             best_selection_eval_hands_played = hands_played
             best_selection_state = copy.deepcopy(model.state_dict())
         last_selection_eval_hands = hands_played
@@ -552,6 +697,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             {
                 **selection_evaluation_metadata(args, model_players),
                 "selection_evaluations": selection_evaluations,
+                "best_selection_eval_score_model": best_selection_eval_avg_utility,
                 "best_selection_eval_avg_utility_model": best_selection_eval_avg_utility,
                 "best_selection_eval_hands_played": best_selection_eval_hands_played,
             }
@@ -586,6 +732,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--selection-eval-hands", type=int, default=0)
     parser.add_argument("--selection-eval-interval-hands", type=int, default=0)
     parser.add_argument("--selection-eval-opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES)
+    parser.add_argument("--selection-eval-opponent-policies", type=parse_policy_mix)
+    parser.add_argument("--selection-eval-opponent-policy-weights", type=parse_policy_weights)
+    parser.add_argument(
+        "--selection-eval-aggregation",
+        choices=("mean", "min"),
+        default="mean",
+    )
     parser.add_argument("--selection-eval-equity-sims", type=int)
     parser.add_argument("--selection-eval-rollout-sims", type=int)
     parser.add_argument("--selection-eval-rollout-margin", type=float)

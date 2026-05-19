@@ -142,6 +142,25 @@ def test_policy_gradient_parser_accepts_evaluation_options() -> None:
     assert args.eval_rollout_margin == 1.75
 
 
+def test_policy_gradient_parser_accepts_selection_eval_policy_mix() -> None:
+    args = build_parser().parse_args(
+        [
+            "--out",
+            "out",
+            "--selection-eval-opponent-policies",
+            "random,pot-odds",
+            "--selection-eval-opponent-policy-weights",
+            "0.25,0.75",
+            "--selection-eval-aggregation",
+            "min",
+        ]
+    )
+
+    assert args.selection_eval_opponent_policies == ("random", "pot-odds")
+    assert args.selection_eval_opponent_policy_weights == (0.25, 0.75)
+    assert args.selection_eval_aggregation == "min"
+
+
 def test_policy_gradient_records_rollout_training_options(tmp_path) -> None:
     metrics = run(
         build_parser().parse_args(
@@ -306,6 +325,77 @@ def test_policy_gradient_can_select_evaluation_checkpoint(tmp_path) -> None:
     assert metrics["best_selection_eval_hands_played"] in (0, 1, 2)
     assert not (tmp_path / "holdem_policy_selection_candidate.pt").exists()
     assert (tmp_path / "holdem_policy.pt").exists()
+
+
+def test_policy_gradient_evaluation_selection_scores_opponent_mix(tmp_path) -> None:
+    metrics = run(
+        build_parser().parse_args(
+            [
+                "--hands",
+                "1",
+                "--batch-hands",
+                "1",
+                "--opponent-policy",
+                "random",
+                "--checkpoint-selection",
+                "evaluation",
+                "--selection-eval-hands",
+                "1",
+                "--selection-eval-opponent-policies",
+                "random,pot-odds",
+                "--selection-eval-opponent-policy-weights",
+                "0.25,0.75",
+                "--selection-eval-aggregation",
+                "min",
+                "--selection-eval-seed",
+                "60",
+                "--out",
+                str(tmp_path),
+            ]
+        )
+    )
+
+    first_eval = metrics["selection_evaluations"][0]
+    component_avgs = [
+        component["avg_utility_model"] for component in first_eval["selection_eval_components"]
+    ]
+
+    assert metrics["selection_eval_opponent_policy"] == "random,pot-odds"
+    assert metrics["selection_eval_opponent_policies"] == ["random", "pot-odds"]
+    assert metrics["selection_eval_opponent_policy_weights"] == [0.25, 0.75]
+    assert metrics["selection_eval_aggregation"] == "min"
+    assert first_eval["opponent_policy"] == "random,pot-odds"
+    assert first_eval["opponent_policies"] == ["random", "pot-odds"]
+    assert first_eval["selection_eval_aggregation"] == "min"
+    assert len(first_eval["selection_eval_components"]) == 2
+    assert first_eval["selection_eval_score_model"] == min(component_avgs)
+    assert metrics["best_selection_eval_score_model"] == metrics[
+        "best_selection_eval_avg_utility_model"
+    ]
+
+
+def test_policy_gradient_selection_eval_mix_rejects_single_policy_overlap(tmp_path) -> None:
+    with pytest.raises(ValueError, match="Set only one"):
+        run(
+            build_parser().parse_args(
+                [
+                    "--hands",
+                    "1",
+                    "--batch-hands",
+                    "1",
+                    "--checkpoint-selection",
+                    "evaluation",
+                    "--selection-eval-hands",
+                    "1",
+                    "--selection-eval-opponent-policy",
+                    "random",
+                    "--selection-eval-opponent-policies",
+                    "random,pot-odds",
+                    "--out",
+                    str(tmp_path),
+                ]
+            )
+        )
 
 
 def test_policy_gradient_preserves_exact_feature_checkpoint(tmp_path) -> None:

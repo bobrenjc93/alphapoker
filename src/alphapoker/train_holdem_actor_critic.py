@@ -159,9 +159,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             metrics=eval_metrics,
         )
         selection_evaluations.append(summary)
-        avg_utility = float(summary["avg_utility_model"])
-        if avg_utility > best_selection_eval_avg_utility:
-            best_selection_eval_avg_utility = avg_utility
+        selection_score = float(
+            summary.get("selection_eval_score_model", summary["avg_utility_model"])
+        )
+        if selection_score > best_selection_eval_avg_utility:
+            best_selection_eval_avg_utility = selection_score
             best_selection_eval_hands_played = hands_played
             best_selection_policy_state = copy.deepcopy(policy_model.state_dict())
             best_selection_value_state = copy.deepcopy(value_model.state_dict())
@@ -334,6 +336,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             {
                 **selection_evaluation_metadata(args, model_players),
                 "selection_evaluations": selection_evaluations,
+                "best_selection_eval_score_model": best_selection_eval_avg_utility,
                 "best_selection_eval_avg_utility_model": best_selection_eval_avg_utility,
                 "best_selection_eval_hands_played": best_selection_eval_hands_played,
             }
@@ -369,6 +372,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--selection-eval-hands", type=int, default=0)
     parser.add_argument("--selection-eval-interval-hands", type=int, default=0)
     parser.add_argument("--selection-eval-opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES)
+    parser.add_argument("--selection-eval-opponent-policies", type=parse_policy_mix)
+    parser.add_argument("--selection-eval-opponent-policy-weights", type=parse_policy_weights)
+    parser.add_argument(
+        "--selection-eval-aggregation",
+        choices=("mean", "min"),
+        default="mean",
+    )
     parser.add_argument("--selection-eval-equity-sims", type=int)
     parser.add_argument("--selection-eval-rollout-sims", type=int)
     parser.add_argument("--selection-eval-rollout-margin", type=float)
