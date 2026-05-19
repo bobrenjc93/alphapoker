@@ -194,6 +194,7 @@ below keeps the broader context for range-aware and safe-rollout probes.
 | 2026-05-19T14:12:16-07:00 | `7f3d952` | Tried a 50% robustness-checkpoint logit blend. | Range stayed positive at `+0.2750 +/- 0.2105`, but safe rollout s1 stayed negative at `-0.4000 +/- 0.6534`. |
 | 2026-05-19T14:47:54-07:00 | `26e80b3` | Tried a range-refresh pass from the safe-rollout side checkpoint. | Exact spiked on a small probe at `+0.7950 +/- 0.3197`, but range was only `+0.0950 +/- 0.3300` and safe rollout s1 failed at `-1.1625 +/- 0.6153`. |
 | 2026-05-19T15:03:29-07:00 | `7023b00` | Tried aggression-triggered adaptive checkpoint blends. | Full response weight was strong on small exact/range probes (`+0.6800 +/- 0.2878`, `+0.5800 +/- 0.2753`) but failed safe rollout s1 at `-1.6875 +/- 0.6958`. |
+| 2026-05-19T15:10:36-07:00 | `7eedeea` | Directly checked the KL1 robustness checkpoint against safe rollout s1. | The checkpoint that was positive vs safe s4 still failed the cheaper s1 probe at `-0.9375 +/- 0.5413` over 40 paired deals. |
 
 Current fixed-limit Hold'em gate:
 
@@ -233,7 +234,9 @@ Current fixed-limit Hold'em gate:
   repaired the safe-rollout probe (`+0.2400 +/- 0.3793` over 200 paired deals),
   but regressed against `tight-range-pot-odds` e4 to `+0.0470 +/- 0.0813` over
   1000 paired deals. It is a useful robustness side checkpoint, not a new
-  current best.
+  current best. A later cheap `rollout_sims=1` check showed that this repair did
+  not transfer to the faster safe-rollout setting (`-0.9375 +/- 0.5413` over 40
+  paired deals).
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
