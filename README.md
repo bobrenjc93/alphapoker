@@ -257,6 +257,11 @@ Current fixed-limit Hold'em gate:
   (`+0.8000 +/- 0.3319` over 100 paired deals), but the range gate was flat
   (`-0.0100 +/- 0.3449` over 100 paired deals), so exact-only selection is not
   enough to produce a candidate.
+- Repeating that 80-hand mixed-opponent actor-critic pilot with multi-gate
+  minimum selection over paired tight-exact and tight-range probes also selected
+  the initial checkpoint. The best minimum score was `-0.1750` at
+  `hands_played=0`; all later checkpoints were worse, with tight exact the
+  limiting component each time.
 - Unweighted `tight-range` feature 1k distillation improved imitation accuracy
   but collapsed raises; it was weaker in match play: `+0.3795 +/- 0.0618` vs
   tight exact e8 over 2000 paired deals, and `+0.0560 +/- 0.0782` vs
