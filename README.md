@@ -159,6 +159,10 @@ Current fixed-limit Hold'em gate:
   deals: `+0.5073 +/- 0.0833` chips/hand for the model.
 - Same checkpoint vs `tight-range-pot-odds` e4 with paired seats and 500 paired
   deals: `+0.1630 +/- 0.1107` chips/hand.
+- Unweighted `tight-range` feature 1k distillation improved imitation accuracy
+  but collapsed raises; it was weaker in match play: `+0.3795 +/- 0.0618` vs
+  tight exact e8 over 2000 paired deals, and `+0.0560 +/- 0.0782` vs
+  `tight-range-pot-odds` e4 over 500 paired deals.
 
 ## Research Roadmap
 
