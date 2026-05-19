@@ -185,6 +185,12 @@ Current fixed-limit Hold'em gate:
   `-0.0445 +/- 0.1324` over 1000 paired deals, so it is not the current best.
   A KL-anchored variant with weight 2.0 also failed to repair the rollout probe
   (`-0.5400 +/- 0.5295`) and over-raised in live play.
+- An unweighted KL-anchored counterexample fine-tune (KL weight 1.0) kept the
+  tight exact gate positive (`+0.4415 +/- 0.0986` over 1000 paired deals) and
+  repaired the safe-rollout probe (`+0.2400 +/- 0.3793` over 200 paired deals),
+  but regressed against `tight-range-pot-odds` e4 to `+0.0470 +/- 0.0813` over
+  1000 paired deals. It is a useful robustness side checkpoint, not a new
+  current best.
 - Unweighted `tight-range` feature 1k distillation improved imitation accuracy
   but collapsed raises; it was weaker in match play: `+0.3795 +/- 0.0618` vs
   tight exact e8 over 2000 paired deals, and `+0.0560 +/- 0.0782` vs
