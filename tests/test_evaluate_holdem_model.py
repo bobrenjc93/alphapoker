@@ -53,11 +53,13 @@ def test_holdem_model_eval_parser_accepts_both_model_players() -> None:
             "both",
             "--jobs",
             "3",
+            "--paired-seats",
         ]
     )
 
     assert args.model_player == (0, 1)
     assert args.jobs == 3
+    assert args.paired_seats
     assert parse_model_players("both") == (0, 1)
 
 
@@ -158,6 +160,69 @@ def test_holdem_model_eval_run_smoke(tmp_path) -> None:
     assert metrics["hands_per_model_player"] == 1
     assert metrics["jobs"] == 1
     assert metrics["shard_hands"] == [1]
+    assert not metrics["paired_seats"]
+
+
+def test_holdem_model_eval_run_paired_seats_smoke(tmp_path) -> None:
+    policy_checkpoint = tmp_path / "policy.pt"
+    torch.save(
+        {
+            "model_state_dict": HoldemPolicyNet(input_dim=HOLDEM_FEATURE_DIM).state_dict(),
+            "input_dim": HOLDEM_FEATURE_DIM,
+        },
+        policy_checkpoint,
+    )
+
+    metrics = run(
+        build_parser().parse_args(
+            [
+                "--checkpoint",
+                str(policy_checkpoint),
+                "--hands",
+                "2",
+                "--model-player",
+                "both",
+                "--paired-seats",
+                "--opponent-policy",
+                "random",
+                "--jobs",
+                "2",
+            ]
+        )
+    )
+
+    assert metrics["model_player"] == "both"
+    assert metrics["hands"] == 4
+    assert metrics["hands_per_model_player"] == 2
+    assert metrics["paired_deals"] == 2
+    assert metrics["paired_seats"]
+    assert metrics["jobs"] == 2
+    assert metrics["shard_hands"] == [1, 1]
+    assert len(metrics["seat_metrics"]) == 2
+
+
+def test_holdem_model_eval_paired_seats_requires_both(tmp_path) -> None:
+    policy_checkpoint = tmp_path / "policy.pt"
+    torch.save(
+        {
+            "model_state_dict": HoldemPolicyNet(input_dim=HOLDEM_FEATURE_DIM).state_dict(),
+            "input_dim": HOLDEM_FEATURE_DIM,
+        },
+        policy_checkpoint,
+    )
+
+    with pytest.raises(ValueError, match="paired-seats"):
+        run(
+            build_parser().parse_args(
+                [
+                    "--checkpoint",
+                    str(policy_checkpoint),
+                    "--hands",
+                    "1",
+                    "--paired-seats",
+                ]
+            )
+        )
 
 
 def test_holdem_model_eval_run_parallel_smoke(tmp_path) -> None:
@@ -188,3 +253,4 @@ def test_holdem_model_eval_run_parallel_smoke(tmp_path) -> None:
     assert metrics["hands"] == 2
     assert metrics["jobs"] == 2
     assert metrics["shard_hands"] == [1, 1]
+    assert not metrics["paired_seats"]

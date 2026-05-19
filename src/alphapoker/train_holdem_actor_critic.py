@@ -230,6 +230,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--eval-rollout-sims", type=int)
     parser.add_argument("--eval-model-player", type=parse_model_players)
     parser.add_argument("--eval-jobs", type=int, default=1)
+    parser.add_argument("--eval-paired-seats", action="store_true")
     parser.add_argument("--eval-seed", type=int)
     return parser
 

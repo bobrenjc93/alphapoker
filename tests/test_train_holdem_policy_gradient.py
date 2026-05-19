@@ -71,6 +71,7 @@ def test_policy_gradient_parser_accepts_evaluation_options() -> None:
             "both",
             "--eval-jobs",
             "2",
+            "--eval-paired-seats",
             "--eval-seed",
             "123",
         ]
@@ -80,6 +81,7 @@ def test_policy_gradient_parser_accepts_evaluation_options() -> None:
     assert args.eval_opponent_policy == "tuned-pot-odds"
     assert args.eval_model_player == (0, 1)
     assert args.eval_jobs == 2
+    assert args.eval_paired_seats
     assert args.eval_seed == 123
 
 
@@ -99,9 +101,14 @@ def test_policy_gradient_run_records_evaluation(tmp_path) -> None:
                 "1",
                 "--eval-opponent-policy",
                 "random",
+                "--eval-model-player",
+                "both",
+                "--eval-paired-seats",
             ]
         )
     )
 
-    assert metrics["evaluation"]["hands"] == 1
+    assert metrics["evaluation"]["hands"] == 2
+    assert metrics["evaluation"]["paired_deals"] == 1
+    assert metrics["evaluation"]["paired_seats"]
     assert metrics["evaluation"]["opponent_policy"] == "random"

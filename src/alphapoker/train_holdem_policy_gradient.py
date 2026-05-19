@@ -100,6 +100,7 @@ def evaluate_trained_policy(
             rollout_sims=getattr(args, "eval_rollout_sims", None),
             model_player=eval_model_players,
             jobs=getattr(args, "eval_jobs", 1),
+            paired_seats=getattr(args, "eval_paired_seats", False),
             out=None,
         )
     )
@@ -277,6 +278,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--eval-rollout-sims", type=int)
     parser.add_argument("--eval-model-player", type=parse_model_players)
     parser.add_argument("--eval-jobs", type=int, default=1)
+    parser.add_argument("--eval-paired-seats", action="store_true")
     parser.add_argument("--eval-seed", type=int)
     return parser
 

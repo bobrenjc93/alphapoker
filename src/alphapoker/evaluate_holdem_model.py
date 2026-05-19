@@ -17,7 +17,11 @@ from alphapoker.holdem_equity_feature import (
     equity_estimator_from_checkpoint,
     resolve_equity_checkpoint_path,
 )
-from alphapoker.holdem_evaluation import aggregate_policy_match_shards, evaluate_policy_match
+from alphapoker.holdem_evaluation import (
+    aggregate_policy_match_shards,
+    evaluate_policy_match,
+    evaluate_policy_match_paired_seats,
+)
 from alphapoker.holdem_features import (
     adapt_holdem_features,
     encode_holdem_state,
@@ -218,9 +222,86 @@ def evaluate_model_shard(
     }
 
 
+def evaluate_model_paired_shard(
+    *,
+    checkpoint: Path,
+    hands: int,
+    seed: int,
+    opponent_policy: str,
+    equity_sims: int,
+    rollout_sims: int | None,
+    shard_index: int,
+) -> dict[str, Any]:
+    eval_seed = seed + shard_index * 1_000_003
+    model_policies = tuple(
+        model_policy_from_checkpoint(checkpoint, feature_seed=eval_seed + model_player)
+        for model_player in (0, 1)
+    )
+    opponent_policies = tuple(
+        make_opponent_policy(
+            opponent_policy,
+            random.Random(eval_seed + 10 + model_player),
+            equity_sims,
+            rollout_sims,
+        )
+        for model_player in (0, 1)
+    )
+    return {
+        "checkpoint": str(checkpoint),
+        **evaluate_policy_match_paired_seats(
+            model_policies=model_policies,
+            opponent_policies=opponent_policies,
+            hands=hands,
+            seed=eval_seed,
+        ),
+        "opponent_policy": opponent_policy,
+        "equity_sims": equity_sims,
+        "rollout_sims": rollout_sims,
+        "shard_index": shard_index,
+    }
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     model_players = normalize_model_players(args.model_player)
     shard_hands = split_hands(args.hands, args.jobs)
+    if args.paired_seats and model_players != (0, 1):
+        raise ValueError("--paired-seats requires --model-player both")
+    if args.paired_seats:
+        shard_kwargs = [
+            {
+                "checkpoint": args.checkpoint,
+                "hands": shard_size,
+                "seed": args.seed,
+                "opponent_policy": args.opponent_policy,
+                "equity_sims": args.equity_sims,
+                "rollout_sims": args.rollout_sims,
+                "shard_index": shard_index,
+            }
+            for shard_index, shard_size in enumerate(shard_hands)
+        ]
+        if args.jobs == 1:
+            shard_metrics = [
+                evaluate_model_paired_shard(**kwargs) for kwargs in shard_kwargs
+            ]
+        else:
+            with ProcessPoolExecutor(
+                max_workers=args.jobs,
+                mp_context=evaluation_process_context(),
+            ) as executor:
+                futures = [
+                    executor.submit(evaluate_model_paired_shard, **kwargs)
+                    for kwargs in shard_kwargs
+                ]
+                shard_metrics = [future.result() for future in as_completed(futures)]
+            shard_metrics.sort(key=lambda item: item["shard_index"])
+        metrics = aggregate_policy_match_shards(shard_metrics)
+        metrics["jobs"] = args.jobs
+        metrics["shard_hands"] = shard_hands
+        metrics["paired_seats"] = True
+        if args.out is not None:
+            write_json(args.out, metrics)
+        return metrics
+
     shard_metrics_by_player: dict[int, list[dict[str, Any]]] = defaultdict(list)
     shard_kwargs = [
         {
@@ -261,6 +342,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     metrics = aggregate_model_player_metrics(seat_metrics)
     metrics["jobs"] = args.jobs
     metrics["shard_hands"] = shard_hands
+    metrics["paired_seats"] = False
     if args.out is not None:
         write_json(args.out, metrics)
     return metrics
@@ -276,6 +358,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
     parser.add_argument("--jobs", type=int, default=1)
+    parser.add_argument("--paired-seats", action="store_true")
     parser.add_argument("--out", type=Path)
     return parser
 
