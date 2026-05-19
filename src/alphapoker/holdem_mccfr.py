@@ -425,6 +425,13 @@ def holdem_policy_from_trainer(
     fallback_policy: HoldemPolicy | None = None,
     min_strategy_weight: float = 0.0,
 ) -> HoldemPolicy:
+    def strategy_support(infoset: InfoSet) -> float:
+        return (
+            float(infoset.strategy_update_count)
+            if infoset.strategy_update_count > 0
+            else sum(infoset.strategy_sum)
+        )
+
     def select_action(state: FixedLimitHoldemState) -> str:
         actions = state.legal_actions()
         key = abstract_holdem_information_key(state, abstraction=trainer.abstraction)
@@ -433,7 +440,7 @@ def holdem_policy_from_trainer(
             if fallback_policy is not None:
                 return fallback_policy(state)
             distribution = normalize_distribution(actions, {})
-        elif sum(infoset.strategy_sum) < min_strategy_weight and fallback_policy is not None:
+        elif strategy_support(infoset) < min_strategy_weight and fallback_policy is not None:
             return fallback_policy(state)
         else:
             distribution = normalize_distribution(actions, infoset.average_strategy())

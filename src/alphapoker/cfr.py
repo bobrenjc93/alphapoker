@@ -13,6 +13,7 @@ class InfoSet:
     actions: tuple[str, ...]
     regret_sum: list[float] = field(default_factory=list)
     strategy_sum: list[float] = field(default_factory=list)
+    strategy_update_count: int = 0
 
     def __post_init__(self) -> None:
         if not self.regret_sum:
@@ -34,6 +35,8 @@ class InfoSet:
         *,
         weight: float = 1.0,
     ) -> None:
+        if reach_probability > 0.0 and weight > 0.0:
+            self.strategy_update_count += 1
         for index, probability in enumerate(strategy):
             self.strategy_sum[index] += weight * reach_probability * probability
 
@@ -52,6 +55,7 @@ class InfoSet:
             "actions": list(self.actions),
             "regret_sum": self.regret_sum,
             "strategy_sum": self.strategy_sum,
+            "strategy_update_count": self.strategy_update_count,
         }
 
     @classmethod
@@ -60,6 +64,7 @@ class InfoSet:
             actions=tuple(str(action) for action in payload["actions"]),  # type: ignore[index]
             regret_sum=[float(value) for value in payload["regret_sum"]],  # type: ignore[index]
             strategy_sum=[float(value) for value in payload["strategy_sum"]],  # type: ignore[index]
+            strategy_update_count=int(payload.get("strategy_update_count", 0)),
         )
 
 
