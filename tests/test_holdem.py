@@ -319,3 +319,30 @@ def test_cached_pot_odds_rollout_policy_selects_legal_actions() -> None:
 
     assert set(action_values) == set(state.legal_actions())
     assert action in state.legal_actions()
+
+
+def test_tuned_pot_odds_rollout_policy_selects_legal_actions() -> None:
+    rng = random.Random(31)
+    state = deal_fixed_limit_holdem(rng)
+    policy = cached_pot_odds_rollout_policy(
+        rng,
+        simulations=2,
+        equity_sims=2,
+        bet_threshold=0.54,
+        raise_threshold=0.76,
+        call_margin=0.05,
+    )
+    action_values = pot_odds_rollout_action_values(
+        state,
+        rng,
+        simulations=2,
+        equity_sims=2,
+        cached_equity=True,
+        bet_threshold=0.54,
+        raise_threshold=0.76,
+        call_margin=0.05,
+    )
+    action = policy(state)
+
+    assert set(action_values) == set(state.legal_actions())
+    assert action in state.legal_actions()

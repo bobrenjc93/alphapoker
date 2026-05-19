@@ -83,6 +83,24 @@ def test_train_holdem_policy_parser_accepts_rollout_expert() -> None:
     assert args.rollout_sims == 2
 
 
+def test_train_holdem_policy_parser_accepts_tuned_rollout_expert() -> None:
+    args = build_parser().parse_args(
+        [
+            "--expert-policy",
+            "cached-tuned-rollout-pot-odds",
+            "--opponent-policy",
+            "cached-tuned-pot-odds",
+            "--rollout-sims",
+            "2",
+            "--out",
+            "out",
+        ]
+    )
+
+    assert args.expert_policy == "cached-tuned-rollout-pot-odds"
+    assert args.rollout_sims == 2
+
+
 def test_train_holdem_policy_parser_accepts_tuned_expert() -> None:
     args = build_parser().parse_args(
         [
@@ -113,6 +131,22 @@ def test_train_holdem_policy_parser_accepts_tight_exact_expert() -> None:
 
     assert args.expert_policy == "tight-turn-river-exact-pot-odds"
     assert args.opponent_policy == "tight-turn-river-exact-pot-odds"
+
+
+def test_train_holdem_policy_parser_accepts_balanced_exact_expert() -> None:
+    args = build_parser().parse_args(
+        [
+            "--expert-policy",
+            "balanced-turn-river-exact-pot-odds",
+            "--opponent-policy",
+            "balanced-turn-river-exact-pot-odds",
+            "--out",
+            "out",
+        ]
+    )
+
+    assert args.expert_policy == "balanced-turn-river-exact-pot-odds"
+    assert args.opponent_policy == "balanced-turn-river-exact-pot-odds"
 
 
 def test_train_holdem_policy_parser_accepts_turn_river_exact_feature() -> None:

@@ -795,6 +795,9 @@ def pot_odds_rollout_action_values(
     simulations: int = 16,
     equity_sims: int = 16,
     cached_equity: bool = False,
+    bet_threshold: float = 0.58,
+    raise_threshold: float = 0.72,
+    call_margin: float = 0.0,
 ) -> dict[str, float]:
     if simulations <= 0:
         raise ValueError("simulations must be positive")
@@ -811,14 +814,33 @@ def pot_odds_rollout_action_values(
             rollout_state = sampled_state.apply(action)
             policy_rng = random.Random(simulation_seed + 50_000_003)
             if cached_equity:
-                continuation_policy = cached_pot_odds_equity_policy(simulations=equity_sims)
-                opponent_policy = cached_pot_odds_equity_policy(simulations=equity_sims)
+                continuation_policy = cached_pot_odds_equity_policy(
+                    simulations=equity_sims,
+                    bet_threshold=bet_threshold,
+                    raise_threshold=raise_threshold,
+                    call_margin=call_margin,
+                )
+                opponent_policy = cached_pot_odds_equity_policy(
+                    simulations=equity_sims,
+                    bet_threshold=bet_threshold,
+                    raise_threshold=raise_threshold,
+                    call_margin=call_margin,
+                )
             else:
                 continuation_policy = pot_odds_equity_policy(
                     policy_rng,
                     simulations=equity_sims,
+                    bet_threshold=bet_threshold,
+                    raise_threshold=raise_threshold,
+                    call_margin=call_margin,
                 )
-                opponent_policy = pot_odds_equity_policy(policy_rng, simulations=equity_sims)
+                opponent_policy = pot_odds_equity_policy(
+                    policy_rng,
+                    simulations=equity_sims,
+                    bet_threshold=bet_threshold,
+                    raise_threshold=raise_threshold,
+                    call_margin=call_margin,
+                )
             policies = [opponent_policy, opponent_policy]
             policies[player] = continuation_policy
             terminal, _ = play_fixed_limit_holdem_hand(
@@ -835,6 +857,9 @@ def pot_odds_rollout_policy(
     *,
     simulations: int = 16,
     equity_sims: int = 16,
+    bet_threshold: float = 0.58,
+    raise_threshold: float = 0.72,
+    call_margin: float = 0.0,
 ) -> HoldemPolicy:
     def select_action(state: FixedLimitHoldemState) -> str:
         action_values = pot_odds_rollout_action_values(
@@ -842,6 +867,9 @@ def pot_odds_rollout_policy(
             rng,
             simulations=simulations,
             equity_sims=equity_sims,
+            bet_threshold=bet_threshold,
+            raise_threshold=raise_threshold,
+            call_margin=call_margin,
         )
         return max(state.legal_actions(), key=lambda action: action_values[action])
 
@@ -853,6 +881,9 @@ def cached_pot_odds_rollout_policy(
     *,
     simulations: int = 16,
     equity_sims: int = 16,
+    bet_threshold: float = 0.58,
+    raise_threshold: float = 0.72,
+    call_margin: float = 0.0,
 ) -> HoldemPolicy:
     def select_action(state: FixedLimitHoldemState) -> str:
         action_values = pot_odds_rollout_action_values(
@@ -861,6 +892,9 @@ def cached_pot_odds_rollout_policy(
             simulations=simulations,
             equity_sims=equity_sims,
             cached_equity=True,
+            bet_threshold=bet_threshold,
+            raise_threshold=raise_threshold,
+            call_margin=call_margin,
         )
         return max(state.legal_actions(), key=lambda action: action_values[action])
 

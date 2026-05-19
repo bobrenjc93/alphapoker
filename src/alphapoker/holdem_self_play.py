@@ -34,9 +34,12 @@ HOLDEM_SELF_PLAY_POLICIES = (
     "river-exact-tuned-pot-odds",
     "turn-river-exact-tuned-pot-odds",
     "tight-turn-river-exact-pot-odds",
+    "balanced-turn-river-exact-pot-odds",
     "hybrid-pot-odds",
     "rollout-pot-odds",
     "cached-rollout-pot-odds",
+    "tuned-rollout-pot-odds",
+    "cached-tuned-rollout-pot-odds",
 )
 
 
@@ -80,6 +83,13 @@ def make_policy(
             raise_threshold=0.84,
             call_margin=0.08,
         )
+    if name == "balanced-turn-river-exact-pot-odds":
+        return turn_river_exact_pot_odds_equity_policy(
+            simulations=equity_sims,
+            bet_threshold=0.58,
+            raise_threshold=0.82,
+            call_margin=0.08,
+        )
     if name == "hybrid-pot-odds":
         return hybrid_pot_odds_equity_policy(rng, simulations=equity_sims)
     if name == "rollout-pot-odds":
@@ -93,6 +103,24 @@ def make_policy(
             rng,
             simulations=rollout_sims if rollout_sims is not None else equity_sims,
             equity_sims=equity_sims,
+        )
+    if name == "tuned-rollout-pot-odds":
+        return pot_odds_rollout_policy(
+            rng,
+            simulations=rollout_sims if rollout_sims is not None else equity_sims,
+            equity_sims=equity_sims,
+            bet_threshold=0.54,
+            raise_threshold=0.76,
+            call_margin=0.05,
+        )
+    if name == "cached-tuned-rollout-pot-odds":
+        return cached_pot_odds_rollout_policy(
+            rng,
+            simulations=rollout_sims if rollout_sims is not None else equity_sims,
+            equity_sims=equity_sims,
+            bet_threshold=0.54,
+            raise_threshold=0.76,
+            call_margin=0.05,
         )
     raise ValueError(f"Unknown policy: {name}")
 

@@ -33,9 +33,12 @@ HOLDEM_EXPERT_POLICIES = (
     "river-exact-tuned-pot-odds",
     "turn-river-exact-tuned-pot-odds",
     "tight-turn-river-exact-pot-odds",
+    "balanced-turn-river-exact-pot-odds",
     "hybrid-pot-odds",
     "rollout-pot-odds",
     "cached-rollout-pot-odds",
+    "tuned-rollout-pot-odds",
+    "cached-tuned-rollout-pot-odds",
 )
 HOLDEM_DATASET_OPPONENT_POLICIES = (
     "equity",
@@ -46,10 +49,13 @@ HOLDEM_DATASET_OPPONENT_POLICIES = (
     "river-exact-tuned-pot-odds",
     "turn-river-exact-tuned-pot-odds",
     "tight-turn-river-exact-pot-odds",
+    "balanced-turn-river-exact-pot-odds",
     "hybrid-pot-odds",
     "random",
     "rollout-pot-odds",
     "cached-rollout-pot-odds",
+    "tuned-rollout-pot-odds",
+    "cached-tuned-rollout-pot-odds",
 )
 HOLDEM_EQUITY_VALUE_OPPONENT_POLICIES = (
     "equity",
@@ -60,6 +66,7 @@ HOLDEM_EQUITY_VALUE_OPPONENT_POLICIES = (
     "river-exact-tuned-pot-odds",
     "turn-river-exact-tuned-pot-odds",
     "tight-turn-river-exact-pot-odds",
+    "balanced-turn-river-exact-pot-odds",
     "hybrid-pot-odds",
     "random",
 )
