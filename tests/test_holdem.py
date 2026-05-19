@@ -23,6 +23,8 @@ from alphapoker.holdem import (  # noqa: E402
     preflop_holdem_equity_heuristic,
     pot_odds_rollout_action_values,
     pot_odds_rollout_policy,
+    policy_rollout_action_values,
+    policy_rollout_policy,
     random_holdem_policy,
     river_exact_pot_odds_equity_policy,
     sample_holdem_belief_state,
@@ -341,6 +343,32 @@ def test_tuned_pot_odds_rollout_policy_selects_legal_actions() -> None:
         bet_threshold=0.54,
         raise_threshold=0.76,
         call_margin=0.05,
+    )
+    action = policy(state)
+
+    assert set(action_values) == set(state.legal_actions())
+    assert action in state.legal_actions()
+
+
+def test_policy_rollout_policy_selects_legal_actions() -> None:
+    rng = random.Random(32)
+    state = deal_fixed_limit_holdem(rng)
+
+    def baseline(_: random.Random):
+        return turn_river_exact_pot_odds_equity_policy(simulations=2)
+
+    policy = policy_rollout_policy(
+        rng,
+        simulations=2,
+        continuation_policy_factory=baseline,
+        opponent_policy_factory=baseline,
+    )
+    action_values = policy_rollout_action_values(
+        state,
+        rng,
+        simulations=2,
+        continuation_policy_factory=baseline,
+        opponent_policy_factory=baseline,
     )
     action = policy(state)
 

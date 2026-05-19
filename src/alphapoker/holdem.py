@@ -852,6 +852,62 @@ def pot_odds_rollout_action_values(
     return values
 
 
+def policy_rollout_action_values(
+    state: FixedLimitHoldemState,
+    rng: random.Random,
+    *,
+    simulations: int,
+    continuation_policy_factory: Callable[[random.Random], HoldemPolicy],
+    opponent_policy_factory: Callable[[random.Random], HoldemPolicy],
+) -> dict[str, float]:
+    if simulations <= 0:
+        raise ValueError("simulations must be positive")
+    player = state.current_player()
+    legal_actions = state.legal_actions()
+    seed = rng.randrange(2**63)
+    values: dict[str, float] = {}
+    for action_index, action in enumerate(legal_actions):
+        total_utility = 0.0
+        for simulation_index in range(simulations):
+            simulation_seed = seed + action_index * 1_000_003 + simulation_index
+            simulation_rng = random.Random(simulation_seed)
+            sampled_state = sample_holdem_belief_state(state, player, simulation_rng)
+            rollout_state = sampled_state.apply(action)
+            continuation_policy = continuation_policy_factory(
+                random.Random(simulation_seed + 50_000_003)
+            )
+            opponent_policy = opponent_policy_factory(random.Random(simulation_seed + 70_000_009))
+            policies = [opponent_policy, opponent_policy]
+            policies[player] = continuation_policy
+            terminal, _ = play_fixed_limit_holdem_hand(
+                rollout_state,
+                (policies[0], policies[1]),
+            )
+            total_utility += terminal.utility(player)
+        values[action] = total_utility / simulations
+    return values
+
+
+def policy_rollout_policy(
+    rng: random.Random,
+    *,
+    simulations: int,
+    continuation_policy_factory: Callable[[random.Random], HoldemPolicy],
+    opponent_policy_factory: Callable[[random.Random], HoldemPolicy],
+) -> HoldemPolicy:
+    def select_action(state: FixedLimitHoldemState) -> str:
+        action_values = policy_rollout_action_values(
+            state,
+            rng,
+            simulations=simulations,
+            continuation_policy_factory=continuation_policy_factory,
+            opponent_policy_factory=opponent_policy_factory,
+        )
+        return max(state.legal_actions(), key=lambda action: action_values[action])
+
+    return select_action
+
+
 def pot_odds_rollout_policy(
     rng: random.Random,
     *,

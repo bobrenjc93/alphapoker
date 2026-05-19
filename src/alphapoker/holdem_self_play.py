@@ -18,6 +18,7 @@ from alphapoker.holdem import (
     play_fixed_limit_holdem_hand,
     pot_odds_equity_policy,
     pot_odds_rollout_policy,
+    policy_rollout_policy,
     random_holdem_policy,
     river_exact_pot_odds_equity_policy,
     turn_river_exact_pot_odds_equity_policy,
@@ -40,6 +41,8 @@ HOLDEM_SELF_PLAY_POLICIES = (
     "cached-rollout-pot-odds",
     "tuned-rollout-pot-odds",
     "cached-tuned-rollout-pot-odds",
+    "tight-rollout-pot-odds",
+    "balanced-rollout-pot-odds",
 )
 
 
@@ -121,6 +124,36 @@ def make_policy(
             bet_threshold=0.54,
             raise_threshold=0.76,
             call_margin=0.05,
+        )
+    if name == "tight-rollout-pot-odds":
+        def baseline(_: random.Random):
+            return turn_river_exact_pot_odds_equity_policy(
+                simulations=equity_sims,
+                bet_threshold=0.62,
+                raise_threshold=0.84,
+                call_margin=0.08,
+            )
+
+        return policy_rollout_policy(
+            rng,
+            simulations=rollout_sims if rollout_sims is not None else equity_sims,
+            continuation_policy_factory=baseline,
+            opponent_policy_factory=baseline,
+        )
+    if name == "balanced-rollout-pot-odds":
+        def baseline(_: random.Random):
+            return turn_river_exact_pot_odds_equity_policy(
+                simulations=equity_sims,
+                bet_threshold=0.58,
+                raise_threshold=0.82,
+                call_margin=0.08,
+            )
+
+        return policy_rollout_policy(
+            rng,
+            simulations=rollout_sims if rollout_sims is not None else equity_sims,
+            continuation_policy_factory=baseline,
+            opponent_policy_factory=baseline,
         )
     raise ValueError(f"Unknown policy: {name}")
 
