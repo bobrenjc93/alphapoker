@@ -18,8 +18,11 @@ from alphapoker.evaluate_holdem_model import (
 )
 from alphapoker.holdem import (
     HoldemPolicy,
+    cached_pot_odds_equity_policy,
     hybrid_pot_odds_equity_policy,
     pot_odds_equity_policy,
+    river_exact_pot_odds_equity_policy,
+    turn_river_exact_pot_odds_equity_policy,
 )
 from alphapoker.holdem_evaluation import (
     aggregate_policy_match_shards,
@@ -31,6 +34,12 @@ from alphapoker.train import write_json
 
 POLICY_THRESHOLD_DEFAULTS = {
     "pot-odds": (0.58, 0.72, 0.0),
+    "cached-pot-odds": (0.58, 0.72, 0.0),
+    "tuned-pot-odds": (0.54, 0.76, 0.05),
+    "cached-tuned-pot-odds": (0.54, 0.76, 0.05),
+    "river-exact-tuned-pot-odds": (0.54, 0.76, 0.05),
+    "turn-river-exact-tuned-pot-odds": (0.54, 0.76, 0.05),
+    "tight-turn-river-exact-pot-odds": (0.62, 0.84, 0.08),
     "hybrid-pot-odds": (0.54, 0.76, 0.05),
 }
 
@@ -57,7 +66,7 @@ def resolve_policy_thresholds(
     if bet_threshold is None and raise_threshold is None and call_margin is None:
         return None
     if policy not in POLICY_THRESHOLD_DEFAULTS:
-        raise ValueError("threshold overrides require policy to be pot-odds or hybrid-pot-odds")
+        raise ValueError("threshold overrides require a pot-odds policy")
     default_bet, default_raise, default_call_margin = POLICY_THRESHOLD_DEFAULTS[policy]
     return (
         default_bet if bet_threshold is None else bet_threshold,
@@ -77,9 +86,30 @@ def make_evaluation_policy(
     if thresholds is None:
         return make_policy(name, rng, equity_sims, rollout_sims)
     bet_threshold, raise_threshold, call_margin = thresholds
-    if name == "pot-odds":
+    if name in ("pot-odds", "tuned-pot-odds"):
         return pot_odds_equity_policy(
             rng,
+            simulations=equity_sims,
+            bet_threshold=bet_threshold,
+            raise_threshold=raise_threshold,
+            call_margin=call_margin,
+        )
+    if name in ("cached-pot-odds", "cached-tuned-pot-odds"):
+        return cached_pot_odds_equity_policy(
+            simulations=equity_sims,
+            bet_threshold=bet_threshold,
+            raise_threshold=raise_threshold,
+            call_margin=call_margin,
+        )
+    if name == "river-exact-tuned-pot-odds":
+        return river_exact_pot_odds_equity_policy(
+            simulations=equity_sims,
+            bet_threshold=bet_threshold,
+            raise_threshold=raise_threshold,
+            call_margin=call_margin,
+        )
+    if name in ("turn-river-exact-tuned-pot-odds", "tight-turn-river-exact-pot-odds"):
+        return turn_river_exact_pot_odds_equity_policy(
             simulations=equity_sims,
             bet_threshold=bet_threshold,
             raise_threshold=raise_threshold,
@@ -93,7 +123,7 @@ def make_evaluation_policy(
             raise_threshold=raise_threshold,
             call_margin=call_margin,
         )
-    raise ValueError("threshold overrides require policy to be pot-odds or hybrid-pot-odds")
+    raise ValueError("threshold overrides require a pot-odds policy")
 
 
 def evaluate_policy_shard(

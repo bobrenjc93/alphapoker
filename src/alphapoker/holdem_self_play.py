@@ -33,6 +33,7 @@ HOLDEM_SELF_PLAY_POLICIES = (
     "cached-tuned-pot-odds",
     "river-exact-tuned-pot-odds",
     "turn-river-exact-tuned-pot-odds",
+    "tight-turn-river-exact-pot-odds",
     "hybrid-pot-odds",
     "rollout-pot-odds",
     "cached-rollout-pot-odds",
@@ -72,6 +73,13 @@ def make_policy(
         return river_exact_pot_odds_equity_policy(simulations=equity_sims)
     if name == "turn-river-exact-tuned-pot-odds":
         return turn_river_exact_pot_odds_equity_policy(simulations=equity_sims)
+    if name == "tight-turn-river-exact-pot-odds":
+        return turn_river_exact_pot_odds_equity_policy(
+            simulations=equity_sims,
+            bet_threshold=0.62,
+            raise_threshold=0.84,
+            call_margin=0.08,
+        )
     if name == "hybrid-pot-odds":
         return hybrid_pot_odds_equity_policy(rng, simulations=equity_sims)
     if name == "rollout-pot-odds":

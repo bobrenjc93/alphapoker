@@ -11,7 +11,13 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
-from alphapoker.holdem import hybrid_pot_odds_equity_policy, pot_odds_equity_policy
+from alphapoker.holdem import (
+    cached_pot_odds_equity_policy,
+    hybrid_pot_odds_equity_policy,
+    pot_odds_equity_policy,
+    river_exact_pot_odds_equity_policy,
+    turn_river_exact_pot_odds_equity_policy,
+)
 from alphapoker.holdem_evaluation import evaluate_policy_match, evaluate_policy_match_paired_seats
 from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES, make_policy
 from alphapoker.train import write_json
@@ -21,7 +27,13 @@ from alphapoker.train_holdem_policy_gradient import (
     parse_model_players,
 )
 
-POT_ODDS_POLICY_FAMILIES = ("pot-odds", "hybrid-pot-odds")
+POT_ODDS_POLICY_FAMILIES = (
+    "pot-odds",
+    "cached-pot-odds",
+    "river-exact-pot-odds",
+    "turn-river-exact-pot-odds",
+    "hybrid-pot-odds",
+)
 
 
 def parse_param_configs(configs: str) -> list[tuple[float, float, float]]:
@@ -105,6 +117,27 @@ def make_candidate_policy(
     if policy_family == "pot-odds":
         return pot_odds_equity_policy(
             rng,
+            simulations=equity_sims,
+            bet_threshold=bet_threshold,
+            raise_threshold=raise_threshold,
+            call_margin=call_margin,
+        )
+    if policy_family == "cached-pot-odds":
+        return cached_pot_odds_equity_policy(
+            simulations=equity_sims,
+            bet_threshold=bet_threshold,
+            raise_threshold=raise_threshold,
+            call_margin=call_margin,
+        )
+    if policy_family == "river-exact-pot-odds":
+        return river_exact_pot_odds_equity_policy(
+            simulations=equity_sims,
+            bet_threshold=bet_threshold,
+            raise_threshold=raise_threshold,
+            call_margin=call_margin,
+        )
+    if policy_family == "turn-river-exact-pot-odds":
+        return turn_river_exact_pot_odds_equity_policy(
             simulations=equity_sims,
             bet_threshold=bet_threshold,
             raise_threshold=raise_threshold,

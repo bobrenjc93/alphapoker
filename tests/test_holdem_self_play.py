@@ -189,6 +189,27 @@ def test_holdem_self_play_turn_river_exact_tuned_pot_odds_policy_smoke() -> None
     assert metrics["player0_policy"] == "turn-river-exact-tuned-pot-odds"
 
 
+def test_holdem_self_play_tight_turn_river_exact_pot_odds_policy_smoke() -> None:
+    args = build_parser().parse_args(
+        [
+            "--hands",
+            "2",
+            "--seed",
+            "15",
+            "--player0-policy",
+            "tight-turn-river-exact-pot-odds",
+            "--player1-policy",
+            "tuned-pot-odds",
+            "--equity-sims",
+            "4",
+        ]
+    )
+    metrics = run(args)
+
+    assert metrics["hands"] == 2
+    assert metrics["player0_policy"] == "tight-turn-river-exact-pot-odds"
+
+
 def test_holdem_self_play_hybrid_pot_odds_policy_smoke() -> None:
     args = build_parser().parse_args(
         [
