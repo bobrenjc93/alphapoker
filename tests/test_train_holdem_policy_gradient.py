@@ -15,6 +15,12 @@ from alphapoker.train_holdem_policy_gradient import (  # noqa: E402
 )
 
 
+def assert_same_state_dict(left, right) -> None:
+    assert left.keys() == right.keys()
+    for key, left_value in left.items():
+        assert torch.equal(left_value, right[key])
+
+
 def test_policy_gradient_parser_accepts_pot_odds() -> None:
     args = build_parser().parse_args(
         [
@@ -34,6 +40,8 @@ def test_policy_gradient_parser_accepts_pot_odds() -> None:
             "4",
             "--feature-equity-mode",
             "sampled",
+            "--checkpoint-selection",
+            "final",
             "--out",
             "out",
         ]
@@ -47,6 +55,7 @@ def test_policy_gradient_parser_accepts_pot_odds() -> None:
     assert str(args.init_checkpoint) == "model.pt"
     assert args.feature_equity_sims == 4
     assert args.feature_equity_mode == "sampled"
+    assert args.checkpoint_selection == "final"
 
 
 def test_parse_policy_mix_rejects_unknown_policy() -> None:
@@ -120,6 +129,35 @@ def test_policy_gradient_run_records_evaluation(tmp_path) -> None:
     assert metrics["evaluation"]["paired_deals"] == 1
     assert metrics["evaluation"]["paired_seats"]
     assert metrics["evaluation"]["opponent_policy"] == "random"
+
+
+def test_policy_gradient_can_select_final_checkpoint(tmp_path) -> None:
+    metrics = run(
+        build_parser().parse_args(
+            [
+                "--hands",
+                "2",
+                "--batch-hands",
+                "1",
+                "--opponent-policy",
+                "random",
+                "--checkpoint-selection",
+                "final",
+                "--out",
+                str(tmp_path),
+            ]
+        )
+    )
+    checkpoint = torch.load(tmp_path / "holdem_policy.pt", map_location="cpu", weights_only=False)
+    final_checkpoint = torch.load(
+        tmp_path / "holdem_policy_final.pt",
+        map_location="cpu",
+        weights_only=False,
+    )
+
+    assert metrics["checkpoint_selection"] == "final"
+    assert metrics["final_checkpoint"] == str(tmp_path / "holdem_policy_final.pt")
+    assert_same_state_dict(checkpoint["model_state_dict"], final_checkpoint["model_state_dict"])
 
 
 def test_policy_gradient_preserves_exact_feature_checkpoint(tmp_path) -> None:

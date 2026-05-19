@@ -9,6 +9,12 @@ from alphapoker.holdem_model import HoldemPolicyNet  # noqa: E402
 from alphapoker.train_holdem_actor_critic import build_parser, run  # noqa: E402
 
 
+def assert_same_state_dict(left, right) -> None:
+    assert left.keys() == right.keys()
+    for key, left_value in left.items():
+        assert torch.equal(left_value, right[key])
+
+
 def test_actor_critic_parser_accepts_weighted_mix() -> None:
     args = build_parser().parse_args(
         [
@@ -26,6 +32,8 @@ def test_actor_critic_parser_accepts_weighted_mix() -> None:
             "4",
             "--feature-equity-mode",
             "sampled",
+            "--checkpoint-selection",
+            "final",
             "--out",
             "out",
         ]
@@ -38,6 +46,7 @@ def test_actor_critic_parser_accepts_weighted_mix() -> None:
     assert args.value_loss_coef == 0.25
     assert args.feature_equity_sims == 4
     assert args.feature_equity_mode == "sampled"
+    assert args.checkpoint_selection == "final"
 
 
 def test_actor_critic_parser_accepts_evaluation_options() -> None:
@@ -89,6 +98,49 @@ def test_actor_critic_run_records_evaluation(tmp_path) -> None:
 
     assert metrics["evaluation"]["hands"] == 1
     assert metrics["evaluation"]["opponent_policy"] == "random"
+
+
+def test_actor_critic_can_select_final_checkpoint(tmp_path) -> None:
+    metrics = run(
+        build_parser().parse_args(
+            [
+                "--hands",
+                "2",
+                "--batch-hands",
+                "1",
+                "--opponent-policy",
+                "random",
+                "--checkpoint-selection",
+                "final",
+                "--out",
+                str(tmp_path),
+            ]
+        )
+    )
+    policy_checkpoint = torch.load(tmp_path / "holdem_policy.pt", map_location="cpu", weights_only=False)
+    final_policy_checkpoint = torch.load(
+        tmp_path / "holdem_policy_final.pt",
+        map_location="cpu",
+        weights_only=False,
+    )
+    value_checkpoint = torch.load(tmp_path / "holdem_value.pt", map_location="cpu", weights_only=False)
+    final_value_checkpoint = torch.load(
+        tmp_path / "holdem_value_final.pt",
+        map_location="cpu",
+        weights_only=False,
+    )
+
+    assert metrics["checkpoint_selection"] == "final"
+    assert metrics["final_checkpoint"] == str(tmp_path / "holdem_policy_final.pt")
+    assert metrics["final_value_checkpoint"] == str(tmp_path / "holdem_value_final.pt")
+    assert_same_state_dict(
+        policy_checkpoint["model_state_dict"],
+        final_policy_checkpoint["model_state_dict"],
+    )
+    assert_same_state_dict(
+        value_checkpoint["model_state_dict"],
+        final_value_checkpoint["model_state_dict"],
+    )
 
 
 def test_actor_critic_preserves_exact_feature_checkpoint(tmp_path) -> None:

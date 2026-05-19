@@ -231,11 +231,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         loss.backward()
         optimizer.step()
 
-    model.load_state_dict(best_state)
+    checkpoint_selection = getattr(args, "checkpoint_selection", "best-batch")
+    final_state = copy.deepcopy(model.state_dict())
+    selected_state = final_state if checkpoint_selection == "final" else best_state
+    model.load_state_dict(selected_state)
     utility_stdev = statistics.stdev(utilities) if len(utilities) > 1 else 0.0
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     checkpoint = out_dir / "holdem_policy.pt"
+    final_checkpoint = out_dir / "holdem_policy_final.pt"
     torch.save(
         {
             "model_state_dict": model.state_dict(),
@@ -244,6 +248,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             **feature_encoder.checkpoint_metadata(),
         },
         checkpoint,
+    )
+    torch.save(
+        {
+            "model_state_dict": final_state,
+            "canonical_actions": list(HOLDEM_CANONICAL_ACTIONS),
+            "input_dim": input_dim,
+            **feature_encoder.checkpoint_metadata(),
+        },
+        final_checkpoint,
     )
     feature_metadata = feature_encoder.checkpoint_metadata()
     metrics: dict[str, Any] = {
@@ -260,6 +273,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "entropy_coef": args.entropy_coef,
         "init_checkpoint": str(args.init_checkpoint) if args.init_checkpoint is not None else None,
         **feature_metadata,
+        "checkpoint_selection": checkpoint_selection,
         "best_batch_avg_utility_model": best_batch_avg_utility,
         "train_avg_utility_model": sum(utilities) / len(utilities) if utilities else 0.0,
         "train_utility_stdev_model": utility_stdev,
@@ -270,6 +284,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             if player_utilities
         },
         "checkpoint": str(checkpoint),
+        "final_checkpoint": str(final_checkpoint),
         "seed": args.seed,
     }
     eval_metrics = evaluate_trained_policy(args, checkpoint, model_players)
@@ -292,6 +307,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--entropy-coef", type=float, default=0.01)
     parser.add_argument("--init-checkpoint", type=Path)
+    parser.add_argument("--checkpoint-selection", choices=("best-batch", "final"), default="best-batch")
     parser.add_argument("--feature-equity-sims", type=int)
     parser.add_argument("--feature-equity-mode", choices=POLICY_FEATURE_EQUITY_MODES)
     parser.add_argument("--seed", type=int, default=0)
