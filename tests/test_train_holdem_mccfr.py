@@ -51,6 +51,12 @@ def test_train_holdem_mccfr_parser_accepts_eval_options() -> None:
     assert args.discard_checkpoint
 
 
+def test_train_holdem_mccfr_parser_accepts_equity_abstraction() -> None:
+    args = build_parser().parse_args(["--abstraction", "equity", "--out", "out"])
+
+    assert args.abstraction == "equity"
+
+
 def test_train_holdem_mccfr_run_smoke(tmp_path) -> None:
     metrics = run(
         build_parser().parse_args(

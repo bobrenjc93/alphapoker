@@ -10,6 +10,7 @@ from typing import Any
 from alphapoker.evaluate_holdem_mccfr import evaluate_checkpoint
 from alphapoker.evaluate_holdem_model import parse_model_players
 from alphapoker.holdem_mccfr import (
+    HOLDEM_ABSTRACTIONS,
     HoldemAbstractionCFRTrainer,
 )
 from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES
@@ -92,7 +93,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--uniform-averaging", action="store_true")
     parser.add_argument("--max-bets-per-round", type=int, default=4)
     parser.add_argument("--traversal", choices=["external", "full"], default="external")
-    parser.add_argument("--abstraction", choices=["fine", "medium", "coarse"], default="coarse")
+    parser.add_argument("--abstraction", choices=HOLDEM_ABSTRACTIONS, default="coarse")
     parser.add_argument("--eval-hands", type=int, default=0)
     parser.add_argument("--opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="pot-odds")
     parser.add_argument("--fallback-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="pot-odds")

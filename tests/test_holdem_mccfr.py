@@ -53,6 +53,21 @@ def test_holdem_medium_abstraction_tracks_draws() -> None:
     assert "to0:call0" in key
 
 
+def test_holdem_equity_abstraction_is_stable_and_tracks_equity() -> None:
+    state = FixedLimitHoldemState.initial(
+        (("As", "Ks"), ("2h", "3d")),
+        ("Qs", "Js", "2c", "4d", "5h"),
+    )._replace(street=1, to_act=0, round_contributions=(0, 0), bets_this_round=0)
+
+    first_key = abstract_holdem_information_key(state, abstraction="equity")
+    second_key = abstract_holdem_information_key(state, abstraction="equity")
+
+    assert first_key == second_key
+    assert first_key.startswith("p0:s1:e")
+    assert ":fddraw:" in first_key
+    assert ":sdopen:" in first_key
+
+
 def test_holdem_mccfr_trainer_smoke_and_checkpoint(tmp_path) -> None:
     trainer = HoldemAbstractionCFRTrainer(seed=3, max_bets_per_round=4, traversal="external")
     result = trainer.train(2)
@@ -113,3 +128,13 @@ def test_holdem_mccfr_medium_abstraction_smoke() -> None:
     assert result.iterations == 2
     assert result.infosets > 0
     assert trainer.abstraction == "medium"
+
+
+def test_holdem_mccfr_equity_abstraction_smoke() -> None:
+    trainer = HoldemAbstractionCFRTrainer(seed=12, max_bets_per_round=4, abstraction="equity")
+
+    result = trainer.train(2)
+
+    assert result.iterations == 2
+    assert result.infosets > 0
+    assert trainer.abstraction == "equity"
