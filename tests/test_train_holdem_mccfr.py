@@ -18,7 +18,7 @@ def test_train_holdem_mccfr_parser_accepts_eval_options() -> None:
             "--traversal",
             "external",
             "--abstraction",
-            "coarse",
+            "medium",
             "--model-player",
             "both",
             "--opponent-policy",
@@ -36,7 +36,7 @@ def test_train_holdem_mccfr_parser_accepts_eval_options() -> None:
     assert args.eval_hands == 2
     assert args.max_bets_per_round == 4
     assert args.traversal == "external"
-    assert args.abstraction == "coarse"
+    assert args.abstraction == "medium"
     assert args.model_player == (0, 1)
     assert args.opponent_policy == "tuned-pot-odds"
     assert args.fallback_policy == "tuned-pot-odds"

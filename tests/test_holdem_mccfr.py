@@ -39,6 +39,20 @@ def test_holdem_coarse_abstraction_summarizes_history() -> None:
     assert "to1:call0" in key
 
 
+def test_holdem_medium_abstraction_tracks_draws() -> None:
+    state = FixedLimitHoldemState.initial(
+        (("9s", "Ts"), ("2h", "3d")),
+        ("Js", "Qs", "2c", "4d", "5h"),
+    )._replace(street=1, to_act=0, round_contributions=(0, 0), bets_this_round=0)
+
+    key = abstract_holdem_information_key(state, abstraction="medium")
+
+    assert key.startswith("p0:s1:")
+    assert ":fddraw:" in key
+    assert ":sdopen:" in key
+    assert "to0:call0" in key
+
+
 def test_holdem_mccfr_trainer_smoke_and_checkpoint(tmp_path) -> None:
     trainer = HoldemAbstractionCFRTrainer(seed=3, max_bets_per_round=4, traversal="external")
     result = trainer.train(2)
@@ -89,3 +103,13 @@ def test_holdem_mccfr_full_traversal_smoke() -> None:
 
     assert result.iterations == 1
     assert result.infosets > 0
+
+
+def test_holdem_mccfr_medium_abstraction_smoke() -> None:
+    trainer = HoldemAbstractionCFRTrainer(seed=11, max_bets_per_round=4, abstraction="medium")
+
+    result = trainer.train(2)
+
+    assert result.iterations == 2
+    assert result.infosets > 0
+    assert trainer.abstraction == "medium"

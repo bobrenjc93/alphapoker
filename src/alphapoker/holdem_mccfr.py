@@ -15,6 +15,7 @@ from alphapoker.holdem import (
     HoldemPolicy,
     deal_fixed_limit_holdem,
     evaluate_holdem_hand,
+    preflop_holdem_equity_heuristic,
 )
 from alphapoker.holdem_features import HOLDEM_RANKS
 from alphapoker.kuhn import BET, CALL, CHECK, FOLD
@@ -53,6 +54,16 @@ def _coarse_preflop_bucket(private_cards: tuple[str, str]) -> str:
     if ranks[0] == ranks[1]:
         return f"pp{ranks[0] // 4}"
     return f"h{ranks[0] // 4}:l{ranks[1] // 4}:c{int(gap <= 2)}:s{int(suited)}"
+
+
+def _medium_preflop_bucket(private_cards: tuple[str, str]) -> str:
+    ranks = sorted((_rank_index(card) for card in private_cards), reverse=True)
+    suited = private_cards[0][1] == private_cards[1][1]
+    gap = ranks[0] - ranks[1]
+    equity_bucket = int(min(0.999, preflop_holdem_equity_heuristic(private_cards)) * 10)
+    if ranks[0] == ranks[1]:
+        return f"e{equity_bucket}:pp{ranks[0] // 3}"
+    return f"e{equity_bucket}:h{ranks[0] // 3}:g{min(4, gap)}:s{int(suited)}"
 
 
 def _board_texture_bucket(board: tuple[str, ...]) -> str:
@@ -99,6 +110,46 @@ def _coarse_postflop_bucket(state: FixedLimitHoldemState, player: int) -> str:
     return f"{made_group}:s{strength_bucket}:{_coarse_board_texture_bucket(board)}"
 
 
+def _flush_draw_bucket(cards: tuple[str, ...]) -> str:
+    suit_counts = [sum(1 for card in cards if card[1] == suit) for suit in "shdc"]
+    max_count = max(suit_counts, default=0)
+    if max_count >= 5:
+        return "made"
+    if max_count == 4:
+        return "draw"
+    return "none"
+
+
+def _straight_draw_bucket(cards: tuple[str, ...]) -> str:
+    ranks = {_rank_index(card) + 2 for card in cards}
+    if 14 in ranks:
+        ranks.add(1)
+    for start in range(1, 11):
+        if all(start + offset in ranks for offset in range(5)):
+            return "made"
+    for start in range(1, 12):
+        if all(start + offset in ranks for offset in range(4)):
+            return "open"
+    for start in range(1, 11):
+        if sum(1 for offset in range(5) if start + offset in ranks) == 4:
+            return "gutshot"
+    return "none"
+
+
+def _medium_postflop_bucket(state: FixedLimitHoldemState, player: int) -> str:
+    board = state.visible_board()
+    result = evaluate_holdem_hand(state.private_cards[player], board)
+    rank_strength = 1.0 - ((result.rank_class - 1) / 8.0)
+    score_strength = (7463.0 - result.score) / 7462.0
+    strength_bucket = int(max(0.0, min(0.999, (rank_strength + score_strength) / 2.0)) * 5)
+    cards = (*state.private_cards[player], *board)
+    return (
+        f"hc{result.rank_class}:s{strength_bucket}:"
+        f"fd{_flush_draw_bucket(cards)}:sd{_straight_draw_bucket(cards)}:"
+        f"{_coarse_board_texture_bucket(board)}"
+    )
+
+
 def _exact_history_key(state: FixedLimitHoldemState) -> str:
     return "|".join(
         ",".join(history) if history else "-"
@@ -128,22 +179,28 @@ def abstract_holdem_information_key(
     *,
     abstraction: str = "fine",
 ) -> str:
-    if abstraction not in ("fine", "coarse"):
-        raise ValueError("abstraction must be fine or coarse")
+    if abstraction not in ("fine", "medium", "coarse"):
+        raise ValueError("abstraction must be fine, medium, or coarse")
     player = state.current_player()
     if state.street == 0:
-        hand_bucket = (
-            _coarse_preflop_bucket(state.private_cards[player])
-            if abstraction == "coarse"
-            else _preflop_bucket(state.private_cards[player])
-        )
+        if abstraction == "coarse":
+            hand_bucket = _coarse_preflop_bucket(state.private_cards[player])
+        elif abstraction == "medium":
+            hand_bucket = _medium_preflop_bucket(state.private_cards[player])
+        else:
+            hand_bucket = _preflop_bucket(state.private_cards[player])
     else:
-        hand_bucket = (
-            _coarse_postflop_bucket(state, player)
-            if abstraction == "coarse"
-            else _postflop_bucket(state, player)
-        )
-    histories = _coarse_history_key(state) if abstraction == "coarse" else _exact_history_key(state)
+        if abstraction == "coarse":
+            hand_bucket = _coarse_postflop_bucket(state, player)
+        elif abstraction == "medium":
+            hand_bucket = _medium_postflop_bucket(state, player)
+        else:
+            hand_bucket = _postflop_bucket(state, player)
+    histories = (
+        _coarse_history_key(state)
+        if abstraction in ("coarse", "medium")
+        else _exact_history_key(state)
+    )
     return f"p{player}:s{state.street}:{hand_bucket}:{histories}"
 
 
@@ -164,8 +221,8 @@ class HoldemAbstractionCFRTrainer:
             raise ValueError("max_bets_per_round must be positive")
         if traversal not in ("external", "full"):
             raise ValueError("traversal must be external or full")
-        if abstraction not in ("fine", "coarse"):
-            raise ValueError("abstraction must be fine or coarse")
+        if abstraction not in ("fine", "medium", "coarse"):
+            raise ValueError("abstraction must be fine, medium, or coarse")
         self.rng = random.Random(seed)
         self.seed = seed
         self.cfr_plus = cfr_plus
