@@ -111,6 +111,30 @@ def test_holdem_mccfr_trainer_policy_can_fallback_on_low_weight() -> None:
     assert policy(state) == state.legal_actions()[0]
 
 
+def test_holdem_mccfr_trainer_policy_can_use_current_strategy() -> None:
+    trainer = HoldemAbstractionCFRTrainer(seed=10, max_bets_per_round=4, traversal="external")
+    trainer.train(2)
+    state = deal_fixed_limit_holdem(random.Random(11))
+    policy = holdem_policy_from_trainer(
+        trainer,
+        random.Random(12),
+        strategy_mode="current",
+    )
+
+    assert policy(state) in state.legal_actions()
+
+
+def test_holdem_mccfr_trainer_policy_rejects_bad_strategy_mode() -> None:
+    trainer = HoldemAbstractionCFRTrainer(seed=13, max_bets_per_round=4)
+
+    with pytest.raises(ValueError, match="strategy_mode"):
+        holdem_policy_from_trainer(
+            trainer,
+            random.Random(14),
+            strategy_mode="bad",
+        )
+
+
 def test_holdem_mccfr_full_traversal_smoke() -> None:
     trainer = HoldemAbstractionCFRTrainer(seed=7, max_bets_per_round=1, traversal="full")
 

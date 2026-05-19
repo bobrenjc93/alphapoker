@@ -22,6 +22,8 @@ def test_evaluate_holdem_mccfr_parser_accepts_options() -> None:
             "tuned-pot-odds",
             "--min-strategy-weight",
             "5",
+            "--strategy-mode",
+            "current",
             "--paired-seats",
         ]
     )
@@ -32,6 +34,7 @@ def test_evaluate_holdem_mccfr_parser_accepts_options() -> None:
     assert args.jobs == 2
     assert args.fallback_policy == "tuned-pot-odds"
     assert args.min_strategy_weight == 5
+    assert args.strategy_mode == "current"
     assert args.paired_seats
 
 
@@ -57,6 +60,7 @@ def test_evaluate_holdem_mccfr_run_smoke(tmp_path) -> None:
     assert metrics["hands"] == 1
     assert metrics["checkpoint"] == str(checkpoint)
     assert metrics["abstraction"] == "coarse"
+    assert metrics["strategy_mode"] == "average"
     assert metrics["jobs"] == 1
     assert metrics["shard_hands"] == [1]
     assert not metrics["paired_seats"]
@@ -129,6 +133,7 @@ def test_evaluate_holdem_mccfr_reuses_deals_across_seats(tmp_path) -> None:
         opponent_policy="random",
         fallback_policy="random",
         min_strategy_weight=0.0,
+        strategy_mode="average",
         equity_sims=2,
         rollout_sims=None,
         model_player=0,
@@ -141,6 +146,7 @@ def test_evaluate_holdem_mccfr_reuses_deals_across_seats(tmp_path) -> None:
         opponent_policy="random",
         fallback_policy="random",
         min_strategy_weight=0.0,
+        strategy_mode="average",
         equity_sims=2,
         rollout_sims=None,
         model_player=1,

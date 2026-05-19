@@ -36,6 +36,8 @@ def test_mccfr_min_weight_sweep_smoke(tmp_path) -> None:
                 "random",
                 "--fallback-policy",
                 "random",
+                "--strategy-mode",
+                "current",
                 "--weights",
                 "0,100",
                 "--equity-sims",
@@ -48,6 +50,7 @@ def test_mccfr_min_weight_sweep_smoke(tmp_path) -> None:
     assert metrics["checkpoint"] == str(checkpoint)
     assert metrics["model_player"] == "both"
     assert metrics["paired_seats"]
+    assert metrics["strategy_mode"] == "current"
     assert metrics["weights"] == [0.0, 100.0]
     assert len(metrics["results"]) == 2
     assert metrics["best"]["min_strategy_weight"] in {0.0, 100.0}
