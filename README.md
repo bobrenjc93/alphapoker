@@ -249,6 +249,12 @@ Current fixed-limit Hold'em gate:
   was only `+0.0650 +/- 0.2337` over 200 paired deals, while
   `tight-range-pot-odds` was `+0.3500 +/- 0.1925` over 200 paired deals and the
   cheap safe-rollout probe was `+0.8300 +/- 0.6249` over 100 paired deals.
+- A smaller 80-hand mixed-opponent actor-critic pilot with checkpoint selection
+  by a paired tight-exact e8 eval selected the initial checkpoint
+  (`hands_played=0`). A follow-up exact probe was positive
+  (`+0.8000 +/- 0.3319` over 100 paired deals), but the range gate was flat
+  (`-0.0100 +/- 0.3449` over 100 paired deals), so exact-only selection is not
+  enough to produce a candidate.
 - Unweighted `tight-range` feature 1k distillation improved imitation accuracy
   but collapsed raises; it was weaker in match play: `+0.3795 +/- 0.0618` vs
   tight exact e8 over 2000 paired deals, and `+0.0560 +/- 0.0782` vs

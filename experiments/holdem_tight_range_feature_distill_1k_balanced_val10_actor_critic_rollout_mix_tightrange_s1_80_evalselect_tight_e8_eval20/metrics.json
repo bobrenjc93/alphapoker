@@ -1,0 +1,122 @@
+{
+  "batch_hands": 5,
+  "best_batch_avg_utility_model": 4.4,
+  "best_selection_eval_avg_utility_model": 0.65,
+  "best_selection_eval_hands_played": 0,
+  "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_actor_critic_rollout_mix_tightrange_s1_80_evalselect_tight_e8_eval20/holdem_policy.pt",
+  "checkpoint_selection": "evaluation",
+  "entropy_coef": 0.003,
+  "equity_sims": 2,
+  "feature_equity_checkpoint": null,
+  "feature_equity_mode": "tight-range",
+  "feature_equity_sims": 1,
+  "final_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_actor_critic_rollout_mix_tightrange_s1_80_evalselect_tight_e8_eval20/holdem_policy_final.pt",
+  "final_value_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_actor_critic_rollout_mix_tightrange_s1_80_evalselect_tight_e8_eval20/holdem_value_final.pt",
+  "hands": 80,
+  "init_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+  "lr": 0.0003,
+  "model_player": "both",
+  "model_player_weights": [
+    0.5,
+    0.5
+  ],
+  "model_players": [
+    0,
+    1
+  ],
+  "opponent_policies": [
+    "tight-range-pot-odds",
+    "tight-turn-river-exact-pot-odds",
+    "tight-safe-rollout-pot-odds"
+  ],
+  "opponent_policy": "tight-range-pot-odds,tight-turn-river-exact-pot-odds,tight-safe-rollout-pot-odds",
+  "opponent_policy_weights": [
+    0.45,
+    0.35,
+    0.2
+  ],
+  "rollout_margin": 1.0,
+  "rollout_sims": 1,
+  "seed": 68700,
+  "selection_eval_equity_sims": 8,
+  "selection_eval_hands": 20,
+  "selection_eval_interval_hands": 20,
+  "selection_eval_jobs": 4,
+  "selection_eval_model_player": "both",
+  "selection_eval_opponent_policy": "tight-turn-river-exact-pot-odds",
+  "selection_eval_paired_seats": true,
+  "selection_eval_rollout_margin": 1.0,
+  "selection_eval_rollout_sims": null,
+  "selection_eval_seed": 68800,
+  "selection_evaluations": [
+    {
+      "avg_utility_model": 0.65,
+      "hands": 40,
+      "hands_played": 0,
+      "opponent_policy": "tight-turn-river-exact-pot-odds",
+      "paired_deals": 20,
+      "paired_seats": true,
+      "rollout_margin": 1.0,
+      "rollout_sims": null,
+      "seed": 68800,
+      "utility_stderr_model": 0.5502391824422692
+    },
+    {
+      "avg_utility_model": 0.4,
+      "hands": 40,
+      "hands_played": 20,
+      "opponent_policy": "tight-turn-river-exact-pot-odds",
+      "paired_deals": 20,
+      "paired_seats": true,
+      "rollout_margin": 1.0,
+      "rollout_sims": null,
+      "seed": 68800,
+      "utility_stderr_model": 0.5742271694244909
+    },
+    {
+      "avg_utility_model": 0.3,
+      "hands": 40,
+      "hands_played": 40,
+      "opponent_policy": "tight-turn-river-exact-pot-odds",
+      "paired_deals": 20,
+      "paired_seats": true,
+      "rollout_margin": 1.0,
+      "rollout_sims": null,
+      "seed": 68800,
+      "utility_stderr_model": 0.712113237594903
+    },
+    {
+      "avg_utility_model": 0.2,
+      "hands": 40,
+      "hands_played": 60,
+      "opponent_policy": "tight-turn-river-exact-pot-odds",
+      "paired_deals": 20,
+      "paired_seats": true,
+      "rollout_margin": 1.0,
+      "rollout_sims": null,
+      "seed": 68800,
+      "utility_stderr_model": 0.7303567981689353
+    },
+    {
+      "avg_utility_model": 0.25,
+      "hands": 40,
+      "hands_played": 80,
+      "opponent_policy": "tight-turn-river-exact-pot-odds",
+      "paired_deals": 20,
+      "paired_seats": true,
+      "rollout_margin": 1.0,
+      "rollout_sims": null,
+      "seed": 68800,
+      "utility_stderr_model": 0.7186427265484933
+    }
+  ],
+  "train_avg_utility_by_model_player": {
+    "0": -1.0285714285714285,
+    "1": 1.0666666666666667
+  },
+  "train_avg_utility_model": 0.15,
+  "train_utility_stderr_model": 0.5509198292200491,
+  "train_utility_stdev_model": 4.927576753154419,
+  "value_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_actor_critic_rollout_mix_tightrange_s1_80_evalselect_tight_e8_eval20/holdem_value.pt",
+  "value_loss_coef": 0.5
+}
