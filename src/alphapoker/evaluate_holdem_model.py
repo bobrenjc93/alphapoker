@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import multiprocessing as mp
 import random
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -118,6 +119,11 @@ def split_hands(hands: int, jobs: int) -> list[int]:
     shard_count = min(hands, jobs)
     base_hands, extra_hands = divmod(hands, shard_count)
     return [base_hands + (1 if shard < extra_hands else 0) for shard in range(shard_count)]
+
+
+def evaluation_process_context() -> mp.context.BaseContext:
+    start_method = "forkserver" if "forkserver" in mp.get_all_start_methods() else "spawn"
+    return mp.get_context(start_method)
 
 
 def model_policy_from_checkpoint(checkpoint_path: Path, *, feature_seed: int = 0) -> HoldemPolicy:
@@ -236,7 +242,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             result = evaluate_model_shard(**kwargs)
             shard_metrics_by_player[int(result["model_player"])].append(result)
     else:
-        with ProcessPoolExecutor(max_workers=args.jobs) as executor:
+        with ProcessPoolExecutor(
+            max_workers=args.jobs,
+            mp_context=evaluation_process_context(),
+        ) as executor:
             futures = [executor.submit(evaluate_model_shard, **kwargs) for kwargs in shard_kwargs]
             for future in as_completed(futures):
                 result = future.result()

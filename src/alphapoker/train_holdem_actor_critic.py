@@ -20,6 +20,7 @@ from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES, make_policy
 from alphapoker.train import write_json
 from alphapoker.train_holdem_policy_gradient import (
     choose_weighted_index,
+    evaluate_trained_policy,
     model_player_label,
     normalize_model_players,
     parse_model_players,
@@ -200,6 +201,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "value_checkpoint": str(value_checkpoint),
         "seed": args.seed,
     }
+    eval_metrics = evaluate_trained_policy(args, policy_checkpoint, model_players)
+    if eval_metrics is not None:
+        metrics["evaluation"] = eval_metrics
     write_json(out_dir / "metrics.json", metrics)
     return metrics
 
@@ -220,6 +224,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--init-checkpoint", type=Path)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--eval-hands", type=int, default=0)
+    parser.add_argument("--eval-opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="pot-odds")
+    parser.add_argument("--eval-equity-sims", type=int)
+    parser.add_argument("--eval-rollout-sims", type=int)
+    parser.add_argument("--eval-model-player", type=parse_model_players)
+    parser.add_argument("--eval-jobs", type=int, default=1)
+    parser.add_argument("--eval-seed", type=int)
     return parser
 
 

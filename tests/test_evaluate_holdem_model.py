@@ -6,6 +6,7 @@ pytest.importorskip("treys")
 
 from alphapoker.evaluate_holdem_model import (  # noqa: E402
     build_parser,
+    evaluation_process_context,
     make_opponent_policy,
     model_policy_from_checkpoint,
     parse_model_players,
@@ -24,6 +25,10 @@ def test_make_opponent_policy_rejects_unknown() -> None:
 
 def test_holdem_model_eval_split_hands_balances_jobs() -> None:
     assert split_hands(10, 4) == [3, 3, 2, 2]
+
+
+def test_holdem_model_eval_uses_safe_parallel_context() -> None:
+    assert evaluation_process_context().get_start_method() in {"forkserver", "spawn"}
 
 
 def test_holdem_model_eval_parser_accepts_model_player() -> None:
@@ -153,3 +158,33 @@ def test_holdem_model_eval_run_smoke(tmp_path) -> None:
     assert metrics["hands_per_model_player"] == 1
     assert metrics["jobs"] == 1
     assert metrics["shard_hands"] == [1]
+
+
+def test_holdem_model_eval_run_parallel_smoke(tmp_path) -> None:
+    policy_checkpoint = tmp_path / "policy.pt"
+    torch.save(
+        {
+            "model_state_dict": HoldemPolicyNet(input_dim=HOLDEM_FEATURE_DIM).state_dict(),
+            "input_dim": HOLDEM_FEATURE_DIM,
+        },
+        policy_checkpoint,
+    )
+
+    metrics = run(
+        build_parser().parse_args(
+            [
+                "--checkpoint",
+                str(policy_checkpoint),
+                "--hands",
+                "2",
+                "--opponent-policy",
+                "random",
+                "--jobs",
+                "2",
+            ]
+        )
+    )
+
+    assert metrics["hands"] == 2
+    assert metrics["jobs"] == 2
+    assert metrics["shard_hands"] == [1, 1]

@@ -76,6 +76,35 @@ def model_player_label(model_players: tuple[int, ...]) -> int | str:
     return model_players[0] if len(model_players) == 1 else "both"
 
 
+def evaluate_trained_policy(
+    args: argparse.Namespace,
+    checkpoint: Path,
+    model_players: tuple[int, ...],
+) -> dict[str, Any] | None:
+    eval_hands = getattr(args, "eval_hands", 0)
+    if eval_hands <= 0:
+        return None
+
+    from alphapoker.evaluate_holdem_model import run as evaluate_model
+
+    eval_model_players = getattr(args, "eval_model_player", None) or model_players
+    eval_seed = getattr(args, "eval_seed", None)
+    eval_equity_sims = getattr(args, "eval_equity_sims", None)
+    return evaluate_model(
+        argparse.Namespace(
+            checkpoint=checkpoint,
+            hands=eval_hands,
+            seed=eval_seed if eval_seed is not None else args.seed + 10_000,
+            opponent_policy=getattr(args, "eval_opponent_policy", "pot-odds"),
+            equity_sims=eval_equity_sims if eval_equity_sims is not None else args.equity_sims,
+            rollout_sims=getattr(args, "eval_rollout_sims", None),
+            model_player=eval_model_players,
+            jobs=getattr(args, "eval_jobs", 1),
+            out=None,
+        )
+    )
+
+
 def sample_model_action(model, state: FixedLimitHoldemState):
     import torch
 
@@ -220,6 +249,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "checkpoint": str(checkpoint),
         "seed": args.seed,
     }
+    eval_metrics = evaluate_trained_policy(args, checkpoint, model_players)
+    if eval_metrics is not None:
+        metrics["evaluation"] = eval_metrics
     write_json(out_dir / "metrics.json", metrics)
     return metrics
 
@@ -239,6 +271,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--init-checkpoint", type=Path)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--eval-hands", type=int, default=0)
+    parser.add_argument("--eval-opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="pot-odds")
+    parser.add_argument("--eval-equity-sims", type=int)
+    parser.add_argument("--eval-rollout-sims", type=int)
+    parser.add_argument("--eval-model-player", type=parse_model_players)
+    parser.add_argument("--eval-jobs", type=int, default=1)
+    parser.add_argument("--eval-seed", type=int)
     return parser
 
 

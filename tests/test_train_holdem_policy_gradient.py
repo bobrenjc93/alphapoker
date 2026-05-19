@@ -9,6 +9,7 @@ from alphapoker.train_holdem_policy_gradient import (  # noqa: E402
     parse_model_players,
     parse_policy_mix,
     parse_policy_weights,
+    run,
 )
 
 
@@ -55,3 +56,52 @@ def test_policy_gradient_parser_accepts_both_model_players() -> None:
     assert args.model_player == (0, 1)
     assert args.model_player_weights == (0.25, 0.75)
     assert parse_model_players("both") == (0, 1)
+
+
+def test_policy_gradient_parser_accepts_evaluation_options() -> None:
+    args = build_parser().parse_args(
+        [
+            "--out",
+            "out",
+            "--eval-hands",
+            "5",
+            "--eval-opponent-policy",
+            "tuned-pot-odds",
+            "--eval-model-player",
+            "both",
+            "--eval-jobs",
+            "2",
+            "--eval-seed",
+            "123",
+        ]
+    )
+
+    assert args.eval_hands == 5
+    assert args.eval_opponent_policy == "tuned-pot-odds"
+    assert args.eval_model_player == (0, 1)
+    assert args.eval_jobs == 2
+    assert args.eval_seed == 123
+
+
+def test_policy_gradient_run_records_evaluation(tmp_path) -> None:
+    metrics = run(
+        build_parser().parse_args(
+            [
+                "--hands",
+                "2",
+                "--batch-hands",
+                "1",
+                "--opponent-policy",
+                "random",
+                "--out",
+                str(tmp_path),
+                "--eval-hands",
+                "1",
+                "--eval-opponent-policy",
+                "random",
+            ]
+        )
+    )
+
+    assert metrics["evaluation"]["hands"] == 1
+    assert metrics["evaluation"]["opponent_policy"] == "random"
