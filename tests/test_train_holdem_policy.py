@@ -87,6 +87,22 @@ def test_train_holdem_policy_parser_accepts_tuned_expert() -> None:
     assert args.opponent_policy == "tuned-pot-odds"
 
 
+def test_train_holdem_policy_parser_accepts_tight_exact_expert() -> None:
+    args = build_parser().parse_args(
+        [
+            "--expert-policy",
+            "tight-turn-river-exact-pot-odds",
+            "--opponent-policy",
+            "tight-turn-river-exact-pot-odds",
+            "--out",
+            "out",
+        ]
+    )
+
+    assert args.expert_policy == "tight-turn-river-exact-pot-odds"
+    assert args.opponent_policy == "tight-turn-river-exact-pot-odds"
+
+
 def test_shard_hands_for_parallel_policy_training() -> None:
     assert _shard_hands(11, 4) == [3, 3, 3, 2]
     assert _shard_hands(2, 4) == [1, 1]

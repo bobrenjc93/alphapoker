@@ -144,6 +144,18 @@ def test_generate_equity_policy_examples_from_hybrid_pot_odds_expert() -> None:
     assert examples
 
 
+def test_generate_equity_policy_examples_from_tight_exact_expert() -> None:
+    examples = generate_equity_policy_examples(
+        hands=1,
+        seed=17,
+        equity_sims=2,
+        expert_policy="tight-turn-river-exact-pot-odds",
+        opponent_policy="tight-turn-river-exact-pot-odds",
+    )
+
+    assert examples
+
+
 def test_generate_equity_policy_examples_from_rollout_expert() -> None:
     examples = generate_equity_policy_examples(
         hands=1,
@@ -192,6 +204,17 @@ def test_generate_equity_value_examples_vs_tuned_pot_odds() -> None:
         seed=15,
         equity_sims=4,
         opponent_policy="tuned-pot-odds",
+    )
+
+    assert examples
+
+
+def test_generate_equity_value_examples_vs_tight_exact_policy() -> None:
+    examples = generate_equity_value_examples(
+        hands=1,
+        seed=18,
+        equity_sims=2,
+        opponent_policy="tight-turn-river-exact-pot-odds",
     )
 
     assert examples
