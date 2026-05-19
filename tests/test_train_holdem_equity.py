@@ -5,7 +5,12 @@ import pytest
 
 pytest.importorskip("treys")
 
-from alphapoker.train_holdem_equity import build_parser, parse_player, player_label  # noqa: E402
+from alphapoker.train_holdem_equity import (  # noqa: E402
+    _shard_hands,
+    build_parser,
+    parse_player,
+    player_label,
+)
 
 
 def test_parse_player_accepts_both_seats() -> None:
@@ -29,12 +34,15 @@ def test_train_holdem_equity_parser_accepts_both() -> None:
             "examples.json",
             "--examples-out",
             "cached.json",
+            "--jobs",
+            "3",
             "--out",
             "out",
         ]
     )
 
     assert args.player is None
+    assert args.jobs == 3
     assert str(args.examples_in) == "examples.json"
     assert str(args.examples_out) == "cached.json"
 
@@ -50,3 +58,8 @@ def test_train_holdem_equity_parser_accepts_tuned_pot_odds() -> None:
     )
 
     assert args.opponent_policy == "tuned-pot-odds"
+
+
+def test_shard_hands_for_parallel_training() -> None:
+    assert _shard_hands(10, 3) == [4, 3, 3]
+    assert _shard_hands(2, 4) == [1, 1]

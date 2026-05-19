@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -33,6 +34,80 @@ def player_label(player: int | None) -> int | str:
     return "both" if player is None else player
 
 
+def _shard_hands(hands: int, jobs: int) -> list[int]:
+    if jobs < 1:
+        raise ValueError("jobs must be positive")
+    if hands <= 0:
+        return []
+    shards = min(hands, jobs)
+    base = hands // shards
+    extra = hands % shards
+    return [base + (1 if index < extra else 0) for index in range(shards)]
+
+
+def generate_equity_value_examples_shard(
+    index: int,
+    *,
+    hands: int,
+    seed: int,
+    equity_sims: int,
+    player: int | None,
+    opponent_policy: str,
+):
+    return generate_equity_value_examples(
+        hands=hands,
+        seed=seed + index * 1_000_003,
+        equity_sims=equity_sims,
+        player=player,
+        opponent_policy=opponent_policy,
+    )
+
+
+def generate_training_examples(
+    *,
+    hands: int,
+    seed: int,
+    equity_sims: int,
+    player: int | None,
+    opponent_policy: str,
+    jobs: int,
+):
+    if jobs < 1:
+        raise ValueError("jobs must be positive")
+    if jobs == 1:
+        return generate_equity_value_examples(
+            hands=hands,
+            seed=seed,
+            equity_sims=equity_sims,
+            player=player,
+            opponent_policy=opponent_policy,
+        )
+
+    examples = []
+    shard_hands = _shard_hands(hands, jobs)
+    if not shard_hands:
+        return examples
+    with ProcessPoolExecutor(max_workers=min(jobs, len(shard_hands))) as executor:
+        future_to_index = {
+            executor.submit(
+                generate_equity_value_examples_shard,
+                index,
+                hands=shard_size,
+                seed=seed,
+                equity_sims=equity_sims,
+                player=player,
+                opponent_policy=opponent_policy,
+            ): index
+            for index, shard_size in enumerate(shard_hands)
+        }
+        shard_results = {}
+        for future in as_completed(future_to_index):
+            shard_results[future_to_index[future]] = future.result()
+    for index in sorted(shard_results):
+        examples.extend(shard_results[index])
+    return examples
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     import torch
     import torch.nn.functional as F
@@ -41,15 +116,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     examples_in = getattr(args, "examples_in", None)
     examples_out = getattr(args, "examples_out", None)
+    jobs = getattr(args, "jobs", 1)
     if examples_in is not None:
         examples = read_equity_value_examples(examples_in)
     else:
-        examples = generate_equity_value_examples(
+        examples = generate_training_examples(
             hands=args.hands,
             seed=args.seed,
             equity_sims=args.equity_sims,
             player=args.player,
             opponent_policy=args.opponent_policy,
+            jobs=jobs,
         )
     if examples_out is not None:
         write_equity_value_examples(examples_out, examples)
@@ -91,6 +168,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "equity_sims": args.equity_sims,
         "player": player_label(args.player),
         "opponent_policy": args.opponent_policy,
+        "jobs": jobs,
         "epochs": args.epochs,
         "lr": args.lr,
         "final_loss": final_loss,
@@ -118,6 +196,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--lr", type=float, default=3e-3)
+    parser.add_argument("--jobs", type=int, default=1)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--examples-in", type=Path)
     parser.add_argument("--examples-out", type=Path)
