@@ -204,6 +204,11 @@ Current fixed-limit Hold'em gate:
   tight exact probe (`+0.5125 +/- 0.2914` over 200 paired deals), but collapsed
   the `tight-range-pot-odds` gate to `+0.0050 +/- 0.2920` over 200 paired
   deals.
+- A 100-hand mixed-opponent actor-critic pilot with weights 0.45
+  `tight-range-pot-odds`, 0.35 `tight-turn-river-exact-pot-odds`, and 0.20
+  `tight-safe-rollout-pot-odds` (`rollout_sims=1`, tight-range feature sims 1)
+  trained roughly flat (`+0.0200 +/- 0.7077`) and failed the tight exact probe:
+  `-0.1750 +/- 0.2737` over 200 paired deals. It is not a candidate.
 - Unweighted `tight-range` feature 1k distillation improved imitation accuracy
   but collapsed raises; it was weaker in match play: `+0.3795 +/- 0.0618` vs
   tight exact e8 over 2000 paired deals, and `+0.0560 +/- 0.0782` vs
