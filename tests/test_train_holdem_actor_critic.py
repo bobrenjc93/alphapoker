@@ -141,6 +141,31 @@ def test_actor_critic_records_rollout_training_options(tmp_path) -> None:
     assert metrics["rollout_margin"] == 1.5
 
 
+def test_actor_critic_records_resolved_opponent_policy_mix_label(tmp_path) -> None:
+    metrics = run(
+        build_parser().parse_args(
+            [
+                "--hands",
+                "1",
+                "--batch-hands",
+                "1",
+                "--opponent-policy",
+                "pot-odds",
+                "--opponent-policies",
+                "random,pot-odds",
+                "--opponent-policy-weights",
+                "0.25,0.75",
+                "--out",
+                str(tmp_path),
+            ]
+        )
+    )
+
+    assert metrics["opponent_policy"] == "random,pot-odds"
+    assert metrics["opponent_policies"] == ["random", "pot-odds"]
+    assert metrics["opponent_policy_weights"] == [0.25, 0.75]
+
+
 def test_actor_critic_run_records_evaluation(tmp_path) -> None:
     metrics = run(
         build_parser().parse_args(

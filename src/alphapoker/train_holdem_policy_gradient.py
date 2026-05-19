@@ -82,6 +82,10 @@ def model_player_label(model_players: tuple[int, ...]) -> int | str:
     return model_players[0] if len(model_players) == 1 else "both"
 
 
+def opponent_policy_label(opponent_policies: tuple[str, ...]) -> str:
+    return opponent_policies[0] if len(opponent_policies) == 1 else ",".join(opponent_policies)
+
+
 def evaluate_trained_policy(
     args: argparse.Namespace,
     checkpoint: Path,
@@ -519,7 +523,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "model_player": model_player_label(model_players),
         "model_players": list(model_players),
         "model_player_weights": list(model_player_weights) if model_player_weights is not None else None,
-        "opponent_policy": args.opponent_policy,
+        "opponent_policy": opponent_policy_label(opponent_policy_names),
         "opponent_policies": list(opponent_policy_names),
         "opponent_policy_weights": list(opponent_policy_weights),
         "equity_sims": args.equity_sims,
