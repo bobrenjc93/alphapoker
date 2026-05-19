@@ -1,0 +1,48 @@
+{
+  "batch_hands": 5,
+  "best_batch_avg_utility_model": 7.0,
+  "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_actor_critic_rollout_mix_tightrange_s1_100_bestbatch/holdem_policy.pt",
+  "checkpoint_selection": "best-batch",
+  "entropy_coef": 0.003,
+  "equity_sims": 2,
+  "feature_equity_checkpoint": null,
+  "feature_equity_mode": "tight-range",
+  "feature_equity_sims": 1,
+  "final_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_actor_critic_rollout_mix_tightrange_s1_100_bestbatch/holdem_policy_final.pt",
+  "final_value_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_actor_critic_rollout_mix_tightrange_s1_100_bestbatch/holdem_value_final.pt",
+  "hands": 100,
+  "init_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+  "lr": 0.0003,
+  "model_player": "both",
+  "model_player_weights": [
+    0.5,
+    0.5
+  ],
+  "model_players": [
+    0,
+    1
+  ],
+  "opponent_policies": [
+    "tight-range-pot-odds",
+    "tight-turn-river-exact-pot-odds",
+    "tight-safe-rollout-pot-odds"
+  ],
+  "opponent_policy": "random",
+  "opponent_policy_weights": [
+    0.45,
+    0.35,
+    0.2
+  ],
+  "rollout_margin": 1.0,
+  "rollout_sims": 1,
+  "seed": 67000,
+  "train_avg_utility_by_model_player": {
+    "0": 1.18,
+    "1": -1.14
+  },
+  "train_avg_utility_model": 0.02,
+  "train_utility_stderr_model": 0.7076750952266445,
+  "train_utility_stdev_model": 7.076750952266445,
+  "value_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_actor_critic_rollout_mix_tightrange_s1_100_bestbatch/holdem_value.pt",
+  "value_loss_coef": 0.5
+}

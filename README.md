@@ -209,6 +209,11 @@ Current fixed-limit Hold'em gate:
   `tight-safe-rollout-pot-odds` (`rollout_sims=1`, tight-range feature sims 1)
   trained roughly flat (`+0.0200 +/- 0.7077`) and failed the tight exact probe:
   `-0.1750 +/- 0.2737` over 200 paired deals. It is not a candidate.
+- Selecting the best-batch checkpoint from that same mixed-opponent trajectory
+  improved the side probes but still did not clear the main gate: tight exact
+  was only `+0.0650 +/- 0.2337` over 200 paired deals, while
+  `tight-range-pot-odds` was `+0.3500 +/- 0.1925` over 200 paired deals and the
+  cheap safe-rollout probe was `+0.8300 +/- 0.6249` over 100 paired deals.
 - Unweighted `tight-range` feature 1k distillation improved imitation accuracy
   but collapsed raises; it was weaker in match play: `+0.3795 +/- 0.0618` vs
   tight exact e8 over 2000 paired deals, and `+0.0560 +/- 0.0782` vs
