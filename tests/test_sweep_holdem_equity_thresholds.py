@@ -85,5 +85,21 @@ def test_sweep_aggregates_both_model_players(monkeypatch) -> None:
 
     assert calls == [0, 1]
     assert payload["model_player"] == "both"
+    assert payload["jobs"] == 1
     assert payload["best"]["avg_utility_model"] == pytest.approx(0.25)
     assert payload["best"]["hands"] == 20
+
+
+def test_sweep_parser_accepts_jobs() -> None:
+    args = build_parser().parse_args(
+        [
+            "--checkpoint",
+            "model.pt",
+            "--jobs",
+            "4",
+            "--progress",
+        ]
+    )
+
+    assert args.jobs == 4
+    assert args.progress is True

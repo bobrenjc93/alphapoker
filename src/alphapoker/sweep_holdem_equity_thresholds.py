@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -106,31 +108,84 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
     }
 
 
+def evaluate_threshold_config(
+    index: int,
+    config: tuple[float, float, float],
+    *,
+    checkpoint: Path,
+    hands: int,
+    seed: int,
+    opponent_policy: str,
+    equity_sims: int,
+    rollout_sims: int | None,
+    model_players: tuple[int, ...],
+) -> dict[str, Any]:
+    bet_threshold, raise_threshold, call_threshold = config
+    seat_results = []
+    for model_player in model_players:
+        eval_args = argparse.Namespace(
+            checkpoint=checkpoint,
+            hands=hands,
+            seed=seed + index * 100_003 + model_player * 1_000_003,
+            opponent_policy=opponent_policy,
+            equity_sims=equity_sims,
+            rollout_sims=rollout_sims,
+            model_player=model_player,
+            bet_threshold=bet_threshold,
+            raise_threshold=raise_threshold,
+            call_threshold=call_threshold,
+            out=None,
+        )
+        seat_results.append(run_evaluation(eval_args))
+    metrics = aggregate_model_player_metrics(seat_results)
+    metrics["config_index"] = index
+    return metrics
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     model_players = normalize_model_players(args.model_player)
+    configs = parse_threshold_configs(args.configs)
+    if args.jobs < 1:
+        raise ValueError("jobs must be positive")
+
     results = []
-    for index, (bet_threshold, raise_threshold, call_threshold) in enumerate(
-        parse_threshold_configs(args.configs)
-    ):
-        seat_results = []
-        for model_player in model_players:
-            eval_args = argparse.Namespace(
+    if args.jobs == 1:
+        for index, config in enumerate(configs):
+            result = evaluate_threshold_config(
+                index,
+                config,
                 checkpoint=args.checkpoint,
                 hands=args.hands,
                 seed=args.seed,
                 opponent_policy=args.opponent_policy,
                 equity_sims=args.equity_sims,
                 rollout_sims=args.rollout_sims,
-                model_player=model_player,
-                bet_threshold=bet_threshold,
-                raise_threshold=raise_threshold,
-                call_threshold=call_threshold,
-                out=None,
+                model_players=model_players,
             )
-            seat_results.append(run_evaluation(eval_args))
-        metrics = aggregate_model_player_metrics(seat_results)
-        metrics["config_index"] = index
-        results.append(metrics)
+            results.append(result)
+            report_progress(args.progress, result)
+    else:
+        with ProcessPoolExecutor(max_workers=args.jobs) as executor:
+            futures = [
+                executor.submit(
+                    evaluate_threshold_config,
+                    index,
+                    config,
+                    checkpoint=args.checkpoint,
+                    hands=args.hands,
+                    seed=args.seed,
+                    opponent_policy=args.opponent_policy,
+                    equity_sims=args.equity_sims,
+                    rollout_sims=args.rollout_sims,
+                    model_players=model_players,
+                )
+                for index, config in enumerate(configs)
+            ]
+            for future in as_completed(futures):
+                result = future.result()
+                results.append(result)
+                report_progress(args.progress, result)
+        results.sort(key=lambda item: item["config_index"])
 
     best = max(results, key=lambda item: item["avg_utility_model"])
     payload = {
@@ -140,6 +195,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "opponent_policy": args.opponent_policy,
         "equity_sims": args.equity_sims,
         "rollout_sims": args.rollout_sims,
+        "jobs": args.jobs,
         "model_player": model_player_label(model_players),
         "best": best,
         "results": results,
@@ -147,6 +203,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if args.out is not None:
         write_json(Path(args.out), payload)
     return payload
+
+
+def report_progress(enabled: bool, result: dict[str, Any]) -> None:
+    if not enabled:
+        return
+    print(
+        f"config {result['config_index']}: "
+        f"avg_utility_model={result['avg_utility_model']:.3f} "
+        f"stderr={result['utility_stderr_model']:.3f}",
+        file=sys.stderr,
+        flush=True,
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -158,6 +226,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
+    parser.add_argument("--jobs", type=int, default=1)
+    parser.add_argument("--progress", action="store_true")
     parser.add_argument(
         "--configs",
         default="0.58,0.72,0.36;0.65,0.82,0.42",
