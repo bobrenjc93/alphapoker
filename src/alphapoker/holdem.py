@@ -386,6 +386,23 @@ def estimate_holdem_equity(
     return wins / simulations
 
 
+def preflop_holdem_equity_heuristic(private_cards: tuple[str, str]) -> float:
+    if len(private_cards) != 2:
+        raise ValueError("preflop equity heuristic requires exactly two private cards")
+    ranks = sorted((HOLDEM_RANKS.index(card[0]) + 2 for card in private_cards), reverse=True)
+    suited = private_cards[0][1] == private_cards[1][1]
+    gap = ranks[0] - ranks[1]
+    hi = (ranks[0] - 2) / 12.0
+    lo = (ranks[1] - 2) / 12.0
+    if ranks[0] == ranks[1]:
+        return min(0.85, 0.52 + 0.30 * hi)
+
+    connected_bonus = max(0.0, 0.045 - 0.015 * max(0, gap - 1))
+    suited_bonus = 0.035 if suited else 0.0
+    equity = 0.30 + 0.23 * hi + 0.11 * lo + connected_bonus + suited_bonus
+    return min(0.78, max(0.28, equity))
+
+
 def pot_odds_call_threshold(state: FixedLimitHoldemState, *, margin: float = 0.0) -> float:
     call_amount = state.outstanding_call_amount()
     if call_amount <= 0:
@@ -440,6 +457,41 @@ def pot_odds_equity_policy(
             state.visible_board(),
             simulations=simulations,
             rng=rng,
+        )
+        legal = state.legal_actions()
+        if state.outstanding_call_amount() > 0:
+            if RAISE in legal and equity >= raise_threshold:
+                return RAISE
+            if equity >= pot_odds_call_threshold(state, margin=call_margin):
+                return CALL
+            return FOLD
+
+        if BET in legal and equity >= bet_threshold:
+            return BET
+        return CHECK
+
+    return select_action
+
+
+def hybrid_pot_odds_equity_policy(
+    rng: random.Random,
+    *,
+    simulations: int = 128,
+    bet_threshold: float = 0.54,
+    raise_threshold: float = 0.76,
+    call_margin: float = 0.05,
+) -> HoldemPolicy:
+    def select_action(state: FixedLimitHoldemState) -> str:
+        player = state.current_player()
+        equity = (
+            preflop_holdem_equity_heuristic(state.private_cards[player])
+            if not state.visible_board()
+            else estimate_holdem_equity(
+                state.private_cards[player],
+                state.visible_board(),
+                simulations=simulations,
+                rng=rng,
+            )
         )
         legal = state.legal_actions()
         if state.outstanding_call_amount() > 0:

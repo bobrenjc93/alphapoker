@@ -74,8 +74,7 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
     model_stdev = _pooled_stdev(metrics, "avg_utility_model", "utility_stdev_model")
     p0_stdev = _pooled_stdev(metrics, "avg_utility_p0", "utility_stdev_p0")
     first = metrics[0]
-    return {
-        "checkpoint": first["checkpoint"],
+    aggregated = {
         "hands": total_hands,
         "hands_per_model_player": first["hands"],
         "model_player": "both",
@@ -88,12 +87,13 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
         "avg_actions": _weighted_mean(metrics, "avg_actions"),
         "folds": sum(int(item["folds"]) for item in metrics),
         "showdowns": sum(int(item["showdowns"]) for item in metrics),
-        "opponent_policy": first["opponent_policy"],
-        "equity_sims": first["equity_sims"],
-        "rollout_sims": first["rollout_sims"],
         "seed": first["seed"],
         "seat_metrics": metrics,
     }
+    for key in ("checkpoint", "policy", "opponent_policy", "equity_sims", "rollout_sims"):
+        if key in first:
+            aggregated[key] = first[key]
+    return aggregated
 
 
 def model_policy_from_checkpoint(checkpoint_path: Path) -> HoldemPolicy:

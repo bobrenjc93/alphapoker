@@ -12,6 +12,7 @@ from typing import Any
 from alphapoker.holdem import (
     deal_fixed_limit_holdem,
     equity_threshold_policy,
+    hybrid_pot_odds_equity_policy,
     play_fixed_limit_holdem_hand,
     pot_odds_equity_policy,
     pot_odds_rollout_policy,
@@ -24,6 +25,7 @@ HOLDEM_SELF_PLAY_POLICIES = (
     "equity",
     "pot-odds",
     "tuned-pot-odds",
+    "hybrid-pot-odds",
     "rollout-pot-odds",
 )
 
@@ -48,6 +50,8 @@ def make_policy(
             raise_threshold=0.76,
             call_margin=0.05,
         )
+    if name == "hybrid-pot-odds":
+        return hybrid_pot_odds_equity_policy(rng, simulations=equity_sims)
     if name == "rollout-pot-odds":
         return pot_odds_rollout_policy(
             rng,
