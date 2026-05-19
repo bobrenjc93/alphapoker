@@ -1,0 +1,308 @@
+{
+  "batch_hands": 5,
+  "best_batch_avg_utility_model": 2.8,
+  "best_selection_eval_avg_utility_model": -2.25,
+  "best_selection_eval_hands_played": 20,
+  "best_selection_eval_score_model": -2.25,
+  "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_actor_critic_rollout_mix_tightrange_s1_40_evalselect_min_exact_range_safe_eval10/holdem_policy.pt",
+  "checkpoint_selection": "evaluation",
+  "entropy_coef": 0.003,
+  "equity_sims": 2,
+  "feature_equity_checkpoint": null,
+  "feature_equity_mode": "tight-range",
+  "feature_equity_sims": 1,
+  "final_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_actor_critic_rollout_mix_tightrange_s1_40_evalselect_min_exact_range_safe_eval10/holdem_policy_final.pt",
+  "final_value_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_actor_critic_rollout_mix_tightrange_s1_40_evalselect_min_exact_range_safe_eval10/holdem_value_final.pt",
+  "hands": 40,
+  "init_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+  "lr": 0.0003,
+  "model_player": "both",
+  "model_player_weights": [
+    0.5,
+    0.5
+  ],
+  "model_players": [
+    0,
+    1
+  ],
+  "opponent_policies": [
+    "tight-range-pot-odds",
+    "tight-turn-river-exact-pot-odds",
+    "tight-safe-rollout-pot-odds"
+  ],
+  "opponent_policy": "tight-range-pot-odds,tight-turn-river-exact-pot-odds,tight-safe-rollout-pot-odds",
+  "opponent_policy_weights": [
+    0.45,
+    0.35,
+    0.2
+  ],
+  "rollout_margin": 1.0,
+  "rollout_sims": 1,
+  "seed": 69400,
+  "selection_eval_aggregation": "min",
+  "selection_eval_equity_sims": null,
+  "selection_eval_equity_sims_per_policy": [
+    8,
+    4,
+    4
+  ],
+  "selection_eval_hands": 10,
+  "selection_eval_interval_hands": 20,
+  "selection_eval_jobs": 2,
+  "selection_eval_model_player": "both",
+  "selection_eval_opponent_policies": [
+    "tight-turn-river-exact-pot-odds",
+    "tight-range-pot-odds",
+    "tight-safe-rollout-pot-odds"
+  ],
+  "selection_eval_opponent_policy": "tight-turn-river-exact-pot-odds,tight-range-pot-odds,tight-safe-rollout-pot-odds",
+  "selection_eval_opponent_policy_weights": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "selection_eval_paired_seats": true,
+  "selection_eval_rollout_margin": 1.0,
+  "selection_eval_rollout_margin_per_policy": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "selection_eval_rollout_sims": null,
+  "selection_eval_rollout_sims_per_policy": [
+    null,
+    null,
+    1
+  ],
+  "selection_eval_seed": 69300,
+  "selection_evaluations": [
+    {
+      "avg_utility_model": -1.0666666666666667,
+      "equity_sims_per_policy": [
+        8,
+        4,
+        4
+      ],
+      "hands": 60,
+      "hands_played": 0,
+      "opponent_policies": [
+        "tight-turn-river-exact-pot-odds",
+        "tight-range-pot-odds",
+        "tight-safe-rollout-pot-odds"
+      ],
+      "opponent_policy": "tight-turn-river-exact-pot-odds,tight-range-pot-odds,tight-safe-rollout-pot-odds",
+      "opponent_policy_weights": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "paired_deals": 30,
+      "paired_seats": true,
+      "rollout_margin": 1.0,
+      "rollout_margin_per_policy": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "rollout_sims": null,
+      "rollout_sims_per_policy": [
+        null,
+        null,
+        1
+      ],
+      "seed": 69300,
+      "selection_eval_aggregation": "min",
+      "selection_eval_components": [
+        {
+          "avg_utility_model": -2.35,
+          "equity_sims": 8,
+          "hands": 20,
+          "opponent_policy": "tight-turn-river-exact-pot-odds",
+          "paired_deals": 10,
+          "rollout_margin": 1.0,
+          "rollout_sims": null,
+          "utility_stderr_model": 0.6833333333333332
+        },
+        {
+          "avg_utility_model": -0.05,
+          "equity_sims": 4,
+          "hands": 20,
+          "opponent_policy": "tight-range-pot-odds",
+          "paired_deals": 10,
+          "rollout_margin": 1.0,
+          "rollout_sims": null,
+          "utility_stderr_model": 0.3023059524536176
+        },
+        {
+          "avg_utility_model": -0.8,
+          "equity_sims": 4,
+          "hands": 20,
+          "opponent_policy": "tight-safe-rollout-pot-odds",
+          "paired_deals": 10,
+          "rollout_margin": 1.0,
+          "rollout_sims": 1,
+          "utility_stderr_model": 1.083205120618128
+        }
+      ],
+      "selection_eval_min_opponent_policy": "tight-turn-river-exact-pot-odds",
+      "selection_eval_score_model": -2.35,
+      "selection_eval_score_stderr_model": 0.6833333333333332,
+      "utility_stderr_model": 0.4386426876255973
+    },
+    {
+      "avg_utility_model": -0.4,
+      "equity_sims_per_policy": [
+        8,
+        4,
+        4
+      ],
+      "hands": 60,
+      "hands_played": 20,
+      "opponent_policies": [
+        "tight-turn-river-exact-pot-odds",
+        "tight-range-pot-odds",
+        "tight-safe-rollout-pot-odds"
+      ],
+      "opponent_policy": "tight-turn-river-exact-pot-odds,tight-range-pot-odds,tight-safe-rollout-pot-odds",
+      "opponent_policy_weights": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "paired_deals": 30,
+      "paired_seats": true,
+      "rollout_margin": 1.0,
+      "rollout_margin_per_policy": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "rollout_sims": null,
+      "rollout_sims_per_policy": [
+        null,
+        null,
+        1
+      ],
+      "seed": 69300,
+      "selection_eval_aggregation": "min",
+      "selection_eval_components": [
+        {
+          "avg_utility_model": -2.25,
+          "equity_sims": 8,
+          "hands": 20,
+          "opponent_policy": "tight-turn-river-exact-pot-odds",
+          "paired_deals": 10,
+          "rollout_margin": 1.0,
+          "rollout_sims": null,
+          "utility_stderr_model": 1.0626225419530053
+        },
+        {
+          "avg_utility_model": 0.25,
+          "equity_sims": 4,
+          "hands": 20,
+          "opponent_policy": "tight-range-pot-odds",
+          "paired_deals": 10,
+          "rollout_margin": 1.0,
+          "rollout_sims": null,
+          "utility_stderr_model": 0.3745367509040705
+        },
+        {
+          "avg_utility_model": 0.8,
+          "equity_sims": 4,
+          "hands": 20,
+          "opponent_policy": "tight-safe-rollout-pot-odds",
+          "paired_deals": 10,
+          "rollout_margin": 1.0,
+          "rollout_sims": 1,
+          "utility_stderr_model": 1.7146428199482244
+        }
+      ],
+      "selection_eval_min_opponent_policy": "tight-turn-river-exact-pot-odds",
+      "selection_eval_score_model": -2.25,
+      "selection_eval_score_stderr_model": 1.0626225419530053,
+      "utility_stderr_model": 0.6838976892655186
+    },
+    {
+      "avg_utility_model": -0.3,
+      "equity_sims_per_policy": [
+        8,
+        4,
+        4
+      ],
+      "hands": 60,
+      "hands_played": 40,
+      "opponent_policies": [
+        "tight-turn-river-exact-pot-odds",
+        "tight-range-pot-odds",
+        "tight-safe-rollout-pot-odds"
+      ],
+      "opponent_policy": "tight-turn-river-exact-pot-odds,tight-range-pot-odds,tight-safe-rollout-pot-odds",
+      "opponent_policy_weights": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "paired_deals": 30,
+      "paired_seats": true,
+      "rollout_margin": 1.0,
+      "rollout_margin_per_policy": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "rollout_sims": null,
+      "rollout_sims_per_policy": [
+        null,
+        null,
+        1
+      ],
+      "seed": 69300,
+      "selection_eval_aggregation": "min",
+      "selection_eval_components": [
+        {
+          "avg_utility_model": -2.35,
+          "equity_sims": 8,
+          "hands": 20,
+          "opponent_policy": "tight-turn-river-exact-pot-odds",
+          "paired_deals": 10,
+          "rollout_margin": 1.0,
+          "rollout_sims": null,
+          "utility_stderr_model": 1.0436314802968845
+        },
+        {
+          "avg_utility_model": 0.65,
+          "equity_sims": 4,
+          "hands": 20,
+          "opponent_policy": "tight-range-pot-odds",
+          "paired_deals": 10,
+          "rollout_margin": 1.0,
+          "rollout_sims": null,
+          "utility_stderr_model": 0.5965176722724427
+        },
+        {
+          "avg_utility_model": 0.8,
+          "equity_sims": 4,
+          "hands": 20,
+          "opponent_policy": "tight-safe-rollout-pot-odds",
+          "paired_deals": 10,
+          "rollout_margin": 1.0,
+          "rollout_sims": 1,
+          "utility_stderr_model": 1.6282232989093082
+        }
+      ],
+      "selection_eval_min_opponent_policy": "tight-turn-river-exact-pot-odds",
+      "selection_eval_score_model": -2.35,
+      "selection_eval_score_stderr_model": 1.0436314802968845,
+      "utility_stderr_model": 0.6746283842161722
+    }
+  ],
+  "train_avg_utility_by_model_player": {
+    "0": 1.6875,
+    "1": -1.4583333333333333
+  },
+  "train_avg_utility_model": -0.2,
+  "train_utility_stderr_model": 0.7027418828034613,
+  "train_utility_stdev_model": 4.444529913708102,
+  "value_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_actor_critic_rollout_mix_tightrange_s1_40_evalselect_min_exact_range_safe_eval10/holdem_value.pt",
+  "value_loss_coef": 0.5
+}

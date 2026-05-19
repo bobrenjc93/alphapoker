@@ -263,6 +263,10 @@ Current fixed-limit Hold'em gate:
   the initial checkpoint. The best minimum score was `-0.1750` at
   `hands_played=0`; all later checkpoints were worse, with tight exact the
   limiting component each time.
+- A tiny 40-hand pilot using per-gate minimum selection over tight exact e8,
+  tight range e4, and safe rollout s1 selected the 20-hand checkpoint, but the
+  best minimum score was still `-2.2500`; tight exact was again the limiting
+  component in every selection eval.
 - Unweighted `tight-range` feature 1k distillation improved imitation accuracy
   but collapsed raises; it was weaker in match play: `+0.3795 +/- 0.0618` vs
   tight exact e8 over 2000 paired deals, and `+0.0560 +/- 0.0782` vs
