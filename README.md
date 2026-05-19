@@ -164,6 +164,11 @@ in chips/hand with paired seats and standard errors. The timestamp column below
 uses real ISO-8601 git commit times from `git log --date=iso-strict` for the
 commit that first recorded the metric.
 
+![Hold'em exact-gate EV over time](docs/holdem_exact_gate_progress.svg)
+
+The graph plots the comparable tight exact gate over real commit time. The table
+below keeps the broader context for range-aware and safe-rollout probes.
+
 | Recorded at | Commit | Milestone | Main measured gate |
 | --- | --- | --- | --- |
 | 2026-05-18T08:14:14-07:00 | `83a65be` | Bootstrapped exact Kuhn CFR harness. | Exploitability/testing harness only; no Hold'em gate yet. |
