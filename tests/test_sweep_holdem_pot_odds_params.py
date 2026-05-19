@@ -31,6 +31,7 @@ def test_pot_odds_param_sweep_smoke() -> None:
             "2",
             "--model-player",
             "both",
+            "--paired-seats",
             "--configs",
             "0.5,0.7,0.0",
         ]
@@ -39,8 +40,10 @@ def test_pot_odds_param_sweep_smoke() -> None:
 
     assert metrics["model_player"] == "both"
     assert metrics["jobs"] == 1
+    assert metrics["paired_seats"]
     assert metrics["best"]["hands"] == 4
     assert metrics["best"]["bet_threshold"] == 0.5
+    assert metrics["best"]["paired_seats"]
 
 
 def test_hybrid_pot_odds_param_sweep_smoke() -> None:
@@ -70,10 +73,20 @@ def test_hybrid_pot_odds_param_sweep_smoke() -> None:
 
 
 def test_pot_odds_param_sweep_parser_accepts_jobs() -> None:
-    args = build_parser().parse_args(["--jobs", "4", "--policy-family", "hybrid-pot-odds"])
+    args = build_parser().parse_args(
+        ["--jobs", "4", "--policy-family", "hybrid-pot-odds", "--paired-seats"]
+    )
 
     assert args.jobs == 4
     assert args.policy_family == "hybrid-pot-odds"
+    assert args.paired_seats
+
+
+def test_pot_odds_param_sweep_paired_seats_requires_both() -> None:
+    args = build_parser().parse_args(["--paired-seats", "--configs", "0.5,0.7,0.0"])
+
+    with pytest.raises(ValueError, match="paired_seats"):
+        run(args)
 
 
 def test_pot_odds_param_sweep_reuses_deals_across_seats(monkeypatch) -> None:

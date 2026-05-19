@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from alphapoker.holdem import hybrid_pot_odds_equity_policy, pot_odds_equity_policy
-from alphapoker.holdem_evaluation import evaluate_policy_match
+from alphapoker.holdem_evaluation import evaluate_policy_match, evaluate_policy_match_paired_seats
 from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES, make_policy
 from alphapoker.train import write_json
 from alphapoker.train_holdem_policy_gradient import (
@@ -132,8 +132,49 @@ def evaluate_param_config(
     equity_sims: int,
     rollout_sims: int | None,
     model_players: tuple[int, ...],
+    paired_seats: bool = False,
 ) -> dict[str, Any]:
     bet_threshold, raise_threshold, call_margin = config
+    if paired_seats:
+        if model_players != (0, 1):
+            raise ValueError("paired_seats requires model_players=(0, 1)")
+        eval_seed = seed + index * 100_003
+        result = {
+            **evaluate_policy_match_paired_seats(
+                model_policies=tuple(
+                    make_candidate_policy(
+                        policy_family,
+                        random.Random(seed + index * 10_003 + model_player),
+                        equity_sims=equity_sims,
+                        bet_threshold=bet_threshold,
+                        raise_threshold=raise_threshold,
+                        call_margin=call_margin,
+                    )
+                    for model_player in (0, 1)
+                ),
+                opponent_policies=tuple(
+                    make_policy(
+                        opponent_policy,
+                        random.Random(seed + 1_000_003 + index * 10_003 + model_player),
+                        equity_sims,
+                        rollout_sims,
+                    )
+                    for model_player in (0, 1)
+                ),
+                hands=hands,
+                seed=eval_seed,
+            ),
+            "opponent_policy": opponent_policy,
+            "equity_sims": equity_sims,
+            "policy_family": policy_family,
+            "bet_threshold": bet_threshold,
+            "raise_threshold": raise_threshold,
+            "call_margin": call_margin,
+            "paired_seats": True,
+        }
+        result["config_index"] = index
+        return result
+
     seat_metrics = []
     for model_player in model_players:
         model_rng = random.Random(seed + index * 10_003 + model_player)
@@ -168,6 +209,7 @@ def evaluate_param_config(
         seat_metrics.append(metrics)
     result = aggregate_seat_metrics(seat_metrics)
     result["config_index"] = index
+    result["paired_seats"] = False
     return result
 
 
@@ -190,6 +232,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 equity_sims=args.equity_sims,
                 rollout_sims=args.rollout_sims,
                 model_players=model_players,
+                paired_seats=args.paired_seats,
             )
             results.append(result)
             report_progress(args.progress, result)
@@ -207,6 +250,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     equity_sims=args.equity_sims,
                     rollout_sims=args.rollout_sims,
                     model_players=model_players,
+                    paired_seats=args.paired_seats,
                 )
                 for index, config in enumerate(configs)
             ]
@@ -226,6 +270,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "rollout_sims": args.rollout_sims,
         "jobs": args.jobs,
         "model_player": model_player_label(model_players),
+        "paired_seats": args.paired_seats,
         "best": best,
         "results": results,
     }
@@ -256,6 +301,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
     parser.add_argument("--jobs", type=int, default=1)
+    parser.add_argument("--paired-seats", action="store_true")
     parser.add_argument("--progress", action="store_true")
     parser.add_argument(
         "--configs",
