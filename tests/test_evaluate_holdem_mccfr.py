@@ -3,7 +3,7 @@ import pytest
 
 pytest.importorskip("treys")
 
-from alphapoker.evaluate_holdem_mccfr import build_parser, run  # noqa: E402
+from alphapoker.evaluate_holdem_mccfr import build_parser, evaluate_mccfr_shard, run  # noqa: E402
 from alphapoker.holdem_mccfr import HoldemAbstractionCFRTrainer  # noqa: E402
 
 
@@ -57,3 +57,39 @@ def test_evaluate_holdem_mccfr_run_smoke(tmp_path) -> None:
     assert metrics["abstraction"] == "coarse"
     assert metrics["jobs"] == 1
     assert metrics["shard_hands"] == [1]
+
+
+def test_evaluate_holdem_mccfr_reuses_deals_across_seats(tmp_path) -> None:
+    trainer = HoldemAbstractionCFRTrainer(seed=4, traversal="external")
+    trainer.train(1)
+    checkpoint = tmp_path / "holdem_mccfr.json"
+    trainer.save_checkpoint(checkpoint)
+
+    p0_metrics = evaluate_mccfr_shard(
+        checkpoint=checkpoint,
+        hands=0,
+        seed=100,
+        opponent_policy="random",
+        fallback_policy="random",
+        min_strategy_weight=0.0,
+        equity_sims=2,
+        rollout_sims=None,
+        model_player=0,
+        shard_index=3,
+    )
+    p1_metrics = evaluate_mccfr_shard(
+        checkpoint=checkpoint,
+        hands=0,
+        seed=100,
+        opponent_policy="random",
+        fallback_policy="random",
+        min_strategy_weight=0.0,
+        equity_sims=2,
+        rollout_sims=None,
+        model_player=1,
+        shard_index=3,
+    )
+
+    assert p0_metrics["seed"] == p1_metrics["seed"]
+    assert p0_metrics["model_player"] == 0
+    assert p1_metrics["model_player"] == 1

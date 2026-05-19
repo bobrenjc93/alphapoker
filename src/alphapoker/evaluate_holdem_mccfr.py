@@ -53,7 +53,7 @@ def evaluate_mccfr_shard(
     shard_index: int,
 ) -> dict[str, Any]:
     trainer = HoldemAbstractionCFRTrainer.load_checkpoint(checkpoint)
-    eval_seed = seed + shard_index * 1_000_003 + model_player
+    eval_seed = seed + shard_index * 1_000_003
     model_rng = random.Random(eval_seed)
     fallback_rng = random.Random(eval_seed + 1)
     opponent_rng = random.Random(eval_seed + 2)
