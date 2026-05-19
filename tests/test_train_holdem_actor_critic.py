@@ -22,6 +22,10 @@ def test_actor_critic_parser_accepts_weighted_mix() -> None:
             "0.4,0.6",
             "--value-loss-coef",
             "0.25",
+            "--feature-equity-sims",
+            "4",
+            "--feature-equity-mode",
+            "sampled",
             "--out",
             "out",
         ]
@@ -32,6 +36,8 @@ def test_actor_critic_parser_accepts_weighted_mix() -> None:
     assert args.opponent_policies == ("random", "pot-odds")
     assert args.opponent_policy_weights == (0.1, 0.9)
     assert args.value_loss_coef == 0.25
+    assert args.feature_equity_sims == 4
+    assert args.feature_equity_mode == "sampled"
 
 
 def test_actor_critic_parser_accepts_evaluation_options() -> None:
@@ -123,3 +129,47 @@ def test_actor_critic_preserves_exact_feature_checkpoint(tmp_path) -> None:
     assert checkpoint["feature_equity_mode"] == "turn-river-exact"
     assert metrics["feature_equity_sims"] == 2
     assert metrics["feature_equity_mode"] == "turn-river-exact"
+
+
+def test_actor_critic_can_override_checkpoint_feature_mode(tmp_path) -> None:
+    init_checkpoint = tmp_path / "init_policy.pt"
+    out_dir = tmp_path / "out"
+    torch.save(
+        {
+            "model_state_dict": HoldemPolicyNet(input_dim=HOLDEM_FEATURE_DIM + 1).state_dict(),
+            "canonical_actions": ["bet", "call", "check", "fold", "raise"],
+            "input_dim": HOLDEM_FEATURE_DIM + 1,
+            "feature_equity_sims": 2,
+            "feature_equity_mode": "turn-river-exact",
+            "feature_equity_checkpoint": None,
+        },
+        init_checkpoint,
+    )
+
+    metrics = run(
+        build_parser().parse_args(
+            [
+                "--hands",
+                "2",
+                "--batch-hands",
+                "1",
+                "--opponent-policy",
+                "random",
+                "--init-checkpoint",
+                str(init_checkpoint),
+                "--feature-equity-sims",
+                "4",
+                "--feature-equity-mode",
+                "sampled",
+                "--out",
+                str(out_dir),
+            ]
+        )
+    )
+    checkpoint = torch.load(out_dir / "holdem_policy.pt", map_location="cpu", weights_only=False)
+
+    assert checkpoint["input_dim"] == HOLDEM_FEATURE_DIM + 1
+    assert checkpoint["feature_equity_sims"] == 4
+    assert checkpoint["feature_equity_mode"] == "sampled"
+    assert metrics["feature_equity_sims"] == 4
+    assert metrics["feature_equity_mode"] == "sampled"

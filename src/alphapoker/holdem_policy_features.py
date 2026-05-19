@@ -20,6 +20,8 @@ from alphapoker.holdem_equity_feature import (
 )
 from alphapoker.holdem_features import adapt_holdem_features, encode_holdem_state
 
+POLICY_FEATURE_EQUITY_MODES = ("random", "sampled", "turn-river-exact")
+
 
 @dataclass
 class HoldemPolicyFeatureEncoder:
@@ -38,6 +40,8 @@ class HoldemPolicyFeatureEncoder:
         features = encode_holdem_state(state)
         if self.feature_equity_sims is not None:
             mode = self.feature_equity_mode or "random"
+            if mode not in POLICY_FEATURE_EQUITY_MODES:
+                raise ValueError(f"Unknown feature equity mode: {mode}")
             player = state.current_player()
             if mode == "random":
                 feature_rng = self.feature_rng
@@ -62,8 +66,6 @@ class HoldemPolicyFeatureEncoder:
                     state.visible_board(),
                     simulations=self.feature_equity_sims,
                 )
-            else:
-                raise ValueError(f"Unknown feature equity mode: {mode}")
             features.append(equity)
         elif self.feature_equity_fn is not None:
             features.append(self.feature_equity_fn(state))
@@ -113,5 +115,53 @@ def policy_feature_encoder_from_checkpoint_data(
         feature_equity_mode=feature_equity_mode,
         feature_equity_checkpoint=resolved_feature_equity_checkpoint,
         feature_equity_fn=feature_equity_fn,
+        feature_rng=random.Random(feature_seed),
+    )
+
+
+def policy_feature_encoder_for_training(
+    *,
+    base_input_dim: int,
+    checkpoint: dict[str, Any] | None = None,
+    checkpoint_path: Path | None = None,
+    feature_seed: int = 0,
+    feature_equity_sims: int | None = None,
+    feature_equity_mode: str | None = None,
+) -> HoldemPolicyFeatureEncoder:
+    if feature_equity_mode is not None and feature_equity_mode not in POLICY_FEATURE_EQUITY_MODES:
+        raise ValueError(f"Unknown feature equity mode: {feature_equity_mode}")
+
+    if checkpoint is None:
+        if feature_equity_mode is not None and feature_equity_sims is None:
+            raise ValueError("--feature-equity-mode requires --feature-equity-sims")
+        input_dim = base_input_dim + (1 if feature_equity_sims is not None else 0)
+        return HoldemPolicyFeatureEncoder(
+            input_dim=input_dim,
+            feature_equity_sims=feature_equity_sims,
+            feature_equity_mode=feature_equity_mode,
+            feature_rng=random.Random(feature_seed),
+        )
+
+    encoder = policy_feature_encoder_from_checkpoint_data(
+        checkpoint,
+        checkpoint_path=checkpoint_path,
+        feature_seed=feature_seed,
+    )
+    if feature_equity_sims is None and feature_equity_mode is None:
+        return encoder
+
+    override_sims = (
+        feature_equity_sims
+        if feature_equity_sims is not None
+        else encoder.feature_equity_sims
+    )
+    if override_sims is None:
+        raise ValueError("feature equity override requires --feature-equity-sims")
+    if encoder.input_dim <= base_input_dim:
+        raise ValueError("init checkpoint has no equity feature input to override")
+    return HoldemPolicyFeatureEncoder(
+        input_dim=encoder.input_dim,
+        feature_equity_sims=override_sims,
+        feature_equity_mode=feature_equity_mode or encoder.feature_equity_mode or "random",
         feature_rng=random.Random(feature_seed),
     )

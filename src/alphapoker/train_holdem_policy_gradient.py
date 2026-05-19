@@ -18,7 +18,8 @@ from alphapoker.holdem_features import (
 )
 from alphapoker.holdem_policy_features import (
     HoldemPolicyFeatureEncoder,
-    policy_feature_encoder_from_checkpoint_data,
+    POLICY_FEATURE_EQUITY_MODES,
+    policy_feature_encoder_for_training,
 )
 from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES, make_policy
 from alphapoker.train import write_json
@@ -140,17 +141,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if model_player_weights is not None and len(model_player_weights) != len(model_players):
         raise ValueError("model player weights must match model players")
     init_checkpoint_data = None
+    base_input_dim = len(encode_holdem_state(deal_fixed_limit_holdem(random.Random(args.seed + 3))))
     if args.init_checkpoint is not None:
         init_checkpoint_data = torch.load(args.init_checkpoint, map_location="cpu", weights_only=False)
-        feature_encoder = policy_feature_encoder_from_checkpoint_data(
-            init_checkpoint_data,
-            checkpoint_path=args.init_checkpoint,
-            feature_seed=args.seed + 5,
-        )
-        input_dim = feature_encoder.input_dim
-    else:
-        input_dim = len(encode_holdem_state(deal_fixed_limit_holdem(random.Random(args.seed + 3))))
-        feature_encoder = HoldemPolicyFeatureEncoder.base(input_dim)
+    feature_encoder = policy_feature_encoder_for_training(
+        base_input_dim=base_input_dim,
+        checkpoint=init_checkpoint_data,
+        checkpoint_path=args.init_checkpoint,
+        feature_seed=args.seed + 5,
+        feature_equity_sims=args.feature_equity_sims,
+        feature_equity_mode=args.feature_equity_mode,
+    )
+    input_dim = feature_encoder.input_dim
     deal_rng = random.Random(args.seed + 1)
     opponent_selector_rng = random.Random(args.seed + 2)
     model_player_selector_rng = random.Random(args.seed + 4)
@@ -290,6 +292,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--entropy-coef", type=float, default=0.01)
     parser.add_argument("--init-checkpoint", type=Path)
+    parser.add_argument("--feature-equity-sims", type=int)
+    parser.add_argument("--feature-equity-mode", choices=POLICY_FEATURE_EQUITY_MODES)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--eval-hands", type=int, default=0)
