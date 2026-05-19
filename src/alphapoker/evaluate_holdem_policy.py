@@ -21,7 +21,11 @@ from alphapoker.holdem import (
     hybrid_pot_odds_equity_policy,
     pot_odds_equity_policy,
 )
-from alphapoker.holdem_evaluation import aggregate_policy_match_shards, evaluate_policy_match
+from alphapoker.holdem_evaluation import (
+    aggregate_policy_match_shards,
+    evaluate_policy_match,
+    evaluate_policy_match_paired_seats,
+)
 from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES, make_policy
 from alphapoker.train import write_json
 
@@ -139,6 +143,57 @@ def evaluate_policy_shard(
     return metrics
 
 
+def evaluate_policy_paired_shard(
+    *,
+    policy: str,
+    opponent_policy: str,
+    hands: int,
+    seed: int,
+    equity_sims: int,
+    rollout_sims: int | None,
+    shard_index: int,
+    policy_thresholds: tuple[float, float, float] | None = None,
+) -> dict[str, Any]:
+    shard_seed = seed + shard_index * 1_000_003
+    model_policies = tuple(
+        make_evaluation_policy(
+            policy,
+            random.Random(shard_seed + 10 + model_player),
+            equity_sims=equity_sims,
+            rollout_sims=rollout_sims,
+            thresholds=policy_thresholds,
+        )
+        for model_player in (0, 1)
+    )
+    opponent_policies = tuple(
+        make_policy(
+            opponent_policy,
+            random.Random(shard_seed + 20 + model_player),
+            equity_sims,
+            rollout_sims,
+        )
+        for model_player in (0, 1)
+    )
+    metrics = {
+        "policy": policy,
+        **evaluate_policy_match_paired_seats(
+            model_policies=model_policies,
+            opponent_policies=opponent_policies,
+            hands=hands,
+            seed=shard_seed,
+        ),
+        "opponent_policy": opponent_policy,
+        "equity_sims": equity_sims,
+        "rollout_sims": rollout_sims,
+        "shard_index": shard_index,
+    }
+    if policy_thresholds is not None:
+        metrics["bet_threshold"] = policy_thresholds[0]
+        metrics["raise_threshold"] = policy_thresholds[1]
+        metrics["call_margin"] = policy_thresholds[2]
+    return metrics
+
+
 def report_progress(enabled: bool, result: dict[str, Any]) -> None:
     if not enabled:
         return
@@ -163,6 +218,52 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     model_players = normalize_model_players(args.model_player)
     shard_hands = split_hands(args.hands, args.jobs)
+    if args.paired_seats and model_players != (0, 1):
+        raise ValueError("--paired-seats requires --model-player both")
+    if args.paired_seats:
+        shard_kwargs = [
+            {
+                "policy": args.policy,
+                "opponent_policy": args.opponent_policy,
+                "hands": hands,
+                "seed": args.seed,
+                "equity_sims": args.equity_sims,
+                "rollout_sims": args.rollout_sims,
+                "shard_index": shard_index,
+                "policy_thresholds": policy_thresholds,
+            }
+            for shard_index, hands in enumerate(shard_hands)
+        ]
+        if args.jobs == 1:
+            shard_metrics = []
+            for kwargs in shard_kwargs:
+                result = evaluate_policy_paired_shard(**kwargs)
+                shard_metrics.append(result)
+                report_progress(args.progress, result)
+        else:
+            with ProcessPoolExecutor(max_workers=args.jobs) as executor:
+                futures = [
+                    executor.submit(evaluate_policy_paired_shard, **kwargs)
+                    for kwargs in shard_kwargs
+                ]
+                shard_metrics = []
+                for future in as_completed(futures):
+                    result = future.result()
+                    shard_metrics.append(result)
+                    report_progress(args.progress, result)
+            shard_metrics.sort(key=lambda item: item["shard_index"])
+        metrics = aggregate_policy_match_shards(shard_metrics)
+        metrics["jobs"] = args.jobs
+        metrics["shard_hands"] = shard_hands
+        metrics["paired_seats"] = True
+        if policy_thresholds is not None:
+            metrics["bet_threshold"] = policy_thresholds[0]
+            metrics["raise_threshold"] = policy_thresholds[1]
+            metrics["call_margin"] = policy_thresholds[2]
+        if args.out is not None:
+            write_json(args.out, metrics)
+        return metrics
+
     shard_metrics_by_player: dict[int, list[dict[str, Any]]] = defaultdict(list)
     shard_kwargs = [
         {
@@ -203,6 +304,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     metrics: dict[str, Any] = aggregate_model_player_metrics(seat_metrics)
     metrics["jobs"] = args.jobs
     metrics["shard_hands"] = shard_hands
+    metrics["paired_seats"] = False
     if policy_thresholds is not None:
         metrics["bet_threshold"] = policy_thresholds[0]
         metrics["raise_threshold"] = policy_thresholds[1]
@@ -225,6 +327,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--call-margin", type=float)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
     parser.add_argument("--jobs", type=int, default=1)
+    parser.add_argument("--paired-seats", action="store_true")
     parser.add_argument("--progress", action="store_true")
     parser.add_argument("--out", type=Path)
     return parser

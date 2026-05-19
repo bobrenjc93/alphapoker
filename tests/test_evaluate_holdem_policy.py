@@ -57,6 +57,7 @@ def test_evaluate_holdem_policy_parser_accepts_hybrid_and_both() -> None:
             "0.78",
             "--call-margin",
             "0.05",
+            "--paired-seats",
             "--progress",
         ]
     )
@@ -68,6 +69,7 @@ def test_evaluate_holdem_policy_parser_accepts_hybrid_and_both() -> None:
     assert args.bet_threshold == 0.58
     assert args.raise_threshold == 0.78
     assert args.call_margin == 0.05
+    assert args.paired_seats
     assert args.progress
 
 
@@ -110,4 +112,41 @@ def test_evaluate_holdem_policy_run_smoke(tmp_path) -> None:
     assert metrics["bet_threshold"] == 0.58
     assert metrics["raise_threshold"] == 0.78
     assert metrics["call_margin"] == 0.05
+    assert len(metrics["seat_metrics"]) == 2
+
+
+def test_evaluate_holdem_policy_run_paired_seats_smoke(tmp_path) -> None:
+    out = tmp_path / "metrics.json"
+    metrics = run(
+        build_parser().parse_args(
+            [
+                "--policy",
+                "pot-odds",
+                "--opponent-policy",
+                "tuned-pot-odds",
+                "--hands",
+                "2",
+                "--seed",
+                "4",
+                "--equity-sims",
+                "2",
+                "--model-player",
+                "both",
+                "--paired-seats",
+                "--jobs",
+                "2",
+                "--out",
+                str(out),
+            ]
+        )
+    )
+
+    assert out.exists()
+    assert metrics["model_player"] == "both"
+    assert metrics["hands"] == 4
+    assert metrics["hands_per_model_player"] == 2
+    assert metrics["paired_deals"] == 2
+    assert metrics["paired_seats"]
+    assert metrics["jobs"] == 2
+    assert metrics["shard_hands"] == [1, 1]
     assert len(metrics["seat_metrics"]) == 2
