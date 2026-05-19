@@ -136,6 +136,8 @@ def evaluate_policy_shard(
     equity_sims: int,
     rollout_sims: int | None,
     rollout_margin: float,
+    opponent_equity_sims: int,
+    opponent_rollout_sims: int | None,
     model_player: int,
     shard_index: int,
     policy_thresholds: tuple[float, float, float] | None = None,
@@ -157,8 +159,8 @@ def evaluate_policy_shard(
             opponent_policy=make_policy(
                 opponent_policy,
                 opponent_rng,
-                equity_sims,
-                rollout_sims,
+                opponent_equity_sims,
+                opponent_rollout_sims,
                 rollout_margin,
             ),
             hands=hands,
@@ -168,6 +170,8 @@ def evaluate_policy_shard(
         "opponent_policy": opponent_policy,
         "equity_sims": equity_sims,
         "rollout_sims": rollout_sims,
+        "opponent_equity_sims": opponent_equity_sims,
+        "opponent_rollout_sims": opponent_rollout_sims,
         "rollout_margin": rollout_margin,
         "shard_index": shard_index,
     }
@@ -187,6 +191,8 @@ def evaluate_policy_paired_shard(
     equity_sims: int,
     rollout_sims: int | None,
     rollout_margin: float,
+    opponent_equity_sims: int,
+    opponent_rollout_sims: int | None,
     shard_index: int,
     policy_thresholds: tuple[float, float, float] | None = None,
 ) -> dict[str, Any]:
@@ -206,8 +212,8 @@ def evaluate_policy_paired_shard(
         make_policy(
             opponent_policy,
             random.Random(shard_seed + 20 + model_player),
-            equity_sims,
-            rollout_sims,
+            opponent_equity_sims,
+            opponent_rollout_sims,
             rollout_margin,
         )
         for model_player in (0, 1)
@@ -223,6 +229,8 @@ def evaluate_policy_paired_shard(
         "opponent_policy": opponent_policy,
         "equity_sims": equity_sims,
         "rollout_sims": rollout_sims,
+        "opponent_equity_sims": opponent_equity_sims,
+        "opponent_rollout_sims": opponent_rollout_sims,
         "rollout_margin": rollout_margin,
         "shard_index": shard_index,
     }
@@ -257,6 +265,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     model_players = normalize_model_players(args.model_player)
     shard_hands = split_hands(args.hands, args.jobs)
+    opponent_equity_sims = (
+        args.equity_sims if args.opponent_equity_sims is None else args.opponent_equity_sims
+    )
+    opponent_rollout_sims = (
+        args.rollout_sims if args.opponent_rollout_sims is None else args.opponent_rollout_sims
+    )
     if args.paired_seats and model_players != (0, 1):
         raise ValueError("--paired-seats requires --model-player both")
     if args.paired_seats:
@@ -269,6 +283,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "equity_sims": args.equity_sims,
                 "rollout_sims": args.rollout_sims,
                 "rollout_margin": args.rollout_margin,
+                "opponent_equity_sims": opponent_equity_sims,
+                "opponent_rollout_sims": opponent_rollout_sims,
                 "shard_index": shard_index,
                 "policy_thresholds": policy_thresholds,
             }
@@ -296,6 +312,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         metrics["jobs"] = args.jobs
         metrics["shard_hands"] = shard_hands
         metrics["paired_seats"] = True
+        metrics["opponent_equity_sims"] = opponent_equity_sims
+        metrics["opponent_rollout_sims"] = opponent_rollout_sims
         if policy_thresholds is not None:
             metrics["bet_threshold"] = policy_thresholds[0]
             metrics["raise_threshold"] = policy_thresholds[1]
@@ -315,6 +333,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "equity_sims": args.equity_sims,
             "rollout_sims": args.rollout_sims,
             "rollout_margin": args.rollout_margin,
+            "opponent_equity_sims": opponent_equity_sims,
+            "opponent_rollout_sims": opponent_rollout_sims,
             "model_player": model_player,
             "shard_index": shard_index,
             "policy_thresholds": policy_thresholds,
@@ -347,6 +367,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     metrics["jobs"] = args.jobs
     metrics["shard_hands"] = shard_hands
     metrics["paired_seats"] = False
+    metrics["opponent_equity_sims"] = opponent_equity_sims
+    metrics["opponent_rollout_sims"] = opponent_rollout_sims
     if policy_thresholds is not None:
         metrics["bet_threshold"] = policy_thresholds[0]
         metrics["raise_threshold"] = policy_thresholds[1]
@@ -366,6 +388,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--equity-sims", type=int, default=128)
     parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--rollout-margin", type=float, default=1.0)
+    parser.add_argument("--opponent-equity-sims", type=int)
+    parser.add_argument("--opponent-rollout-sims", type=int)
     parser.add_argument("--bet-threshold", type=float)
     parser.add_argument("--raise-threshold", type=float)
     parser.add_argument("--call-margin", type=float)
