@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import random
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
@@ -42,6 +43,28 @@ def _shard_hands(hands: int, jobs: int) -> list[int]:
     base = hands // shards
     extra = hands % shards
     return [base + (1 if index < extra else 0) for index in range(shards)]
+
+
+def _split_train_validation_indices(
+    example_count: int,
+    validation_fraction: float,
+    seed: int,
+) -> tuple[list[int], list[int]]:
+    if not 0.0 <= validation_fraction < 1.0:
+        raise ValueError("validation_fraction must be in [0.0, 1.0)")
+    indices = list(range(example_count))
+    if validation_fraction == 0.0 or example_count <= 1:
+        return indices, []
+
+    validation_count = max(1, round(example_count * validation_fraction))
+    validation_count = min(validation_count, example_count - 1)
+    shuffled = indices.copy()
+    random.Random(seed).shuffle(shuffled)
+    validation_indices = set(shuffled[:validation_count])
+    return (
+        [index for index in indices if index not in validation_indices],
+        [index for index in indices if index in validation_indices],
+    )
 
 
 def generate_policy_examples_shard(
@@ -186,37 +209,84 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     features = torch.tensor([example.features for example in examples], dtype=torch.float32)
     targets = torch.tensor([example.action_index for example in examples], dtype=torch.long)
     masks = torch.tensor([example.legal_mask for example in examples], dtype=torch.bool)
+    validation_fraction = getattr(args, "validation_fraction", 0.0)
+    train_indices, validation_indices = _split_train_validation_indices(
+        len(examples),
+        validation_fraction,
+        args.seed,
+    )
+    train_features = features[train_indices]
+    train_targets = targets[train_indices]
+    train_masks = masks[train_indices]
+    validation_features = features[validation_indices] if validation_indices else None
+    validation_targets = targets[validation_indices] if validation_indices else None
+    validation_masks = masks[validation_indices] if validation_indices else None
 
     torch.manual_seed(0)
     model = HoldemPolicyNet(input_dim=features.shape[1])
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     class_weighting = getattr(args, "class_weighting", "none")
     class_weights = class_weights_from_targets(
-        targets,
+        train_targets,
         len(HOLDEM_CANONICAL_ACTIONS),
         class_weighting,
     )
 
+    def loss_for(batch_features, batch_targets, batch_masks):
+        logits = model(batch_features)
+        masked_logits = logits.masked_fill(~batch_masks, -1e9)
+        return F.cross_entropy(masked_logits, batch_targets, weight=class_weights)
+
     best_loss = float("inf")
+    best_epoch = 0
     best_state = copy.deepcopy(model.state_dict())
     final_loss = 0.0
-    for _ in range(args.epochs):
-        logits = model(features)
-        masked_logits = logits.masked_fill(~masks, -1e9)
-        loss = F.cross_entropy(masked_logits, targets, weight=class_weights)
+    final_validation_loss: float | None = None
+    best_train_loss = float("inf")
+    best_validation_loss: float | None = None
+    for epoch in range(args.epochs):
+        loss = loss_for(train_features, train_targets, train_masks)
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()
-        final_loss = float(loss.detach().cpu())
-        if final_loss < best_loss:
-            best_loss = final_loss
+
+        with torch.no_grad():
+            train_loss = loss_for(train_features, train_targets, train_masks)
+            final_loss = float(train_loss.detach().cpu())
+            validation_loss_value = None
+            selection_loss = final_loss
+            if validation_features is not None:
+                validation_loss = loss_for(
+                    validation_features,
+                    validation_targets,
+                    validation_masks,
+                )
+                validation_loss_value = float(validation_loss.detach().cpu())
+                final_validation_loss = validation_loss_value
+                selection_loss = validation_loss_value
+
+        if selection_loss < best_loss:
+            best_loss = selection_loss
+            best_epoch = epoch + 1
+            best_train_loss = final_loss
+            best_validation_loss = validation_loss_value
             best_state = copy.deepcopy(model.state_dict())
 
     model.load_state_dict(best_state)
     with torch.no_grad():
         best_logits = model(features).masked_fill(~masks, -1e9)
         predictions = best_logits.argmax(dim=1)
-        train_accuracy = float((predictions == targets).float().mean().cpu())
+        overall_accuracy = float((predictions == targets).float().mean().cpu())
+        train_logits = model(train_features).masked_fill(~train_masks, -1e9)
+        train_predictions = train_logits.argmax(dim=1)
+        train_accuracy = float((train_predictions == train_targets).float().mean().cpu())
+        validation_accuracy = None
+        if validation_features is not None:
+            validation_logits = model(validation_features).masked_fill(~validation_masks, -1e9)
+            validation_predictions = validation_logits.argmax(dim=1)
+            validation_accuracy = float(
+                (validation_predictions == validation_targets).float().mean().cpu()
+            )
     target_action_counts = {
         action: int((targets == index).sum().item())
         for index, action in enumerate(HOLDEM_CANONICAL_ACTIONS)
@@ -267,9 +337,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "epochs": args.epochs,
         "lr": args.lr,
         "class_weighting": class_weighting,
+        "validation_fraction": validation_fraction,
+        "train_examples": len(train_indices),
+        "validation_examples": len(validation_indices),
+        "selection_metric": "validation_loss" if validation_indices else "train_loss",
+        "best_epoch": best_epoch,
         "final_loss": final_loss,
+        "final_train_loss": final_loss,
+        "final_validation_loss": final_validation_loss,
         "best_loss": best_loss,
+        "best_train_loss": best_train_loss,
+        "best_validation_loss": best_validation_loss,
         "train_accuracy": train_accuracy,
+        "validation_accuracy": validation_accuracy,
+        "overall_accuracy": overall_accuracy,
         "target_action_counts": target_action_counts,
         "predicted_action_counts": predicted_action_counts,
         "checkpoint": str(checkpoint),
@@ -308,6 +389,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--lr", type=float, default=3e-3)
     parser.add_argument("--class-weighting", choices=["none", "balanced"], default="none")
+    parser.add_argument("--validation-fraction", type=float, default=0.0)
     parser.add_argument("--jobs", type=int, default=1)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--examples-in", type=Path)
