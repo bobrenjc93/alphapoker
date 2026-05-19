@@ -15,6 +15,7 @@ from alphapoker.holdem import (  # noqa: E402
     estimate_holdem_equity,
     evaluate_holdem_hand,
     exact_river_holdem_equity,
+    exact_turn_holdem_equity,
     hybrid_pot_odds_equity_policy,
     play_fixed_limit_holdem_hand,
     pot_odds_call_threshold,
@@ -26,6 +27,7 @@ from alphapoker.holdem import (  # noqa: E402
     river_exact_pot_odds_equity_policy,
     sample_holdem_belief_state,
     sampled_holdem_equity,
+    turn_river_exact_pot_odds_equity_policy,
 )
 from alphapoker.kuhn import BET, CALL, CHECK, FOLD  # noqa: E402
 from alphapoker.leduc import RAISE  # noqa: E402
@@ -175,6 +177,20 @@ def test_exact_river_holdem_equity_validates_board_complete() -> None:
         exact_river_holdem_equity(("As", "Ks"), ("Qs", "Js", "Ts", "2c"))
 
 
+def test_exact_turn_holdem_equity_scores_unbeatable_hand() -> None:
+    equity = exact_turn_holdem_equity(
+        ("As", "Ks"),
+        ("Qs", "Js", "Ts", "2c"),
+    )
+
+    assert equity == 1.0
+
+
+def test_exact_turn_holdem_equity_validates_turn_board() -> None:
+    with pytest.raises(ValueError, match="four board"):
+        exact_turn_holdem_equity(("As", "Ks"), ("Qs", "Js", "Ts"))
+
+
 def test_preflop_holdem_equity_heuristic_orders_hands() -> None:
     premium = preflop_holdem_equity_heuristic(("As", "Ad"))
     suited_broadway = preflop_holdem_equity_heuristic(("As", "Ks"))
@@ -226,6 +242,20 @@ def test_river_exact_pot_odds_equity_policy_selects_legal_actions() -> None:
     policy = river_exact_pot_odds_equity_policy(simulations=16)
     action = policy(state)
 
+    assert action in state.legal_actions()
+
+
+def test_turn_river_exact_pot_odds_equity_policy_selects_legal_turn_action() -> None:
+    state = FixedLimitHoldemState.initial(
+        (("As", "Ks"), ("Ah", "Ad")),
+        ("Qs", "Js", "Ts", "2c", "3d"),
+    )
+    state = state.apply(CALL)
+    state = state.apply(CHECK).apply(CHECK)
+    policy = turn_river_exact_pot_odds_equity_policy(simulations=4)
+    action = policy(state)
+
+    assert state.visible_board() == ("Qs", "Js", "Ts", "2c")
     assert action in state.legal_actions()
 
 

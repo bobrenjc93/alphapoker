@@ -18,6 +18,8 @@ from alphapoker.kuhn import BET, CALL, CHECK, FOLD
 from alphapoker.leduc import RAISE
 from treys import Card, Evaluator
 
+_HOLDEM_EVALUATOR = Evaluator()
+
 
 @dataclass(frozen=True)
 class HoldemHandResult:
@@ -26,8 +28,20 @@ class HoldemHandResult:
     class_name: str
 
 
+@lru_cache(maxsize=52)
+def _holdem_card_int(card: str) -> int:
+    return Card.new(card)
+
+
 def parse_cards(cards: list[str] | tuple[str, ...]) -> list[int]:
-    return [Card.new(card) for card in cards]
+    return [_holdem_card_int(card) for card in cards]
+
+
+def _evaluate_holdem_score(
+    private_cards: tuple[str, ...],
+    board_cards: tuple[str, ...],
+) -> int:
+    return _HOLDEM_EVALUATOR.evaluate(parse_cards(list(board_cards)), parse_cards(list(private_cards)))
 
 
 def evaluate_holdem_hand(
@@ -58,13 +72,12 @@ def _evaluate_holdem_hand_cached(
     private_cards: tuple[str, ...],
     board_cards: tuple[str, ...],
 ) -> HoldemHandResult:
-    evaluator = Evaluator()
-    score = evaluator.evaluate(parse_cards(list(board_cards)), parse_cards(list(private_cards)))
-    rank_class = evaluator.get_rank_class(score)
+    score = _evaluate_holdem_score(private_cards, board_cards)
+    rank_class = _HOLDEM_EVALUATOR.get_rank_class(score)
     return HoldemHandResult(
         score=score,
         rank_class=rank_class,
-        class_name=evaluator.class_to_string(rank_class),
+        class_name=_HOLDEM_EVALUATOR.class_to_string(rank_class),
     )
 
 
@@ -440,13 +453,14 @@ def _exact_river_holdem_equity_cached(
 ) -> float:
     known = set(private_cards) | set(board_cards)
     deck = [card for card in STANDARD_HOLDEM_DECK if card not in known]
+    private_score = _evaluate_holdem_score(private_cards, board_cards)
     wins = 0.0
     total = 0
     for opponent_private in combinations(deck, 2):
-        comparison = compare_holdem_hands(private_cards, opponent_private, board_cards)
-        if comparison == 1:
+        opponent_score = _evaluate_holdem_score(opponent_private, board_cards)
+        if private_score < opponent_score:
             wins += 1.0
-        elif comparison == 0:
+        elif private_score == opponent_score:
             wins += 0.5
         total += 1
     return wins / total if total else 0.0
@@ -469,6 +483,53 @@ def exact_river_holdem_equity(
     return _exact_river_holdem_equity_cached(
         (sorted_private[0], sorted_private[1]),
         (sorted_board[0], sorted_board[1], sorted_board[2], sorted_board[3], sorted_board[4]),
+    )
+
+
+@lru_cache(maxsize=500_000)
+def _exact_turn_holdem_equity_cached(
+    private_cards: tuple[str, str],
+    board_cards: tuple[str, str, str, str],
+) -> float:
+    known = set(private_cards) | set(board_cards)
+    deck = [card for card in STANDARD_HOLDEM_DECK if card not in known]
+    private_scores = {
+        river: _evaluate_holdem_score(private_cards, (*board_cards, river)) for river in deck
+    }
+    wins = 0.0
+    total = 0
+    for opponent_private in combinations(deck, 2):
+        opponent_known = set(opponent_private)
+        for river in deck:
+            if river in opponent_known:
+                continue
+            opponent_score = _evaluate_holdem_score(opponent_private, (*board_cards, river))
+            private_score = private_scores[river]
+            if private_score < opponent_score:
+                wins += 1.0
+            elif private_score == opponent_score:
+                wins += 0.5
+            total += 1
+    return wins / total if total else 0.0
+
+
+def exact_turn_holdem_equity(
+    private_cards: tuple[str, str],
+    board_cards: tuple[str, ...],
+) -> float:
+    """Return exact hand equity against all opponent turn holdings and rivers."""
+
+    sorted_private = tuple(sorted(private_cards))
+    sorted_board = tuple(sorted(board_cards))
+    if len(sorted_private) != 2:
+        raise ValueError("exact turn equity requires exactly two private cards")
+    if len(sorted_board) != 4:
+        raise ValueError("exact turn equity requires four board cards")
+    if len(set(sorted_private) | set(sorted_board)) != 6:
+        raise ValueError("Known cards must be unique")
+    return _exact_turn_holdem_equity_cached(
+        (sorted_private[0], sorted_private[1]),
+        (sorted_board[0], sorted_board[1], sorted_board[2], sorted_board[3]),
     )
 
 
@@ -606,6 +667,41 @@ def river_exact_pot_odds_equity_policy(
                 simulations=simulations,
             )
         )
+        legal = state.legal_actions()
+        if state.outstanding_call_amount() > 0:
+            if RAISE in legal and equity >= raise_threshold:
+                return RAISE
+            if equity >= pot_odds_call_threshold(state, margin=call_margin):
+                return CALL
+            return FOLD
+
+        if BET in legal and equity >= bet_threshold:
+            return BET
+        return CHECK
+
+    return select_action
+
+
+def turn_river_exact_pot_odds_equity_policy(
+    *,
+    simulations: int = 128,
+    bet_threshold: float = 0.54,
+    raise_threshold: float = 0.76,
+    call_margin: float = 0.05,
+) -> HoldemPolicy:
+    def select_action(state: FixedLimitHoldemState) -> str:
+        player = state.current_player()
+        visible_board = state.visible_board()
+        if len(visible_board) == 5:
+            equity = exact_river_holdem_equity(state.private_cards[player], visible_board)
+        elif len(visible_board) == 4:
+            equity = exact_turn_holdem_equity(state.private_cards[player], visible_board)
+        else:
+            equity = sampled_holdem_equity(
+                state.private_cards[player],
+                visible_board,
+                simulations=simulations,
+            )
         legal = state.legal_actions()
         if state.outstanding_call_amount() > 0:
             if RAISE in legal and equity >= raise_threshold:
