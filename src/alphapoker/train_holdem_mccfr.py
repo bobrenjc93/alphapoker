@@ -23,14 +23,18 @@ def normalize_model_players(value: int | str | tuple[int, ...]) -> tuple[int, ..
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    trainer = HoldemAbstractionCFRTrainer(
-        seed=args.seed,
-        cfr_plus=not args.vanilla_cfr,
-        linear_averaging=not args.uniform_averaging,
-        max_bets_per_round=args.max_bets_per_round,
-        traversal=args.traversal,
-        abstraction=args.abstraction,
-    )
+    if args.checkpoint_in is None:
+        trainer = HoldemAbstractionCFRTrainer(
+            seed=args.seed,
+            cfr_plus=not args.vanilla_cfr,
+            linear_averaging=not args.uniform_averaging,
+            max_bets_per_round=args.max_bets_per_round,
+            traversal=args.traversal,
+            abstraction=args.abstraction,
+        )
+    else:
+        trainer = HoldemAbstractionCFRTrainer.load_checkpoint(args.checkpoint_in)
+    start_iterations = trainer.iterations
     result = trainer.train(args.iterations)
 
     out_dir = Path(args.out)
@@ -40,18 +44,22 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     metrics: dict[str, Any] = {
         "iterations": result.iterations,
+        "start_iterations": start_iterations,
+        "train_iterations": args.iterations,
         "infosets": result.infosets,
         "sampled_game_value_p0": result.sampled_game_value_p0,
         "checkpoint": str(checkpoint),
-        "seed": args.seed,
-        "algorithm": "cfr" if args.vanilla_cfr else "cfr_plus",
-        "average_weighting": "uniform" if args.uniform_averaging else "linear",
-        "max_bets_per_round": args.max_bets_per_round,
-        "traversal": args.traversal,
-        "abstraction": args.abstraction,
+        "seed": trainer.seed,
+        "algorithm": "cfr_plus" if trainer.cfr_plus else "cfr",
+        "average_weighting": "linear" if trainer.linear_averaging else "uniform",
+        "max_bets_per_round": trainer.max_bets_per_round,
+        "traversal": trainer.traversal,
+        "abstraction": trainer.abstraction,
         "min_strategy_weight": args.min_strategy_weight,
         "checkpoint_saved": not args.discard_checkpoint,
     }
+    if args.checkpoint_in is not None:
+        metrics["checkpoint_in"] = str(args.checkpoint_in)
 
     if args.eval_hands > 0:
         eval_metrics = evaluate_checkpoint(
@@ -78,6 +86,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--iterations", type=int, default=1000)
+    parser.add_argument("--checkpoint-in", type=Path)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--vanilla-cfr", action="store_true")
     parser.add_argument("--uniform-averaging", action="store_true")

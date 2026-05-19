@@ -11,6 +11,8 @@ def test_train_holdem_mccfr_parser_accepts_eval_options() -> None:
         [
             "--iterations",
             "3",
+            "--checkpoint-in",
+            "checkpoint.json",
             "--eval-hands",
             "2",
             "--max-bets-per-round",
@@ -36,6 +38,7 @@ def test_train_holdem_mccfr_parser_accepts_eval_options() -> None:
     )
 
     assert args.iterations == 3
+    assert args.checkpoint_in.name == "checkpoint.json"
     assert args.eval_hands == 2
     assert args.max_bets_per_round == 4
     assert args.traversal == "external"
@@ -62,16 +65,18 @@ def test_train_holdem_mccfr_run_smoke(tmp_path) -> None:
                 "external",
                 "--abstraction",
                 "coarse",
-            "--equity-sims",
-            "2",
-            "--discard-checkpoint",
-            "--out",
-            str(tmp_path / "run"),
+                "--equity-sims",
+                "2",
+                "--discard-checkpoint",
+                "--out",
+                str(tmp_path / "run"),
             ]
         )
     )
 
     assert metrics["iterations"] == 2
+    assert metrics["start_iterations"] == 0
+    assert metrics["train_iterations"] == 2
     assert metrics["infosets"] > 0
     assert metrics["max_bets_per_round"] == 4
     assert metrics["traversal"] == "external"
@@ -81,3 +86,45 @@ def test_train_holdem_mccfr_run_smoke(tmp_path) -> None:
     assert not (tmp_path / "run" / "holdem_mccfr.json").exists()
     assert metrics["evaluation"]["hands"] == 1
     assert metrics["evaluation"]["jobs"] == 1
+
+
+def test_train_holdem_mccfr_resumes_from_checkpoint(tmp_path) -> None:
+    first = run(
+        build_parser().parse_args(
+            [
+                "--iterations",
+                "1",
+                "--max-bets-per-round",
+                "4",
+                "--traversal",
+                "external",
+                "--abstraction",
+                "coarse",
+                "--out",
+                str(tmp_path / "first"),
+            ]
+        )
+    )
+    checkpoint = tmp_path / "first" / "holdem_mccfr.json"
+
+    resumed = run(
+        build_parser().parse_args(
+            [
+                "--iterations",
+                "1",
+                "--checkpoint-in",
+                str(checkpoint),
+                "--discard-checkpoint",
+                "--out",
+                str(tmp_path / "resumed"),
+            ]
+        )
+    )
+
+    assert checkpoint.exists()
+    assert first["iterations"] == 1
+    assert resumed["start_iterations"] == 1
+    assert resumed["train_iterations"] == 1
+    assert resumed["iterations"] == 2
+    assert resumed["checkpoint_in"] == str(checkpoint)
+    assert not (tmp_path / "resumed" / "holdem_mccfr.json").exists()

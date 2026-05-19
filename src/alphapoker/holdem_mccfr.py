@@ -31,6 +31,12 @@ class HoldemMCCFRTrainingResult:
     sampled_game_value_p0: float
 
 
+def _nested_tuple(value: Any) -> Any:
+    if isinstance(value, list):
+        return tuple(_nested_tuple(item) for item in value)
+    return value
+
+
 def _rank_index(card: str) -> int:
     return HOLDEM_RANKS.index(card[0])
 
@@ -244,6 +250,7 @@ class HoldemAbstractionCFRTrainer:
             "max_bets_per_round": self.max_bets_per_round,
             "traversal": self.traversal,
             "abstraction": self.abstraction,
+            "rng_state": self.rng.getstate(),
             "sampled_utility_sum": self.sampled_utility_sum,
             "infosets": {
                 key: infoset.to_dict()
@@ -265,6 +272,8 @@ class HoldemAbstractionCFRTrainer:
         )
         trainer.iterations = int(payload["iterations"])
         trainer.sampled_utility_sum = float(payload.get("sampled_utility_sum", 0.0))
+        if "rng_state" in payload:
+            trainer.rng.setstate(_nested_tuple(payload["rng_state"]))
         trainer.infosets = {
             key: InfoSet.from_dict(infoset_payload)
             for key, infoset_payload in payload["infosets"].items()
