@@ -29,6 +29,7 @@ def test_train_holdem_mccfr_parser_accepts_eval_options() -> None:
             "tuned-pot-odds",
             "--min-strategy-weight",
             "10",
+            "--discard-checkpoint",
             "--out",
             "out",
         ]
@@ -44,6 +45,7 @@ def test_train_holdem_mccfr_parser_accepts_eval_options() -> None:
     assert args.opponent_policy == "tuned-pot-odds"
     assert args.fallback_policy == "tuned-pot-odds"
     assert args.min_strategy_weight == 10
+    assert args.discard_checkpoint
 
 
 def test_train_holdem_mccfr_run_smoke(tmp_path) -> None:
@@ -60,10 +62,11 @@ def test_train_holdem_mccfr_run_smoke(tmp_path) -> None:
                 "external",
                 "--abstraction",
                 "coarse",
-                "--equity-sims",
-                "2",
-                "--out",
-                str(tmp_path / "run"),
+            "--equity-sims",
+            "2",
+            "--discard-checkpoint",
+            "--out",
+            str(tmp_path / "run"),
             ]
         )
     )
@@ -74,5 +77,7 @@ def test_train_holdem_mccfr_run_smoke(tmp_path) -> None:
     assert metrics["traversal"] == "external"
     assert metrics["abstraction"] == "coarse"
     assert metrics["min_strategy_weight"] == 0.0
+    assert not metrics["checkpoint_saved"]
+    assert not (tmp_path / "run" / "holdem_mccfr.json").exists()
     assert metrics["evaluation"]["hands"] == 1
     assert metrics["evaluation"]["jobs"] == 1

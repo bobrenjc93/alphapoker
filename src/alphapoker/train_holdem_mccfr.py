@@ -50,6 +50,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "traversal": args.traversal,
         "abstraction": args.abstraction,
         "min_strategy_weight": args.min_strategy_weight,
+        "checkpoint_saved": not args.discard_checkpoint,
     }
 
     if args.eval_hands > 0:
@@ -66,6 +67,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             jobs=args.eval_jobs,
         )
         metrics["evaluation"] = eval_metrics
+
+    if args.discard_checkpoint:
+        checkpoint.unlink(missing_ok=True)
 
     write_json(out_dir / "metrics.json", metrics)
     return metrics
@@ -88,6 +92,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
     parser.add_argument("--eval-jobs", type=int, default=1)
+    parser.add_argument("--discard-checkpoint", action="store_true")
     parser.add_argument("--out", type=Path, required=True)
     return parser
 
