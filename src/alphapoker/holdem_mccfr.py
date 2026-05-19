@@ -76,7 +76,7 @@ def abstract_holdem_information_key(state: FixedLimitHoldemState) -> str:
 
 
 class HoldemAbstractionCFRTrainer:
-    """Chance-sampled CFR over a compact Hold'em hand-strength abstraction."""
+    """Sampled CFR over a compact Hold'em hand-strength abstraction."""
 
     def __init__(
         self,
@@ -84,15 +84,19 @@ class HoldemAbstractionCFRTrainer:
         seed: int = 0,
         cfr_plus: bool = True,
         linear_averaging: bool = True,
-        max_bets_per_round: int = 2,
+        max_bets_per_round: int = 4,
+        traversal: str = "external",
     ) -> None:
         if max_bets_per_round < 1:
             raise ValueError("max_bets_per_round must be positive")
+        if traversal not in ("external", "full"):
+            raise ValueError("traversal must be external or full")
         self.rng = random.Random(seed)
         self.seed = seed
         self.cfr_plus = cfr_plus
         self.linear_averaging = linear_averaging
         self.max_bets_per_round = max_bets_per_round
+        self.traversal = traversal
         self.iterations = 0
         self.infosets: dict[str, InfoSet] = {}
         self.sampled_utility_sum = 0.0
@@ -105,6 +109,7 @@ class HoldemAbstractionCFRTrainer:
             "iterations": self.iterations,
             "seed": self.seed,
             "max_bets_per_round": self.max_bets_per_round,
+            "traversal": self.traversal,
             "sampled_utility_sum": self.sampled_utility_sum,
             "infosets": {
                 key: infoset.to_dict()
@@ -121,6 +126,7 @@ class HoldemAbstractionCFRTrainer:
             cfr_plus=str(payload.get("algorithm", "")).endswith("cfr_plus"),
             linear_averaging=payload.get("average_weighting", "linear") == "linear",
             max_bets_per_round=int(payload.get("max_bets_per_round", 2)),
+            traversal=str(payload.get("traversal", "full")),
         )
         trainer.iterations = int(payload["iterations"])
         trainer.sampled_utility_sum = float(payload.get("sampled_utility_sum", 0.0))
@@ -184,6 +190,43 @@ class HoldemAbstractionCFRTrainer:
 
         return node_utility
 
+    def _external_cfr(self, state: FixedLimitHoldemState, updating_player: int) -> float:
+        if state.is_terminal():
+            return state.utility(updating_player)
+
+        player = state.current_player()
+        infoset = self._infoset_for_state(state)
+        strategy = infoset.current_strategy()
+        average_weight = float(self.iterations + 1) if self.linear_averaging else 1.0
+        infoset.accumulate_strategy(1.0, strategy, weight=average_weight)
+
+        if player != updating_player:
+            sampled_action = self._sample_action(infoset.actions, strategy)
+            return self._external_cfr(state.apply(sampled_action), updating_player)
+
+        action_utilities = [
+            self._external_cfr(state.apply(action), updating_player)
+            for action in infoset.actions
+        ]
+        node_utility = sum(
+            probability * action_utility
+            for probability, action_utility in zip(strategy, action_utilities)
+        )
+        for index, action_utility in enumerate(action_utilities):
+            infoset.regret_sum[index] += action_utility - node_utility
+            if self.cfr_plus and infoset.regret_sum[index] < 0.0:
+                infoset.regret_sum[index] = 0.0
+        return node_utility
+
+    def _sample_action(self, actions: tuple[str, ...], strategy: list[float]) -> str:
+        sample = self.rng.random()
+        cumulative = 0.0
+        for action, probability in zip(actions, strategy):
+            cumulative += probability
+            if sample <= cumulative:
+                return action
+        return actions[-1]
+
     def _deal_state(self) -> FixedLimitHoldemState:
         state = deal_fixed_limit_holdem(self.rng)
         if state.max_bets_per_round == self.max_bets_per_round:
@@ -195,7 +238,11 @@ class HoldemAbstractionCFRTrainer:
             raise ValueError("iterations must be positive")
 
         for _ in range(iterations):
-            utility = self._cfr(self._deal_state(), 1.0, 1.0)
+            if self.traversal == "full":
+                utility = self._cfr(self._deal_state(), 1.0, 1.0)
+            else:
+                utility = self._external_cfr(self._deal_state(), 0)
+                self._external_cfr(self._deal_state(), 1)
             self.sampled_utility_sum += utility
             self.iterations += 1
 
@@ -224,6 +271,37 @@ def holdem_policy_from_abstract_strategy(
         if key not in strategy and fallback_policy is not None:
             return fallback_policy(state)
         distribution = normalize_distribution(actions, strategy.get(key, {}))
+        sample = rng.random()
+        cumulative = 0.0
+        for action in actions:
+            cumulative += distribution[action]
+            if sample <= cumulative:
+                return action
+        return actions[-1]
+
+    return select_action
+
+
+def holdem_policy_from_trainer(
+    trainer: HoldemAbstractionCFRTrainer,
+    rng: random.Random,
+    *,
+    fallback_policy: HoldemPolicy | None = None,
+    min_strategy_weight: float = 0.0,
+) -> HoldemPolicy:
+    def select_action(state: FixedLimitHoldemState) -> str:
+        actions = state.legal_actions()
+        key = abstract_holdem_information_key(state)
+        infoset = trainer.infosets.get(key)
+        if infoset is None:
+            if fallback_policy is not None:
+                return fallback_policy(state)
+            distribution = normalize_distribution(actions, {})
+        elif sum(infoset.strategy_sum) < min_strategy_weight and fallback_policy is not None:
+            return fallback_policy(state)
+        else:
+            distribution = normalize_distribution(actions, infoset.average_strategy())
+
         sample = rng.random()
         cumulative = 0.0
         for action in actions:

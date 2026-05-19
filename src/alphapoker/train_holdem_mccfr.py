@@ -16,7 +16,7 @@ from alphapoker.evaluate_holdem_model import (
 from alphapoker.holdem_evaluation import evaluate_policy_match
 from alphapoker.holdem_mccfr import (
     HoldemAbstractionCFRTrainer,
-    holdem_policy_from_abstract_strategy,
+    holdem_policy_from_trainer,
 )
 from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES, make_policy
 from alphapoker.train import write_json
@@ -34,9 +34,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         cfr_plus=not args.vanilla_cfr,
         linear_averaging=not args.uniform_averaging,
         max_bets_per_round=args.max_bets_per_round,
+        traversal=args.traversal,
     )
     result = trainer.train(args.iterations)
-    strategy = trainer.average_strategy()
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -52,6 +52,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "algorithm": "cfr" if args.vanilla_cfr else "cfr_plus",
         "average_weighting": "uniform" if args.uniform_averaging else "linear",
         "max_bets_per_round": args.max_bets_per_round,
+        "traversal": args.traversal,
+        "min_strategy_weight": args.min_strategy_weight,
     }
 
     if args.eval_hands > 0:
@@ -72,10 +74,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 {
                     "checkpoint": str(checkpoint),
                     **evaluate_policy_match(
-                        model_policy=holdem_policy_from_abstract_strategy(
-                            strategy,
+                        model_policy=holdem_policy_from_trainer(
+                            trainer,
                             model_rng,
                             fallback_policy=fallback_policy,
+                            min_strategy_weight=args.min_strategy_weight,
                         ),
                         opponent_policy=make_opponent_policy(
                             args.opponent_policy,
@@ -91,10 +94,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "equity_sims": args.equity_sims,
                     "rollout_sims": args.rollout_sims,
                     "fallback_policy": args.fallback_policy,
+                    "min_strategy_weight": args.min_strategy_weight,
                 }
             )
         eval_metrics = aggregate_model_player_metrics(seat_metrics)
         eval_metrics["fallback_policy"] = args.fallback_policy
+        eval_metrics["min_strategy_weight"] = args.min_strategy_weight
         metrics["evaluation"] = eval_metrics
 
     write_json(out_dir / "metrics.json", metrics)
@@ -107,10 +112,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--vanilla-cfr", action="store_true")
     parser.add_argument("--uniform-averaging", action="store_true")
-    parser.add_argument("--max-bets-per-round", type=int, default=2)
+    parser.add_argument("--max-bets-per-round", type=int, default=4)
+    parser.add_argument("--traversal", choices=["external", "full"], default="external")
     parser.add_argument("--eval-hands", type=int, default=0)
     parser.add_argument("--opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="pot-odds")
     parser.add_argument("--fallback-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="pot-odds")
+    parser.add_argument("--min-strategy-weight", type=float, default=0.0)
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
