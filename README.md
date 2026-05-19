@@ -197,6 +197,7 @@ below keeps the broader context for range-aware and safe-rollout probes.
 | 2026-05-19T15:10:36-07:00 | `7eedeea` | Directly checked the KL1 robustness checkpoint against safe rollout s1. | The checkpoint that was positive vs safe s4 still failed the cheaper s1 probe at `-0.9375 +/- 0.5413` over 40 paired deals. |
 | 2026-05-19T15:33:35-07:00 | `daab72d` | Tried an s1-specific safe-rollout DAgger pass. | Small exact spiked to `+0.9800 +/- 0.5184`, but range was only `+0.1750 +/- 0.4076` and safe rollout s1 stayed negative at `-0.6500 +/- 1.1755`. |
 | 2026-05-19T15:57:39-07:00 | `fe4274e` | Tried sqrt-balanced s1 safe-rollout DAgger. | Rare raises were preserved in training, but range failed at `-0.0200 +/- 0.4721` and safe rollout s1 was `-0.8375 +/- 1.2561`; exact was `+0.5800 +/- 0.7071`. |
+| 2026-05-19T16:41:33-07:00 | `abf88ee` | Labeled current-best self-play with the safe-rollout expert. | Safe rollout s1 improved to `+0.3650 +/- 0.8909` over 100 paired deals and range stayed positive at `+0.1460 +/- 0.3804`, but exact was flat at `+0.0460 +/- 0.4930`; side checkpoint only. |
 
 Current fixed-limit Hold'em gate:
 
@@ -251,6 +252,13 @@ Current fixed-limit Hold'em gate:
   `+0.5800 +/- 0.7071` vs tight exact e8, `-0.0200 +/- 0.4721` vs
   `tight-range-pot-odds`, and `-0.8375 +/- 1.2561` vs cheap safe rollout. Class
   weighting alone is not enough for the rollout opponent.
+- Directly labeling current-best self-play states with the
+  `tight-safe-rollout-pot-odds` expert and a stronger KL anchor produced the
+  first positive larger cheap safe-rollout side probe: `+0.3650 +/- 0.8909` over
+  100 paired deals. It also stayed positive against `tight-range-pot-odds`
+  (`+0.1460 +/- 0.3804` over 250 paired deals), but the tight exact gate was
+  effectively flat (`+0.0460 +/- 0.4930` over 250 paired deals), so it is a
+  robustness side checkpoint rather than the current best.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
