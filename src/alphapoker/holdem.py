@@ -788,6 +788,147 @@ def sample_holdem_belief_state(
     )
 
 
+def _initial_state_like(state: FixedLimitHoldemState) -> FixedLimitHoldemState:
+    return FixedLimitHoldemState.initial(
+        state.private_cards,
+        state.board_cards,
+        small_blind=state.small_blind,
+        big_blind=state.big_blind,
+        small_bet=state.small_bet,
+        big_bet=state.big_bet,
+        max_bets_per_round=state.max_bets_per_round,
+    )
+
+
+def holdem_belief_state_matches_opponent_policy(
+    state: FixedLimitHoldemState,
+    player: int,
+    opponent_policy: HoldemPolicy,
+) -> bool:
+    """Return whether a sampled hidden state can explain the opponent's actions."""
+
+    if player not in (0, 1):
+        raise ValueError(f"Unknown player: {player}")
+    opponent = 1 - player
+    replay_state = _initial_state_like(state)
+    for street_history in state.histories:
+        for action in street_history:
+            if replay_state.is_terminal() or action not in replay_state.legal_actions():
+                return False
+            actor = replay_state.current_player()
+            if actor == opponent:
+                policy_action = opponent_policy(replay_state)
+                if policy_action != action:
+                    return False
+            replay_state = replay_state.apply(action)
+
+    return (
+        replay_state.street == state.street
+        and replay_state.histories == state.histories
+        and replay_state.contributions == state.contributions
+        and replay_state.round_contributions == state.round_contributions
+        and replay_state.to_act == state.to_act
+        and replay_state.folded_player == state.folded_player
+        and replay_state.showdown == state.showdown
+    )
+
+
+def sample_holdem_belief_state_matching_opponent_policy(
+    state: FixedLimitHoldemState,
+    player: int,
+    rng: random.Random,
+    *,
+    opponent_policy_factory: Callable[[random.Random], HoldemPolicy],
+    max_attempts: int = 32,
+) -> FixedLimitHoldemState | None:
+    if max_attempts <= 0:
+        raise ValueError("max_attempts must be positive")
+
+    for _ in range(max_attempts):
+        candidate = sample_holdem_belief_state(state, player, rng)
+        opponent_policy = opponent_policy_factory(random.Random(rng.randrange(2**63)))
+        if holdem_belief_state_matches_opponent_policy(candidate, player, opponent_policy):
+            return candidate
+    return None
+
+
+def policy_filtered_holdem_equity(
+    state: FixedLimitHoldemState,
+    player: int,
+    rng: random.Random,
+    *,
+    simulations: int = 64,
+    opponent_policy_factory: Callable[[random.Random], HoldemPolicy],
+    max_attempts_per_sample: int = 32,
+) -> float:
+    """Estimate equity from hidden states consistent with observed opponent actions."""
+
+    if simulations <= 0:
+        raise ValueError("simulations must be positive")
+    if player not in (0, 1):
+        raise ValueError(f"Unknown player: {player}")
+
+    wins = 0.0
+    for _ in range(simulations):
+        sampled_state = sample_holdem_belief_state_matching_opponent_policy(
+            state,
+            player,
+            rng,
+            opponent_policy_factory=opponent_policy_factory,
+            max_attempts=max_attempts_per_sample,
+        )
+        if sampled_state is None:
+            sampled_state = sample_holdem_belief_state(state, player, rng)
+
+        comparison = compare_holdem_hands(
+            sampled_state.private_cards[player],
+            sampled_state.private_cards[1 - player],
+            sampled_state.board_cards,
+        )
+        if comparison == 1:
+            wins += 1.0
+        elif comparison == -1:
+            wins += 0.0
+        else:
+            wins += 0.5
+    return wins / simulations
+
+
+def opponent_range_pot_odds_equity_policy(
+    rng: random.Random,
+    *,
+    simulations: int = 64,
+    opponent_policy_factory: Callable[[random.Random], HoldemPolicy],
+    bet_threshold: float = 0.58,
+    raise_threshold: float = 0.82,
+    call_margin: float = 0.08,
+    max_attempts_per_sample: int = 32,
+) -> HoldemPolicy:
+    def select_action(state: FixedLimitHoldemState) -> str:
+        player = state.current_player()
+        equity = policy_filtered_holdem_equity(
+            state,
+            player,
+            rng,
+            simulations=simulations,
+            opponent_policy_factory=opponent_policy_factory,
+            max_attempts_per_sample=max_attempts_per_sample,
+        )
+        legal = state.legal_actions()
+        if state.outstanding_call_amount() > 0:
+            if RAISE in legal and equity >= raise_threshold:
+                return RAISE
+            if equity >= pot_odds_call_threshold(state, margin=call_margin):
+                return CALL
+            return FOLD
+
+        if BET in legal and equity >= bet_threshold:
+            return BET
+        return CHECK
+
+    return select_action
+
+
 def pot_odds_rollout_action_values(
     state: FixedLimitHoldemState,
     rng: random.Random,

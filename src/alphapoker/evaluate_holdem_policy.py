@@ -20,6 +20,7 @@ from alphapoker.holdem import (
     HoldemPolicy,
     cached_pot_odds_equity_policy,
     hybrid_pot_odds_equity_policy,
+    opponent_range_pot_odds_equity_policy,
     pot_odds_equity_policy,
     river_exact_pot_odds_equity_policy,
     turn_river_exact_pot_odds_equity_policy,
@@ -40,6 +41,7 @@ POLICY_THRESHOLD_DEFAULTS = {
     "river-exact-tuned-pot-odds": (0.54, 0.76, 0.05),
     "turn-river-exact-tuned-pot-odds": (0.54, 0.76, 0.05),
     "tight-turn-river-exact-pot-odds": (0.62, 0.84, 0.08),
+    "tight-range-pot-odds": (0.62, 0.84, 0.08),
     "hybrid-pot-odds": (0.54, 0.76, 0.05),
 }
 
@@ -112,6 +114,23 @@ def make_evaluation_policy(
     if name in ("turn-river-exact-tuned-pot-odds", "tight-turn-river-exact-pot-odds"):
         return turn_river_exact_pot_odds_equity_policy(
             simulations=equity_sims,
+            bet_threshold=bet_threshold,
+            raise_threshold=raise_threshold,
+            call_margin=call_margin,
+        )
+    if name == "tight-range-pot-odds":
+        def tight_baseline(_: random.Random):
+            return turn_river_exact_pot_odds_equity_policy(
+                simulations=equity_sims,
+                bet_threshold=0.62,
+                raise_threshold=0.84,
+                call_margin=0.08,
+            )
+
+        return opponent_range_pot_odds_equity_policy(
+            rng,
+            simulations=equity_sims,
+            opponent_policy_factory=tight_baseline,
             bet_threshold=bet_threshold,
             raise_threshold=raise_threshold,
             call_margin=call_margin,

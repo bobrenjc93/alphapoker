@@ -48,6 +48,15 @@ def test_resolve_policy_thresholds_uses_tight_exact_policy_defaults() -> None:
     ) == (0.62, 0.86, 0.08)
 
 
+def test_resolve_policy_thresholds_uses_tight_range_policy_defaults() -> None:
+    assert resolve_policy_thresholds(
+        "tight-range-pot-odds",
+        bet_threshold=None,
+        raise_threshold=0.86,
+        call_margin=None,
+    ) == (0.62, 0.86, 0.08)
+
+
 def test_resolve_policy_thresholds_rejects_unsupported_policy() -> None:
     with pytest.raises(ValueError, match="threshold overrides"):
         resolve_policy_thresholds(

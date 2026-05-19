@@ -16,7 +16,9 @@ from alphapoker.holdem import (  # noqa: E402
     evaluate_holdem_hand,
     exact_river_holdem_equity,
     exact_turn_holdem_equity,
+    holdem_belief_state_matches_opponent_policy,
     hybrid_pot_odds_equity_policy,
+    opponent_range_pot_odds_equity_policy,
     play_fixed_limit_holdem_hand,
     pot_odds_call_threshold,
     pot_odds_equity_policy,
@@ -28,6 +30,7 @@ from alphapoker.holdem import (  # noqa: E402
     random_holdem_policy,
     river_exact_pot_odds_equity_policy,
     sample_holdem_belief_state,
+    sample_holdem_belief_state_matching_opponent_policy,
     sampled_holdem_equity,
     turn_river_exact_holdem_equity,
     turn_river_exact_pot_odds_equity_policy,
@@ -293,6 +296,77 @@ def test_holdem_belief_state_preserves_public_information() -> None:
     assert sampled.private_cards[0] == ("As", "Ad")
     assert sampled.visible_board() == ("2h", "3d", "4s")
     assert len(all_cards) == len(set(all_cards))
+
+
+def test_holdem_belief_state_matches_observed_opponent_policy() -> None:
+    state = FixedLimitHoldemState.initial(
+        (("As", "Ad"), ("Kc", "Kd")),
+        ("2h", "3d", "4s", "5c", "6h"),
+    )
+    state = state.apply(CALL).apply(CHECK)
+
+    def checking_policy(state: FixedLimitHoldemState) -> str:
+        legal = state.legal_actions()
+        return CHECK if CHECK in legal else CALL
+
+    def betting_policy(state: FixedLimitHoldemState) -> str:
+        legal = state.legal_actions()
+        return BET if BET in legal else RAISE
+
+    assert holdem_belief_state_matches_opponent_policy(state, 0, checking_policy)
+    assert not holdem_belief_state_matches_opponent_policy(state, 0, betting_policy)
+
+
+def test_holdem_belief_state_policy_filter_rejects_inconsistent_samples() -> None:
+    state = FixedLimitHoldemState.initial(
+        (("As", "Ad"), ("Kc", "Kd")),
+        ("2h", "3d", "4s", "5c", "6h"),
+    )
+    state = state.apply(CALL).apply(CHECK)
+
+    def checking_policy(state: FixedLimitHoldemState) -> str:
+        legal = state.legal_actions()
+        return CHECK if CHECK in legal else CALL
+
+    def betting_policy(state: FixedLimitHoldemState) -> str:
+        legal = state.legal_actions()
+        return BET if BET in legal else RAISE
+
+    accepted = sample_holdem_belief_state_matching_opponent_policy(
+        state,
+        0,
+        random.Random(24),
+        opponent_policy_factory=lambda _: checking_policy,
+        max_attempts=1,
+    )
+    rejected = sample_holdem_belief_state_matching_opponent_policy(
+        state,
+        0,
+        random.Random(24),
+        opponent_policy_factory=lambda _: betting_policy,
+        max_attempts=3,
+    )
+
+    assert accepted is not None
+    assert rejected is None
+
+
+def test_opponent_range_pot_odds_equity_policy_selects_legal_actions() -> None:
+    rng = random.Random(25)
+    state = deal_fixed_limit_holdem(rng).apply(CALL)
+
+    def baseline(_: random.Random):
+        return turn_river_exact_pot_odds_equity_policy(simulations=2)
+
+    policy = opponent_range_pot_odds_equity_policy(
+        rng,
+        simulations=2,
+        opponent_policy_factory=baseline,
+        max_attempts_per_sample=4,
+    )
+    action = policy(state)
+
+    assert action in state.legal_actions()
 
 
 def test_pot_odds_rollout_policy_selects_legal_actions() -> None:

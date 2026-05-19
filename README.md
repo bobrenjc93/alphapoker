@@ -113,6 +113,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Cross-seat pot-odds parameter sweeps for stronger rule-policy gates.
 - Tuned pot-odds rule-policy gate confirmed against the default pot-odds policy.
 - Imperfect-information pot-odds rollout policy for one-step action-value search.
+- Opponent-range-conditioned pot-odds policy that filters hidden-card samples by
+  observed opponent actions under an assumed baseline policy.
 - JSON metric output for Hold'em policy-vs-policy self-play baselines.
 - Supervised fixed-limit Hold'em policy distillation from the equity baseline.
 - Supervised fixed-limit Hold'em policy distillation from pot-odds experts.
@@ -143,6 +145,14 @@ Current exact-evaluation bests:
 ```bash
 uv run python -m alphapoker.experiment_summary
 ```
+
+Current fixed-limit Hold'em gate:
+
+- `tight-range-pot-odds` vs `tight-turn-river-exact-pot-odds` with candidate
+  `equity_sims=4`, opponent `equity_sims=8`, paired seats, 2000 paired deals:
+  `+0.4455 +/- 0.0633` chips/hand for the range-aware policy.
+- Same-scale exact e4 control vs opponent e8:
+  `-0.1073 +/- 0.0636` chips/hand.
 
 ## Research Roadmap
 

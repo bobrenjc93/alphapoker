@@ -15,6 +15,7 @@ from alphapoker.holdem import (
     deal_fixed_limit_holdem,
     equity_threshold_policy,
     hybrid_pot_odds_equity_policy,
+    opponent_range_pot_odds_equity_policy,
     play_fixed_limit_holdem_hand,
     pot_odds_equity_policy,
     pot_odds_rollout_policy,
@@ -36,6 +37,7 @@ HOLDEM_SELF_PLAY_POLICIES = (
     "turn-river-exact-tuned-pot-odds",
     "tight-turn-river-exact-pot-odds",
     "balanced-turn-river-exact-pot-odds",
+    "tight-range-pot-odds",
     "hybrid-pot-odds",
     "rollout-pot-odds",
     "cached-rollout-pot-odds",
@@ -94,6 +96,23 @@ def make_policy(
             simulations=equity_sims,
             bet_threshold=0.58,
             raise_threshold=0.82,
+            call_margin=0.08,
+        )
+    if name == "tight-range-pot-odds":
+        def tight_baseline(_: random.Random):
+            return turn_river_exact_pot_odds_equity_policy(
+                simulations=equity_sims,
+                bet_threshold=0.62,
+                raise_threshold=0.84,
+                call_margin=0.08,
+            )
+
+        return opponent_range_pot_odds_equity_policy(
+            rng,
+            simulations=equity_sims,
+            opponent_policy_factory=tight_baseline,
+            bet_threshold=0.62,
+            raise_threshold=0.84,
             call_margin=0.08,
         )
     if name == "hybrid-pot-odds":

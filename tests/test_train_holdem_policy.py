@@ -149,6 +149,22 @@ def test_train_holdem_policy_parser_accepts_balanced_exact_expert() -> None:
     assert args.opponent_policy == "balanced-turn-river-exact-pot-odds"
 
 
+def test_train_holdem_policy_parser_accepts_tight_range_expert() -> None:
+    args = build_parser().parse_args(
+        [
+            "--expert-policy",
+            "tight-range-pot-odds",
+            "--opponent-policy",
+            "tight-turn-river-exact-pot-odds",
+            "--out",
+            "out",
+        ]
+    )
+
+    assert args.expert_policy == "tight-range-pot-odds"
+    assert args.opponent_policy == "tight-turn-river-exact-pot-odds"
+
+
 def test_train_holdem_policy_parser_accepts_turn_river_exact_feature() -> None:
     args = build_parser().parse_args(
         [
