@@ -111,6 +111,150 @@ def evaluate_trained_policy(
     )
 
 
+def save_policy_checkpoint(
+    *,
+    path: Path,
+    model_state_dict: dict[str, Any],
+    input_dim: int,
+    feature_encoder: HoldemPolicyFeatureEncoder,
+) -> None:
+    import torch
+
+    torch.save(
+        {
+            "model_state_dict": model_state_dict,
+            "canonical_actions": list(HOLDEM_CANONICAL_ACTIONS),
+            "input_dim": input_dim,
+            **feature_encoder.checkpoint_metadata(),
+        },
+        path,
+    )
+
+
+def validate_checkpoint_selection_args(args: argparse.Namespace, checkpoint_selection: str) -> None:
+    selection_eval_hands = getattr(args, "selection_eval_hands", 0)
+    selection_eval_interval_hands = getattr(args, "selection_eval_interval_hands", 0)
+    selection_eval_jobs = getattr(args, "selection_eval_jobs", 1)
+    if checkpoint_selection == "evaluation":
+        if selection_eval_hands <= 0:
+            raise ValueError(
+                "--checkpoint-selection evaluation requires --selection-eval-hands > 0"
+            )
+    elif selection_eval_hands > 0:
+        raise ValueError("--selection-eval-hands requires --checkpoint-selection evaluation")
+    if selection_eval_interval_hands < 0:
+        raise ValueError("--selection-eval-interval-hands must be non-negative")
+    if selection_eval_jobs < 1:
+        raise ValueError("--selection-eval-jobs must be positive")
+
+
+def should_run_selection_evaluation(
+    args: argparse.Namespace,
+    *,
+    hands_played: int,
+    last_evaluated_hands: int | None,
+) -> bool:
+    if last_evaluated_hands == hands_played:
+        return False
+    if hands_played >= args.hands:
+        return True
+    interval_hands = getattr(args, "selection_eval_interval_hands", 0)
+    if interval_hands <= 0 or last_evaluated_hands is None:
+        return False
+    return hands_played - last_evaluated_hands >= interval_hands
+
+
+def evaluate_selection_checkpoint(
+    args: argparse.Namespace,
+    checkpoint: Path,
+    model_players: tuple[int, ...],
+) -> dict[str, Any]:
+    from alphapoker.evaluate_holdem_model import run as evaluate_model
+
+    eval_model_players = (
+        getattr(args, "selection_eval_model_player", None)
+        or getattr(args, "eval_model_player", None)
+        or model_players
+    )
+    eval_opponent_policy = getattr(args, "selection_eval_opponent_policy", None) or getattr(
+        args,
+        "eval_opponent_policy",
+        "pot-odds",
+    )
+    eval_equity_sims = getattr(args, "selection_eval_equity_sims", None)
+    if eval_equity_sims is None:
+        eval_equity_sims = getattr(args, "eval_equity_sims", None)
+    eval_rollout_sims = getattr(args, "selection_eval_rollout_sims", None)
+    if eval_rollout_sims is None:
+        eval_rollout_sims = getattr(args, "eval_rollout_sims", None)
+    eval_seed = getattr(args, "selection_eval_seed", None)
+    return evaluate_model(
+        argparse.Namespace(
+            checkpoint=checkpoint,
+            hands=getattr(args, "selection_eval_hands"),
+            seed=eval_seed if eval_seed is not None else args.seed + 20_000,
+            opponent_policy=eval_opponent_policy,
+            equity_sims=eval_equity_sims if eval_equity_sims is not None else args.equity_sims,
+            rollout_sims=eval_rollout_sims,
+            model_player=eval_model_players,
+            jobs=getattr(args, "selection_eval_jobs", 1),
+            paired_seats=getattr(args, "selection_eval_paired_seats", False),
+            out=None,
+        )
+    )
+
+
+def compact_selection_evaluation(
+    *,
+    hands_played: int,
+    metrics: dict[str, Any],
+) -> dict[str, Any]:
+    compact = {
+        "hands_played": hands_played,
+        "avg_utility_model": metrics["avg_utility_model"],
+        "utility_stderr_model": metrics["utility_stderr_model"],
+        "opponent_policy": metrics["opponent_policy"],
+        "hands": metrics["hands"],
+        "seed": metrics["seed"],
+        "paired_seats": metrics.get("paired_seats", False),
+    }
+    if "paired_deals" in metrics:
+        compact["paired_deals"] = metrics["paired_deals"]
+    return compact
+
+
+def selection_evaluation_metadata(
+    args: argparse.Namespace,
+    model_players: tuple[int, ...],
+) -> dict[str, Any]:
+    eval_opponent_policy = getattr(args, "selection_eval_opponent_policy", None) or getattr(
+        args,
+        "eval_opponent_policy",
+        "pot-odds",
+    )
+    eval_equity_sims = getattr(args, "selection_eval_equity_sims", None)
+    if eval_equity_sims is None:
+        eval_equity_sims = getattr(args, "eval_equity_sims", None)
+    eval_model_players = (
+        getattr(args, "selection_eval_model_player", None)
+        or getattr(args, "eval_model_player", None)
+        or model_players
+    )
+    eval_seed = getattr(args, "selection_eval_seed", None)
+    return {
+        "selection_eval_hands": getattr(args, "selection_eval_hands", 0),
+        "selection_eval_interval_hands": getattr(args, "selection_eval_interval_hands", 0),
+        "selection_eval_opponent_policy": eval_opponent_policy,
+        "selection_eval_equity_sims": (
+            eval_equity_sims if eval_equity_sims is not None else args.equity_sims
+        ),
+        "selection_eval_model_player": model_player_label(eval_model_players),
+        "selection_eval_jobs": getattr(args, "selection_eval_jobs", 1),
+        "selection_eval_paired_seats": getattr(args, "selection_eval_paired_seats", False),
+        "selection_eval_seed": eval_seed if eval_seed is not None else args.seed + 20_000,
+    }
+
+
 def sample_model_action(
     model,
     state: FixedLimitHoldemState,
@@ -136,6 +280,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     from alphapoker.holdem_model import HoldemPolicyNet
 
     torch.manual_seed(args.seed)
+    checkpoint_selection = getattr(args, "checkpoint_selection", "best-batch")
+    validate_checkpoint_selection_args(args, checkpoint_selection)
     model_players = normalize_model_players(args.model_player)
     model_player_weights = getattr(args, "model_player_weights", None)
     if model_player_weights is not None and len(model_player_weights) != len(model_players):
@@ -175,8 +321,46 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     utilities_by_model_player: dict[int, list[float]] = {player: [] for player in model_players}
     best_batch_avg_utility = float("-inf")
     best_state = copy.deepcopy(model.state_dict())
+    best_selection_eval_avg_utility = float("-inf")
+    best_selection_eval_hands_played: int | None = None
+    best_selection_state = copy.deepcopy(model.state_dict())
+    selection_evaluations: list[dict[str, Any]] = []
+    last_selection_eval_hands: int | None = None
+    out_dir = Path(args.out)
+    selection_candidate_checkpoint = out_dir / "holdem_policy_selection_candidate.pt"
+
+    def run_selection_evaluation() -> None:
+        nonlocal best_selection_eval_avg_utility
+        nonlocal best_selection_eval_hands_played
+        nonlocal best_selection_state
+        nonlocal last_selection_eval_hands
+        out_dir.mkdir(parents=True, exist_ok=True)
+        save_policy_checkpoint(
+            path=selection_candidate_checkpoint,
+            model_state_dict=model.state_dict(),
+            input_dim=input_dim,
+            feature_encoder=feature_encoder,
+        )
+        eval_metrics = evaluate_selection_checkpoint(
+            args,
+            selection_candidate_checkpoint,
+            model_players,
+        )
+        summary = compact_selection_evaluation(
+            hands_played=hands_played,
+            metrics=eval_metrics,
+        )
+        selection_evaluations.append(summary)
+        avg_utility = float(summary["avg_utility_model"])
+        if avg_utility > best_selection_eval_avg_utility:
+            best_selection_eval_avg_utility = avg_utility
+            best_selection_eval_hands_played = hands_played
+            best_selection_state = copy.deepcopy(model.state_dict())
+        last_selection_eval_hands = hands_played
 
     hands_played = 0
+    if checkpoint_selection == "evaluation":
+        run_selection_evaluation()
     while hands_played < args.hands:
         state_before_batch = copy.deepcopy(model.state_dict())
         batch_terms = []
@@ -217,6 +401,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             hands_played += 1
 
         if not batch_terms:
+            if checkpoint_selection == "evaluation" and should_run_selection_evaluation(
+                args,
+                hands_played=hands_played,
+                last_evaluated_hands=last_selection_eval_hands,
+            ):
+                run_selection_evaluation()
             continue
         baseline = sum(batch_utilities) / len(batch_utilities)
         if baseline > best_batch_avg_utility:
@@ -230,34 +420,38 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()
+        if checkpoint_selection == "evaluation" and should_run_selection_evaluation(
+            args,
+            hands_played=hands_played,
+            last_evaluated_hands=last_selection_eval_hands,
+        ):
+            run_selection_evaluation()
 
-    checkpoint_selection = getattr(args, "checkpoint_selection", "best-batch")
     final_state = copy.deepcopy(model.state_dict())
-    selected_state = final_state if checkpoint_selection == "final" else best_state
+    if checkpoint_selection == "final":
+        selected_state = final_state
+    elif checkpoint_selection == "evaluation":
+        selected_state = best_selection_state
+    else:
+        selected_state = best_state
     model.load_state_dict(selected_state)
     utility_stdev = statistics.stdev(utilities) if len(utilities) > 1 else 0.0
-    out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     checkpoint = out_dir / "holdem_policy.pt"
     final_checkpoint = out_dir / "holdem_policy_final.pt"
-    torch.save(
-        {
-            "model_state_dict": model.state_dict(),
-            "canonical_actions": list(HOLDEM_CANONICAL_ACTIONS),
-            "input_dim": input_dim,
-            **feature_encoder.checkpoint_metadata(),
-        },
-        checkpoint,
+    save_policy_checkpoint(
+        path=checkpoint,
+        model_state_dict=model.state_dict(),
+        input_dim=input_dim,
+        feature_encoder=feature_encoder,
     )
-    torch.save(
-        {
-            "model_state_dict": final_state,
-            "canonical_actions": list(HOLDEM_CANONICAL_ACTIONS),
-            "input_dim": input_dim,
-            **feature_encoder.checkpoint_metadata(),
-        },
-        final_checkpoint,
+    save_policy_checkpoint(
+        path=final_checkpoint,
+        model_state_dict=final_state,
+        input_dim=input_dim,
+        feature_encoder=feature_encoder,
     )
+    selection_candidate_checkpoint.unlink(missing_ok=True)
     feature_metadata = feature_encoder.checkpoint_metadata()
     metrics: dict[str, Any] = {
         "hands": args.hands,
@@ -287,6 +481,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "final_checkpoint": str(final_checkpoint),
         "seed": args.seed,
     }
+    if checkpoint_selection == "evaluation":
+        metrics.update(
+            {
+                **selection_evaluation_metadata(args, model_players),
+                "selection_evaluations": selection_evaluations,
+                "best_selection_eval_avg_utility_model": best_selection_eval_avg_utility,
+                "best_selection_eval_hands_played": best_selection_eval_hands_played,
+            }
+        )
     eval_metrics = evaluate_trained_policy(args, checkpoint, model_players)
     if eval_metrics is not None:
         metrics["evaluation"] = eval_metrics
@@ -307,7 +510,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--entropy-coef", type=float, default=0.01)
     parser.add_argument("--init-checkpoint", type=Path)
-    parser.add_argument("--checkpoint-selection", choices=("best-batch", "final"), default="best-batch")
+    parser.add_argument(
+        "--checkpoint-selection",
+        choices=("best-batch", "final", "evaluation"),
+        default="best-batch",
+    )
+    parser.add_argument("--selection-eval-hands", type=int, default=0)
+    parser.add_argument("--selection-eval-interval-hands", type=int, default=0)
+    parser.add_argument("--selection-eval-opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES)
+    parser.add_argument("--selection-eval-equity-sims", type=int)
+    parser.add_argument("--selection-eval-rollout-sims", type=int)
+    parser.add_argument("--selection-eval-model-player", type=parse_model_players)
+    parser.add_argument("--selection-eval-jobs", type=int, default=1)
+    parser.add_argument("--selection-eval-paired-seats", action="store_true")
+    parser.add_argument("--selection-eval-seed", type=int)
     parser.add_argument("--feature-equity-sims", type=int)
     parser.add_argument("--feature-equity-mode", choices=POLICY_FEATURE_EQUITY_MODES)
     parser.add_argument("--seed", type=int, default=0)

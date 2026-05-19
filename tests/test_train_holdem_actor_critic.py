@@ -33,7 +33,20 @@ def test_actor_critic_parser_accepts_weighted_mix() -> None:
             "--feature-equity-mode",
             "sampled",
             "--checkpoint-selection",
-            "final",
+            "evaluation",
+            "--selection-eval-hands",
+            "3",
+            "--selection-eval-interval-hands",
+            "2",
+            "--selection-eval-opponent-policy",
+            "random",
+            "--selection-eval-model-player",
+            "both",
+            "--selection-eval-jobs",
+            "1",
+            "--selection-eval-paired-seats",
+            "--selection-eval-seed",
+            "222",
             "--out",
             "out",
         ]
@@ -46,7 +59,14 @@ def test_actor_critic_parser_accepts_weighted_mix() -> None:
     assert args.value_loss_coef == 0.25
     assert args.feature_equity_sims == 4
     assert args.feature_equity_mode == "sampled"
-    assert args.checkpoint_selection == "final"
+    assert args.checkpoint_selection == "evaluation"
+    assert args.selection_eval_hands == 3
+    assert args.selection_eval_interval_hands == 2
+    assert args.selection_eval_opponent_policy == "random"
+    assert args.selection_eval_model_player == (0, 1)
+    assert args.selection_eval_jobs == 1
+    assert args.selection_eval_paired_seats
+    assert args.selection_eval_seed == 222
 
 
 def test_actor_critic_parser_accepts_evaluation_options() -> None:
@@ -141,6 +161,58 @@ def test_actor_critic_can_select_final_checkpoint(tmp_path) -> None:
         value_checkpoint["model_state_dict"],
         final_value_checkpoint["model_state_dict"],
     )
+
+
+def test_actor_critic_evaluation_selection_requires_eval_hands(tmp_path) -> None:
+    with pytest.raises(ValueError, match="selection-eval-hands"):
+        run(
+            build_parser().parse_args(
+                [
+                    "--hands",
+                    "1",
+                    "--checkpoint-selection",
+                    "evaluation",
+                    "--out",
+                    str(tmp_path),
+                ]
+            )
+        )
+
+
+def test_actor_critic_can_select_evaluation_checkpoint(tmp_path) -> None:
+    metrics = run(
+        build_parser().parse_args(
+            [
+                "--hands",
+                "2",
+                "--batch-hands",
+                "1",
+                "--opponent-policy",
+                "random",
+                "--checkpoint-selection",
+                "evaluation",
+                "--selection-eval-hands",
+                "1",
+                "--selection-eval-interval-hands",
+                "1",
+                "--selection-eval-opponent-policy",
+                "random",
+                "--selection-eval-seed",
+                "50",
+                "--out",
+                str(tmp_path),
+            ]
+        )
+    )
+
+    assert metrics["checkpoint_selection"] == "evaluation"
+    assert metrics["selection_eval_hands"] == 1
+    assert metrics["selection_eval_interval_hands"] == 1
+    assert [item["hands_played"] for item in metrics["selection_evaluations"]] == [0, 1, 2]
+    assert metrics["best_selection_eval_hands_played"] in (0, 1, 2)
+    assert not (tmp_path / "holdem_policy_selection_candidate.pt").exists()
+    assert (tmp_path / "holdem_policy.pt").exists()
+    assert (tmp_path / "holdem_value.pt").exists()
 
 
 def test_actor_critic_preserves_exact_feature_checkpoint(tmp_path) -> None:
