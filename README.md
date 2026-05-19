@@ -132,7 +132,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Actor-critic Hold'em policy training with a learned value baseline and
   weighted seat-balanced training.
 - Hold'em RL checkpoint selection by single-opponent or multi-opponent
-  evaluation gates, with weighted-mean or minimum-score aggregation.
+  evaluation gates, with weighted-mean or minimum-score aggregation and
+  per-opponent equity/rollout settings.
 - Backward-compatible Hold'em hand-summary, made-hand strength, legal-action,
   and pot-odds features for neural policies.
 - Optional Monte Carlo, turn/river exact, and tight range-filtered equity features

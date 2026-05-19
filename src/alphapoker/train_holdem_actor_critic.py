@@ -34,6 +34,9 @@ from alphapoker.train_holdem_policy_gradient import (
     parse_model_players,
     parse_policy_mix,
     parse_policy_weights,
+    parse_optional_positive_int_list,
+    parse_positive_float_list,
+    parse_positive_int_list,
     report_training_progress,
     save_policy_checkpoint,
     selection_evaluation_metadata,
@@ -380,8 +383,17 @@ def build_parser() -> argparse.ArgumentParser:
         default="mean",
     )
     parser.add_argument("--selection-eval-equity-sims", type=int)
+    parser.add_argument("--selection-eval-equity-sims-list", type=parse_positive_int_list)
     parser.add_argument("--selection-eval-rollout-sims", type=int)
+    parser.add_argument(
+        "--selection-eval-rollout-sims-list",
+        type=parse_optional_positive_int_list,
+    )
     parser.add_argument("--selection-eval-rollout-margin", type=float)
+    parser.add_argument(
+        "--selection-eval-rollout-margin-list",
+        type=parse_positive_float_list,
+    )
     parser.add_argument("--selection-eval-model-player", type=parse_model_players)
     parser.add_argument("--selection-eval-jobs", type=int, default=1)
     parser.add_argument("--selection-eval-paired-seats", action="store_true")

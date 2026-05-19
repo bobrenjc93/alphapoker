@@ -153,12 +153,21 @@ def test_policy_gradient_parser_accepts_selection_eval_policy_mix() -> None:
             "0.25,0.75",
             "--selection-eval-aggregation",
             "min",
+            "--selection-eval-equity-sims-list",
+            "8,4",
+            "--selection-eval-rollout-sims-list",
+            "none,1",
+            "--selection-eval-rollout-margin-list",
+            "1.0,1.5",
         ]
     )
 
     assert args.selection_eval_opponent_policies == ("random", "pot-odds")
     assert args.selection_eval_opponent_policy_weights == (0.25, 0.75)
     assert args.selection_eval_aggregation == "min"
+    assert args.selection_eval_equity_sims_list == (8, 4)
+    assert args.selection_eval_rollout_sims_list == (None, 1)
+    assert args.selection_eval_rollout_margin_list == (1.0, 1.5)
 
 
 def test_policy_gradient_records_rollout_training_options(tmp_path) -> None:
@@ -347,6 +356,12 @@ def test_policy_gradient_evaluation_selection_scores_opponent_mix(tmp_path) -> N
                 "0.25,0.75",
                 "--selection-eval-aggregation",
                 "min",
+                "--selection-eval-equity-sims-list",
+                "1,2",
+                "--selection-eval-rollout-sims-list",
+                "none,1",
+                "--selection-eval-rollout-margin-list",
+                "1.0,1.5",
                 "--selection-eval-seed",
                 "60",
                 "--out",
@@ -364,10 +379,23 @@ def test_policy_gradient_evaluation_selection_scores_opponent_mix(tmp_path) -> N
     assert metrics["selection_eval_opponent_policies"] == ["random", "pot-odds"]
     assert metrics["selection_eval_opponent_policy_weights"] == [0.25, 0.75]
     assert metrics["selection_eval_aggregation"] == "min"
+    assert metrics["selection_eval_equity_sims"] is None
+    assert metrics["selection_eval_equity_sims_per_policy"] == [1, 2]
+    assert metrics["selection_eval_rollout_sims"] is None
+    assert metrics["selection_eval_rollout_sims_per_policy"] == [None, 1]
+    assert metrics["selection_eval_rollout_margin"] is None
+    assert metrics["selection_eval_rollout_margin_per_policy"] == [1.0, 1.5]
     assert first_eval["opponent_policy"] == "random,pot-odds"
     assert first_eval["opponent_policies"] == ["random", "pot-odds"]
     assert first_eval["selection_eval_aggregation"] == "min"
+    assert first_eval["equity_sims_per_policy"] == [1, 2]
+    assert first_eval["rollout_sims_per_policy"] == [None, 1]
+    assert first_eval["rollout_margin_per_policy"] == [1.0, 1.5]
     assert len(first_eval["selection_eval_components"]) == 2
+    assert first_eval["selection_eval_components"][0]["equity_sims"] == 1
+    assert first_eval["selection_eval_components"][1]["equity_sims"] == 2
+    assert first_eval["selection_eval_components"][0]["rollout_sims"] is None
+    assert first_eval["selection_eval_components"][1]["rollout_sims"] == 1
     assert first_eval["selection_eval_score_model"] == min(component_avgs)
     assert metrics["best_selection_eval_score_model"] == metrics[
         "best_selection_eval_avg_utility_model"
@@ -391,6 +419,32 @@ def test_policy_gradient_selection_eval_mix_rejects_single_policy_overlap(tmp_pa
                     "random",
                     "--selection-eval-opponent-policies",
                     "random,pot-odds",
+                    "--out",
+                    str(tmp_path),
+                ]
+            )
+        )
+
+
+def test_policy_gradient_selection_eval_per_policy_settings_require_matching_lengths(
+    tmp_path,
+) -> None:
+    with pytest.raises(ValueError, match="selection-eval-equity-sims-list"):
+        run(
+            build_parser().parse_args(
+                [
+                    "--hands",
+                    "1",
+                    "--batch-hands",
+                    "1",
+                    "--checkpoint-selection",
+                    "evaluation",
+                    "--selection-eval-hands",
+                    "1",
+                    "--selection-eval-opponent-policies",
+                    "random,pot-odds",
+                    "--selection-eval-equity-sims-list",
+                    "1",
                     "--out",
                     str(tmp_path),
                 ]

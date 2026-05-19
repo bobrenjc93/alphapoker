@@ -50,6 +50,48 @@ def parse_policy_weights(value: str) -> tuple[float, ...]:
     return weights
 
 
+def parse_positive_int_list(value: str) -> tuple[int, ...]:
+    try:
+        values = tuple(int(item.strip()) for item in value.split(",") if item.strip())
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("values must be integers") from error
+    if not values:
+        raise argparse.ArgumentTypeError("at least one value is required")
+    if any(item <= 0 for item in values):
+        raise argparse.ArgumentTypeError("values must be positive")
+    return values
+
+
+def parse_optional_positive_int_list(value: str) -> tuple[int | None, ...]:
+    parsed: list[int | None] = []
+    for item in (part.strip() for part in value.split(",") if part.strip()):
+        if item.lower() in {"none", "null"}:
+            parsed.append(None)
+            continue
+        try:
+            parsed_value = int(item)
+        except ValueError as error:
+            raise argparse.ArgumentTypeError("values must be integers or none") from error
+        if parsed_value <= 0:
+            raise argparse.ArgumentTypeError("integer values must be positive")
+        parsed.append(parsed_value)
+    if not parsed:
+        raise argparse.ArgumentTypeError("at least one value is required")
+    return tuple(parsed)
+
+
+def parse_positive_float_list(value: str) -> tuple[float, ...]:
+    try:
+        values = tuple(float(item.strip()) for item in value.split(",") if item.strip())
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("values must be numeric") from error
+    if not values:
+        raise argparse.ArgumentTypeError("at least one value is required")
+    if any(item <= 0.0 for item in values):
+        raise argparse.ArgumentTypeError("values must be positive")
+    return values
+
+
 def choose_weighted_index(rng: random.Random, weights: tuple[float, ...]) -> int:
     draw = rng.random() * sum(weights)
     cumulative = 0.0
@@ -152,6 +194,11 @@ def validate_checkpoint_selection_args(args: argparse.Namespace, checkpoint_sele
         "selection_eval_opponent_policy_weights",
         None,
     )
+    selection_eval_opponent_count = (
+        len(selection_eval_opponent_policies)
+        if selection_eval_opponent_policies is not None
+        else 1
+    )
     if checkpoint_selection == "evaluation":
         if selection_eval_hands <= 0:
             raise ValueError(
@@ -181,6 +228,34 @@ def validate_checkpoint_selection_args(args: argparse.Namespace, checkpoint_sele
             raise ValueError(
                 "selection eval opponent policy weights must match selection eval opponents"
             )
+    per_opponent_args = (
+        (
+            "selection_eval_equity_sims_list",
+            "selection_eval_equity_sims",
+            "--selection-eval-equity-sims-list",
+            "--selection-eval-equity-sims",
+        ),
+        (
+            "selection_eval_rollout_sims_list",
+            "selection_eval_rollout_sims",
+            "--selection-eval-rollout-sims-list",
+            "--selection-eval-rollout-sims",
+        ),
+        (
+            "selection_eval_rollout_margin_list",
+            "selection_eval_rollout_margin",
+            "--selection-eval-rollout-margin-list",
+            "--selection-eval-rollout-margin",
+        ),
+    )
+    for list_attr, scalar_attr, list_flag, scalar_flag in per_opponent_args:
+        values = getattr(args, list_attr, None)
+        if values is None:
+            continue
+        if getattr(args, scalar_attr, None) is not None:
+            raise ValueError(f"Set only one of {scalar_flag} or {list_flag}")
+        if len(values) != selection_eval_opponent_count:
+            raise ValueError(f"{list_flag} must match selection eval opponents")
 
 
 def should_run_selection_evaluation(
@@ -217,6 +292,22 @@ def resolve_selection_eval_opponent_weights(
     if weights is None:
         return tuple(1.0 for _ in opponent_policies)
     return weights
+
+
+def expand_selection_eval_values(
+    *,
+    values: tuple[Any, ...] | None,
+    fallback: Any,
+    count: int,
+) -> tuple[Any, ...]:
+    if values is not None:
+        return values
+    return tuple(fallback for _ in range(count))
+
+
+def common_value(values: tuple[Any, ...]) -> Any:
+    first = values[0]
+    return first if all(value == first for value in values) else None
 
 
 def aggregate_selection_evaluation_metrics(
@@ -260,6 +351,9 @@ def aggregate_selection_evaluation_metrics(
         for metrics in component_metrics
         if metrics.get("paired_deals") is not None
     ]
+    equity_sims_values = tuple(metrics.get("equity_sims") for metrics in component_metrics)
+    rollout_sims_values = tuple(metrics.get("rollout_sims") for metrics in component_metrics)
+    rollout_margin_values = tuple(metrics.get("rollout_margin") for metrics in component_metrics)
     return {
         "avg_utility_model": weighted_avg,
         "utility_stderr_model": weighted_stderr,
@@ -274,8 +368,12 @@ def aggregate_selection_evaluation_metrics(
         "paired_deals": sum(int(value) for value in paired_deals) if paired_deals else None,
         "seed": component_metrics[0]["seed"],
         "paired_seats": component_metrics[0].get("paired_seats", False),
-        "rollout_sims": component_metrics[0].get("rollout_sims"),
-        "rollout_margin": component_metrics[0].get("rollout_margin"),
+        "equity_sims": common_value(equity_sims_values),
+        "equity_sims_per_policy": list(equity_sims_values),
+        "rollout_sims": common_value(rollout_sims_values),
+        "rollout_sims_per_policy": list(rollout_sims_values),
+        "rollout_margin": common_value(rollout_margin_values),
+        "rollout_margin_per_policy": list(rollout_margin_values),
         "selection_eval_components": component_metrics,
     }
 
@@ -301,14 +399,30 @@ def evaluate_selection_checkpoint(
     eval_equity_sims = getattr(args, "selection_eval_equity_sims", None)
     if eval_equity_sims is None:
         eval_equity_sims = getattr(args, "eval_equity_sims", None)
+    eval_equity_sims = eval_equity_sims if eval_equity_sims is not None else args.equity_sims
+    eval_equity_sims_values = expand_selection_eval_values(
+        values=getattr(args, "selection_eval_equity_sims_list", None),
+        fallback=eval_equity_sims,
+        count=len(eval_opponent_policies),
+    )
     eval_rollout_sims = getattr(args, "selection_eval_rollout_sims", None)
     if eval_rollout_sims is None:
         eval_rollout_sims = getattr(args, "eval_rollout_sims", None)
+    eval_rollout_sims_values = expand_selection_eval_values(
+        values=getattr(args, "selection_eval_rollout_sims_list", None),
+        fallback=eval_rollout_sims,
+        count=len(eval_opponent_policies),
+    )
     eval_rollout_margin = getattr(args, "selection_eval_rollout_margin", None)
     if eval_rollout_margin is None:
         eval_rollout_margin = getattr(args, "eval_rollout_margin", None)
     if eval_rollout_margin is None:
         eval_rollout_margin = getattr(args, "rollout_margin", 1.0)
+    eval_rollout_margin_values = expand_selection_eval_values(
+        values=getattr(args, "selection_eval_rollout_margin_list", None),
+        fallback=eval_rollout_margin,
+        count=len(eval_opponent_policies),
+    )
     eval_seed = getattr(args, "selection_eval_seed", None)
     component_metrics = [
         evaluate_model(
@@ -317,16 +431,22 @@ def evaluate_selection_checkpoint(
                 hands=getattr(args, "selection_eval_hands"),
                 seed=eval_seed if eval_seed is not None else args.seed + 20_000,
                 opponent_policy=opponent_policy,
-                equity_sims=eval_equity_sims if eval_equity_sims is not None else args.equity_sims,
-                rollout_sims=eval_rollout_sims,
-                rollout_margin=eval_rollout_margin,
+                equity_sims=equity_sims,
+                rollout_sims=rollout_sims,
+                rollout_margin=rollout_margin,
                 model_player=eval_model_players,
                 jobs=getattr(args, "selection_eval_jobs", 1),
                 paired_seats=getattr(args, "selection_eval_paired_seats", False),
                 out=None,
             )
         )
-        for opponent_policy in eval_opponent_policies
+        for opponent_policy, equity_sims, rollout_sims, rollout_margin in zip(
+            eval_opponent_policies,
+            eval_equity_sims_values,
+            eval_rollout_sims_values,
+            eval_rollout_margin_values,
+            strict=True,
+        )
     ]
     return aggregate_selection_evaluation_metrics(
         component_metrics=component_metrics,
@@ -356,6 +476,12 @@ def compact_selection_evaluation(
         compact["rollout_sims"] = metrics["rollout_sims"]
     if "rollout_margin" in metrics:
         compact["rollout_margin"] = metrics["rollout_margin"]
+    if "equity_sims_per_policy" in metrics:
+        compact["equity_sims_per_policy"] = metrics["equity_sims_per_policy"]
+    if "rollout_sims_per_policy" in metrics:
+        compact["rollout_sims_per_policy"] = metrics["rollout_sims_per_policy"]
+    if "rollout_margin_per_policy" in metrics:
+        compact["rollout_margin_per_policy"] = metrics["rollout_margin_per_policy"]
     if "selection_eval_score_model" in metrics:
         compact["selection_eval_score_model"] = metrics["selection_eval_score_model"]
     if "selection_eval_score_stderr_model" in metrics:
@@ -378,6 +504,9 @@ def compact_selection_evaluation(
                 "utility_stderr_model": component["utility_stderr_model"],
                 "hands": component["hands"],
                 "paired_deals": component.get("paired_deals"),
+                "equity_sims": component.get("equity_sims"),
+                "rollout_sims": component.get("rollout_sims"),
+                "rollout_margin": component.get("rollout_margin"),
             }
             for component in metrics["selection_eval_components"]
         ]
@@ -396,14 +525,30 @@ def selection_evaluation_metadata(
     eval_equity_sims = getattr(args, "selection_eval_equity_sims", None)
     if eval_equity_sims is None:
         eval_equity_sims = getattr(args, "eval_equity_sims", None)
+    eval_equity_sims = eval_equity_sims if eval_equity_sims is not None else args.equity_sims
+    eval_equity_sims_values = expand_selection_eval_values(
+        values=getattr(args, "selection_eval_equity_sims_list", None),
+        fallback=eval_equity_sims,
+        count=len(eval_opponent_policies),
+    )
     eval_rollout_sims = getattr(args, "selection_eval_rollout_sims", None)
     if eval_rollout_sims is None:
         eval_rollout_sims = getattr(args, "eval_rollout_sims", None)
+    eval_rollout_sims_values = expand_selection_eval_values(
+        values=getattr(args, "selection_eval_rollout_sims_list", None),
+        fallback=eval_rollout_sims,
+        count=len(eval_opponent_policies),
+    )
     eval_rollout_margin = getattr(args, "selection_eval_rollout_margin", None)
     if eval_rollout_margin is None:
         eval_rollout_margin = getattr(args, "eval_rollout_margin", None)
     if eval_rollout_margin is None:
         eval_rollout_margin = getattr(args, "rollout_margin", 1.0)
+    eval_rollout_margin_values = expand_selection_eval_values(
+        values=getattr(args, "selection_eval_rollout_margin_list", None),
+        fallback=eval_rollout_margin,
+        count=len(eval_opponent_policies),
+    )
     eval_model_players = (
         getattr(args, "selection_eval_model_player", None)
         or getattr(args, "eval_model_player", None)
@@ -417,11 +562,12 @@ def selection_evaluation_metadata(
         "selection_eval_opponent_policies": list(eval_opponent_policies),
         "selection_eval_opponent_policy_weights": list(eval_opponent_policy_weights),
         "selection_eval_aggregation": getattr(args, "selection_eval_aggregation", "mean"),
-        "selection_eval_equity_sims": (
-            eval_equity_sims if eval_equity_sims is not None else args.equity_sims
-        ),
-        "selection_eval_rollout_sims": eval_rollout_sims,
-        "selection_eval_rollout_margin": eval_rollout_margin,
+        "selection_eval_equity_sims": common_value(eval_equity_sims_values),
+        "selection_eval_equity_sims_per_policy": list(eval_equity_sims_values),
+        "selection_eval_rollout_sims": common_value(eval_rollout_sims_values),
+        "selection_eval_rollout_sims_per_policy": list(eval_rollout_sims_values),
+        "selection_eval_rollout_margin": common_value(eval_rollout_margin_values),
+        "selection_eval_rollout_margin_per_policy": list(eval_rollout_margin_values),
         "selection_eval_model_player": model_player_label(eval_model_players),
         "selection_eval_jobs": getattr(args, "selection_eval_jobs", 1),
         "selection_eval_paired_seats": getattr(args, "selection_eval_paired_seats", False),
@@ -740,8 +886,17 @@ def build_parser() -> argparse.ArgumentParser:
         default="mean",
     )
     parser.add_argument("--selection-eval-equity-sims", type=int)
+    parser.add_argument("--selection-eval-equity-sims-list", type=parse_positive_int_list)
     parser.add_argument("--selection-eval-rollout-sims", type=int)
+    parser.add_argument(
+        "--selection-eval-rollout-sims-list",
+        type=parse_optional_positive_int_list,
+    )
     parser.add_argument("--selection-eval-rollout-margin", type=float)
+    parser.add_argument(
+        "--selection-eval-rollout-margin-list",
+        type=parse_positive_float_list,
+    )
     parser.add_argument("--selection-eval-model-player", type=parse_model_players)
     parser.add_argument("--selection-eval-jobs", type=int, default=1)
     parser.add_argument("--selection-eval-paired-seats", action="store_true")
