@@ -25,6 +25,7 @@ def test_train_holdem_mccfr_parser_accepts_eval_options() -> None:
             "both",
             "--eval-jobs",
             "2",
+            "--eval-paired-seats",
             "--opponent-policy",
             "tuned-pot-odds",
             "--fallback-policy",
@@ -45,6 +46,7 @@ def test_train_holdem_mccfr_parser_accepts_eval_options() -> None:
     assert args.abstraction == "medium"
     assert args.model_player == (0, 1)
     assert args.eval_jobs == 2
+    assert args.eval_paired_seats
     assert args.opponent_policy == "tuned-pot-odds"
     assert args.fallback_policy == "tuned-pot-odds"
     assert args.min_strategy_weight == 10

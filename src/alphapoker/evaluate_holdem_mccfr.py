@@ -15,7 +15,11 @@ from alphapoker.evaluate_holdem_model import (
     make_opponent_policy,
     parse_model_players,
 )
-from alphapoker.holdem_evaluation import aggregate_policy_match_shards, evaluate_policy_match
+from alphapoker.holdem_evaluation import (
+    aggregate_policy_match_shards,
+    evaluate_policy_match,
+    evaluate_policy_match_paired_seats,
+)
 from alphapoker.holdem_mccfr import HoldemAbstractionCFRTrainer, holdem_policy_from_trainer
 from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES, make_policy
 from alphapoker.train import write_json
@@ -91,6 +95,63 @@ def evaluate_mccfr_shard(
     }
 
 
+def evaluate_mccfr_paired_shard(
+    *,
+    checkpoint: Path,
+    hands: int,
+    seed: int,
+    opponent_policy: str,
+    fallback_policy: str,
+    min_strategy_weight: float,
+    equity_sims: int,
+    rollout_sims: int | None,
+    shard_index: int,
+) -> dict[str, Any]:
+    trainer = HoldemAbstractionCFRTrainer.load_checkpoint(checkpoint)
+    eval_seed = seed + shard_index * 1_000_003
+    model_policies = []
+    opponent_policies = []
+    for model_player in (0, 1):
+        fallback = make_policy(
+            fallback_policy,
+            random.Random(eval_seed + 10 + model_player),
+            equity_sims,
+            rollout_sims,
+        )
+        model_policies.append(
+            holdem_policy_from_trainer(
+                trainer,
+                random.Random(eval_seed + 20 + model_player),
+                fallback_policy=fallback,
+                min_strategy_weight=min_strategy_weight,
+            )
+        )
+        opponent_policies.append(
+            make_opponent_policy(
+                opponent_policy,
+                random.Random(eval_seed + 30 + model_player),
+                equity_sims,
+                rollout_sims,
+            )
+        )
+
+    return {
+        "checkpoint": str(checkpoint),
+        **evaluate_policy_match_paired_seats(
+            model_policies=(model_policies[0], model_policies[1]),
+            opponent_policies=(opponent_policies[0], opponent_policies[1]),
+            hands=hands,
+            seed=eval_seed,
+        ),
+        "opponent_policy": opponent_policy,
+        "equity_sims": equity_sims,
+        "rollout_sims": rollout_sims,
+        "fallback_policy": fallback_policy,
+        "min_strategy_weight": min_strategy_weight,
+        "shard_index": shard_index,
+    }
+
+
 def evaluate_checkpoint(
     *,
     checkpoint: Path,
@@ -103,9 +164,51 @@ def evaluate_checkpoint(
     rollout_sims: int | None,
     model_players: tuple[int, ...],
     jobs: int,
+    paired_seats: bool = False,
 ) -> dict[str, Any]:
     trainer = HoldemAbstractionCFRTrainer.load_checkpoint(checkpoint)
     shard_hands = split_hands(hands, jobs)
+    if paired_seats and model_players != (0, 1):
+        raise ValueError("paired_seats requires model_players=(0, 1)")
+    if paired_seats:
+        shard_kwargs = [
+            {
+                "checkpoint": checkpoint,
+                "hands": shard_size,
+                "seed": seed,
+                "opponent_policy": opponent_policy,
+                "fallback_policy": fallback_policy,
+                "min_strategy_weight": min_strategy_weight,
+                "equity_sims": equity_sims,
+                "rollout_sims": rollout_sims,
+                "shard_index": shard_index,
+            }
+            for shard_index, shard_size in enumerate(shard_hands)
+        ]
+        if jobs == 1:
+            shard_metrics = [
+                evaluate_mccfr_paired_shard(**kwargs) for kwargs in shard_kwargs
+            ]
+        else:
+            with ProcessPoolExecutor(max_workers=jobs) as executor:
+                futures = [
+                    executor.submit(evaluate_mccfr_paired_shard, **kwargs)
+                    for kwargs in shard_kwargs
+                ]
+                shard_metrics = [future.result() for future in as_completed(futures)]
+            shard_metrics.sort(key=lambda item: item["shard_index"])
+        metrics = aggregate_policy_match_shards(shard_metrics)
+        metrics["fallback_policy"] = fallback_policy
+        metrics["min_strategy_weight"] = min_strategy_weight
+        metrics["traversal"] = trainer.traversal
+        metrics["abstraction"] = trainer.abstraction
+        metrics["iterations"] = trainer.iterations
+        metrics["infosets"] = len(trainer.infosets)
+        metrics["jobs"] = jobs
+        metrics["shard_hands"] = shard_hands
+        metrics["paired_seats"] = True
+        return metrics
+
     shard_metrics_by_player: dict[int, list[dict[str, Any]]] = defaultdict(list)
     shard_kwargs = [
         {
@@ -151,6 +254,7 @@ def evaluate_checkpoint(
     metrics["infosets"] = len(trainer.infosets)
     metrics["jobs"] = jobs
     metrics["shard_hands"] = shard_hands
+    metrics["paired_seats"] = False
     return metrics
 
 
@@ -166,6 +270,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         rollout_sims=args.rollout_sims,
         model_players=normalize_model_players(args.model_player),
         jobs=args.jobs,
+        paired_seats=args.paired_seats,
     )
     if args.out is not None:
         write_json(args.out, metrics)
@@ -184,6 +289,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
     parser.add_argument("--jobs", type=int, default=1)
+    parser.add_argument("--paired-seats", action="store_true")
     parser.add_argument("--out", type=Path)
     return parser
 

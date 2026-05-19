@@ -39,6 +39,7 @@ def evaluate_weight(
     rollout_sims: int | None,
     model_players: tuple[int, ...],
     eval_jobs: int,
+    paired_seats: bool,
     config_index: int,
 ) -> dict[str, Any]:
     metrics = evaluate_checkpoint(
@@ -52,6 +53,7 @@ def evaluate_weight(
         rollout_sims=rollout_sims,
         model_players=model_players,
         jobs=eval_jobs,
+        paired_seats=paired_seats,
     )
     metrics["config_index"] = config_index
     return metrics
@@ -77,6 +79,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             rollout_sims=args.rollout_sims,
             model_players=model_players,
             eval_jobs=args.eval_jobs,
+            paired_seats=args.paired_seats,
             config_index=index,
         )
         results.append(result)
@@ -93,6 +96,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "rollout_sims": args.rollout_sims,
         "model_player": model_player_label(model_players),
         "eval_jobs": args.eval_jobs,
+        "paired_seats": args.paired_seats,
         "weights": list(weights),
         "best": best,
         "results": results,
@@ -130,6 +134,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
     parser.add_argument("--eval-jobs", type=int, default=1)
+    parser.add_argument("--paired-seats", action="store_true")
     parser.add_argument("--progress", action="store_true")
     parser.add_argument("--out", type=Path)
     return parser

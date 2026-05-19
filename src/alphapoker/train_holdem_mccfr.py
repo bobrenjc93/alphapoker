@@ -74,6 +74,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             rollout_sims=args.rollout_sims,
             model_players=normalize_model_players(args.model_player),
             jobs=args.eval_jobs,
+            paired_seats=args.eval_paired_seats,
         )
         metrics["evaluation"] = eval_metrics
 
@@ -102,6 +103,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
     parser.add_argument("--eval-jobs", type=int, default=1)
+    parser.add_argument("--eval-paired-seats", action="store_true")
     parser.add_argument("--discard-checkpoint", action="store_true")
     parser.add_argument("--out", type=Path, required=True)
     return parser

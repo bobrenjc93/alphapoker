@@ -22,6 +22,7 @@ def test_evaluate_holdem_mccfr_parser_accepts_options() -> None:
             "tuned-pot-odds",
             "--min-strategy-weight",
             "5",
+            "--paired-seats",
         ]
     )
 
@@ -31,6 +32,7 @@ def test_evaluate_holdem_mccfr_parser_accepts_options() -> None:
     assert args.jobs == 2
     assert args.fallback_policy == "tuned-pot-odds"
     assert args.min_strategy_weight == 5
+    assert args.paired_seats
 
 
 def test_evaluate_holdem_mccfr_run_smoke(tmp_path) -> None:
@@ -57,6 +59,61 @@ def test_evaluate_holdem_mccfr_run_smoke(tmp_path) -> None:
     assert metrics["abstraction"] == "coarse"
     assert metrics["jobs"] == 1
     assert metrics["shard_hands"] == [1]
+    assert not metrics["paired_seats"]
+
+
+def test_evaluate_holdem_mccfr_run_paired_seats_smoke(tmp_path) -> None:
+    trainer = HoldemAbstractionCFRTrainer(seed=5, traversal="external")
+    trainer.train(2)
+    checkpoint = tmp_path / "holdem_mccfr.json"
+    trainer.save_checkpoint(checkpoint)
+
+    metrics = run(
+        build_parser().parse_args(
+            [
+                "--checkpoint",
+                str(checkpoint),
+                "--hands",
+                "2",
+                "--equity-sims",
+                "2",
+                "--model-player",
+                "both",
+                "--paired-seats",
+                "--jobs",
+                "2",
+            ]
+        )
+    )
+
+    assert metrics["model_player"] == "both"
+    assert metrics["hands"] == 4
+    assert metrics["hands_per_model_player"] == 2
+    assert metrics["paired_deals"] == 2
+    assert metrics["paired_seats"]
+    assert metrics["jobs"] == 2
+    assert metrics["shard_hands"] == [1, 1]
+    assert len(metrics["seat_metrics"]) == 2
+
+
+def test_evaluate_holdem_mccfr_paired_seats_requires_both(tmp_path) -> None:
+    trainer = HoldemAbstractionCFRTrainer(seed=6, traversal="external")
+    trainer.train(1)
+    checkpoint = tmp_path / "holdem_mccfr.json"
+    trainer.save_checkpoint(checkpoint)
+
+    with pytest.raises(ValueError, match="paired_seats"):
+        run(
+            build_parser().parse_args(
+                [
+                    "--checkpoint",
+                    str(checkpoint),
+                    "--hands",
+                    "1",
+                    "--paired-seats",
+                ]
+            )
+        )
 
 
 def test_evaluate_holdem_mccfr_reuses_deals_across_seats(tmp_path) -> None:
