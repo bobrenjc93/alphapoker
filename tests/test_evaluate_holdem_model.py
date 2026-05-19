@@ -320,6 +320,7 @@ def test_holdem_model_eval_run_smoke(tmp_path) -> None:
 
 def test_holdem_model_eval_run_paired_seats_smoke(tmp_path) -> None:
     policy_checkpoint = tmp_path / "policy.pt"
+    blend_checkpoint = tmp_path / "blend.pt"
     torch.save(
         {
             "model_state_dict": HoldemPolicyNet(input_dim=HOLDEM_FEATURE_DIM).state_dict(),
@@ -327,12 +328,23 @@ def test_holdem_model_eval_run_paired_seats_smoke(tmp_path) -> None:
         },
         policy_checkpoint,
     )
+    torch.save(
+        {
+            "model_state_dict": HoldemPolicyNet(input_dim=HOLDEM_FEATURE_DIM).state_dict(),
+            "input_dim": HOLDEM_FEATURE_DIM,
+        },
+        blend_checkpoint,
+    )
 
     metrics = run(
         build_parser().parse_args(
             [
                 "--checkpoint",
                 str(policy_checkpoint),
+                "--blend-checkpoint",
+                str(blend_checkpoint),
+                "--blend-after-opponent-aggressions",
+                "1",
                 "--hands",
                 "2",
                 "--model-player",
@@ -353,6 +365,7 @@ def test_holdem_model_eval_run_paired_seats_smoke(tmp_path) -> None:
     assert metrics["paired_seats"]
     assert metrics["jobs"] == 2
     assert metrics["shard_hands"] == [1, 1]
+    assert metrics["blend_after_opponent_aggressions"] == 1
     assert len(metrics["seat_metrics"]) == 2
     assert sum(metrics["model_action_counts"].values()) == sum(
         sum(seat["model_action_counts"].values()) for seat in metrics["seat_metrics"]
