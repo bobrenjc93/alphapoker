@@ -21,16 +21,20 @@ from alphapoker.holdem_equity_feature import equity_estimator_from_checkpoint
 from alphapoker.holdem_features import HOLDEM_CANONICAL_ACTIONS
 from alphapoker.train import write_json
 
+CLASS_WEIGHTING_MODES = ("none", "balanced", "sqrt-balanced")
+
 
 def class_weights_from_targets(targets, n_actions: int, mode: str):
     if mode == "none":
         return None
-    if mode != "balanced":
+    if mode not in CLASS_WEIGHTING_MODES:
         raise ValueError(f"Unknown class weighting mode: {mode}")
     import torch
 
     counts = torch.bincount(targets, minlength=n_actions).float()
     weights = counts.sum() / counts.clamp_min(1.0)
+    if mode == "sqrt-balanced":
+        weights = weights.sqrt()
     return weights / weights.mean()
 
 
@@ -388,7 +392,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--behavior-checkpoint", type=Path)
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--lr", type=float, default=3e-3)
-    parser.add_argument("--class-weighting", choices=["none", "balanced"], default="none")
+    parser.add_argument("--class-weighting", choices=CLASS_WEIGHTING_MODES, default="none")
     parser.add_argument("--validation-fraction", type=float, default=0.0)
     parser.add_argument("--jobs", type=int, default=1)
     parser.add_argument("--seed", type=int, default=0)

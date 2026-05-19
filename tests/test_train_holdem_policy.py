@@ -8,6 +8,7 @@ from alphapoker.train_holdem_policy import (  # noqa: E402
     _shard_hands,
     _split_train_validation_indices,
     build_parser,
+    class_weights_from_targets,
     run,
 )
 
@@ -179,6 +180,30 @@ def test_train_holdem_policy_parser_accepts_turn_river_exact_feature() -> None:
 
     assert args.feature_equity_sims == 8
     assert args.feature_equity_mode == "turn-river-exact"
+
+
+def test_train_holdem_policy_parser_accepts_sqrt_balanced_weighting() -> None:
+    args = build_parser().parse_args(
+        [
+            "--class-weighting",
+            "sqrt-balanced",
+            "--out",
+            "out",
+        ]
+    )
+
+    assert args.class_weighting == "sqrt-balanced"
+
+
+def test_sqrt_balanced_class_weights_dampen_rare_action_weight() -> None:
+    torch = pytest.importorskip("torch")
+    targets = torch.tensor([0, 0, 0, 1])
+
+    balanced = class_weights_from_targets(targets, 2, "balanced")
+    sqrt_balanced = class_weights_from_targets(targets, 2, "sqrt-balanced")
+
+    assert sqrt_balanced[1] > sqrt_balanced[0]
+    assert sqrt_balanced[1] / sqrt_balanced[0] < balanced[1] / balanced[0]
 
 
 def test_train_holdem_policy_parser_accepts_tight_range_feature() -> None:

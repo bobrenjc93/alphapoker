@@ -121,7 +121,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Supervised fixed-limit Hold'em policy distillation from rollout-search experts.
 - Cacheable Hold'em policy-imitation training examples for larger expert runs.
 - Held-out Hold'em policy-imitation evaluation for cloned experts.
-- Optional balanced action-class weighting for Hold'em policy distillation.
+- Optional balanced and sqrt-balanced action-class weighting for Hold'em policy
+  distillation.
 - REINFORCE-style Hold'em policy-gradient training against fixed opponents,
   with supervised checkpoint initialization, weighted opponent mixtures, and
   weighted seat-balanced training.
@@ -166,6 +167,10 @@ Current fixed-limit Hold'em gate:
 - Balanced `tight-range` feature 2k distillation was roughly tied with the 1k
   model on the tight exact gate (`+0.4960 +/- 0.0873`) but stronger against
   `tight-range-pot-odds` e4 (`+0.2980 +/- 0.1141`) over 500 paired deals.
+- `sqrt-balanced` 1k distillation improved imitation metrics but under-raised
+  and was weaker in match play: `+0.3905 +/- 0.0625` vs tight exact e8 over
+  2000 paired deals, and `-0.0620 +/- 0.0811` vs `tight-range-pot-odds` e4 over
+  500 paired deals.
 
 ## Research Roadmap
 
