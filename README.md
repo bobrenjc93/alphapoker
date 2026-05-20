@@ -116,6 +116,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Imperfect-information pot-odds rollout policy for one-step action-value search.
 - Opponent-range-conditioned pot-odds policy that filters hidden-card samples by
   observed opponent actions under an assumed baseline policy.
+- Range-aware rollout and safe-rollout Hold'em policies for future response
+  labeling and robustness gates.
 - JSON metric output for Hold'em policy-vs-policy self-play baselines.
 - Supervised fixed-limit Hold'em policy distillation from the equity baseline.
 - Supervised fixed-limit Hold'em policy distillation from pot-odds experts.
@@ -310,6 +312,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T09:12:18-07:00 | `71293fb` | Upweighted h300 player-1 action-value examples. | `--player-action-value-weight 1=3.0` kept cached p1 raises near target (`147` predicted vs `161` target), but live h40 safe failed at `-0.3875 +/- 0.805`; both seats were negative and facing-bet raises dropped to `26`. |
 | 2026-05-20T09:18:15-07:00 | `113914d` | Combined current p0, h300 p1, and p1 response bias. | Current best for player 0 plus h300 for player 1 with p1 `raise=+0.5`, `fold=-0.5` after one opponent aggression still failed h40 safe at `-0.3125 +/- 0.887`; player 1 stayed negative at `-0.725` despite `18` facing-bet raises. |
 | 2026-05-20T09:29:02-07:00 | `3c3e072` | Collected h300-behavior player-1 response replay. | A 100-hand h300-behavior cache added 133 focused labels (`call/fold/raise = 56/26/51`), and the 1,643-example mix kept p1 cached raises close (`195` predicted vs `212` target), but h40 safe failed at `-0.975 +/- 1.020` with player 1 at `-2.100`. |
+| 2026-05-20T09:34:02-07:00 | `64600f8` | Added range-aware rollout and safe-rollout policies. | `tight-range-rollout-pot-odds` and `tight-range-safe-rollout-pot-odds` are available for self-play, evaluation, and dataset labeling; focused tests passed (`113 passed`). Initial h40/h4 probes were interrupted as too slow, so this teacher needs caching before real gates. |
 
 Current fixed-limit Hold'em gate:
 
@@ -869,6 +872,13 @@ Current fixed-limit Hold'em gate:
   +/- 1.020`; player 0 was only `+0.150` and player 1 regressed to `-2.100`.
   Better behavior-state coverage alone is not enough with the current safe
   rollout labels.
+- Range-aware safe rollout is now available as a future teacher/gate, but the
+  direct nested implementation is too slow for current experiment loops.
+  `tight-range-rollout-pot-odds` and `tight-range-safe-rollout-pot-odds` can be
+  used by self-play, evaluation, and dataset generation, and focused tests pass,
+  but a current-best h40 probe ran for more than seven minutes and even h4 ran
+  for more than two minutes before interruption. This path needs caching or a
+  cheaper approximation before it can replace the old safe-rollout labels.
 
 ## Research Roadmap
 
