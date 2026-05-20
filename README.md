@@ -230,6 +230,7 @@ broader context for range-aware and safe-rollout probes.
 | 2026-05-19T22:29:07-07:00 | `4191fc5` | Tried player-action weighting for player-1 responses. | KL8 p1 call/raise upweighting still failed cheap safe rollout (`-1.0250 +/- 1.4232`); KL2 moved p1 raises but stayed negative (`-0.4000 +/- 1.5183`), and a more call-heavy KL2 variant failed at `-1.4500 +/- 1.7017`. |
 | 2026-05-19T22:56:26-07:00 | `93e7682` | Tried soft rollout action-probability targets. | A 20-hand soft safe-rollout replay raised target mass, but player 1 still under-raised and cheap safe rollout failed at `-1.8625 +/- 0.8881` over 40 paired deals. |
 | 2026-05-19T23:08:24-07:00 | `145dea5` | Targeted soft safe-rollout labels at player 1. | KL2 train selection improved p1 raise imitation and made the cheap safe probe noisy-positive (`+0.5750 +/- 1.0963`), but exact and range gates failed (`-0.4000 +/- 0.3654`, `-0.3050 +/- 0.1972`). |
+| 2026-05-19T23:19:47-07:00 | `99690c8` | Made the p1 soft branch blend-compatible with the current best. | A 50% aggression-triggered blend stayed near flat on exact/range/safe (`-0.0500 +/- 0.3281`, `+0.0750 +/- 0.3311`, `+0.0375 +/- 0.6366`); no current-best update. |
 
 Current fixed-limit Hold'em gate:
 
@@ -418,6 +419,14 @@ Current fixed-limit Hold'em gate:
   failed the protective gates: `-0.4000 +/- 0.3654` vs tight exact e8 and
   `-0.3050 +/- 0.1972` vs `tight-range-pot-odds` e4, both over 100 paired
   deals. It is a useful robustness diagnostic, not a candidate.
+- Regenerating that p1-soft branch with feature metadata compatible with the
+  action-history-expanded current best allowed aggression-triggered logit
+  blends. A 25% blend still failed cheap safe rollout (`-0.4500 +/- 0.9914`).
+  A 50% blend was only flat across the protective probes: `+0.0375 +/- 0.6366`
+  vs cheap safe rollout over 40 paired deals, `-0.0500 +/- 0.3281` vs tight
+  exact e8, and `+0.0750 +/- 0.3311` vs `tight-range-pot-odds` e4, both over
+  100 paired deals. Blending soft p1 labels is not enough to recover the
+  current-best exact/range edge.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
