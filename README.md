@@ -327,6 +327,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T12:38:42-07:00 | `0280223` | Tried 2k range-feature distillation with action-history features. | Exact e8 h500 smoke was strong at `+0.733 +/- 0.174`, but range e4 h500 failed at `-0.026 +/- 0.109`; training also overpredicted raises (`966` predicted vs `302` target), so this is not a current-best replacement. |
 | 2026-05-20T12:56:37-07:00 | `ea05cfe` | Swept softer class weights for the 2k action-history distillation. | Power-0.75 reduced but did not remove over-raising and scored `+0.627 +/- 0.174` exact, `+0.065 +/- 0.110` range; sqrt-balanced matched raises better but scored only `+0.569 +/- 0.152` exact, `-0.035 +/- 0.091` range. |
 | 2026-05-20T13:17:00-07:00 | `d33bb32` | Added range-aware threshold sweeps for the teacher policy. | Tiny multi-gate pilot was too noisy for promotion: default thresholds led exact h10 at `+1.150 +/- 0.958`, `0.62/0.90/0.00` led range h10 at `+1.500 +/- 0.691`, and `0.70/0.95/-0.05` led safe s1 h4 at `+2.250 +/- 1.831`. |
+| 2026-05-20T13:28:53-07:00 | `6c84ee6` | Rechecked the `0.62/0.90/0.00` threshold retune. | Focused h20 exact/range comparison rejected the retune: default scored `+1.175 +/- 0.576` exact and `+0.425 +/- 0.284` range, while `0.62/0.90/0.00` scored `+1.125 +/- 0.512` exact and `-0.175 +/- 0.578` range. |
 
 Current fixed-limit Hold'em gate:
 
@@ -931,8 +932,12 @@ Current fixed-limit Hold'em gate:
   multi-gate pilot found conflicting best settings across gates: the default
   `0.62/0.84/0.08` was best on exact h10, `0.62/0.90/0.00` was best on range
   h10, and `0.70/0.95/-0.05` was best on a very small safe-rollout h4 check.
-  The result is diagnostic only; `0.62/0.90/0.00` is the clearest follow-up for
-  a larger exact/range threshold confirmation.
+  The result was diagnostic only.
+- A focused h20 follow-up rejected the `0.62/0.90/0.00` threshold retune. It
+  was near-tied on exact (`+1.125 +/- 0.512` vs the default
+  `+1.175 +/- 0.576`) but failed the range comparison (`-0.175 +/- 0.578` vs
+  default `+0.425 +/- 0.284`). The default teacher thresholds remain the best
+  supported range-aware pot-odds setting.
 
 ## Research Roadmap
 
