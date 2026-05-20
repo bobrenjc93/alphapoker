@@ -241,6 +241,7 @@ broader context for range-aware and safe-rollout probes.
 | 2026-05-19T23:38:10-07:00 | `0e012e4` | Tried a current-best plus p1-soft seat composite. | Current best for player 0 plus p1-soft for player 1 failed cheap safe rollout at `-1.7625 +/- 0.9729`; no exact/range extension. |
 | 2026-05-19T23:42:25-07:00 | `27af624` | Added dense rollout action-value targets. | Cached Hold'em examples can now store per-action rollout values, and training can add an auxiliary legal-action advantage-matching loss; dataset/training tests passed (`55 passed`). |
 | 2026-05-19T23:49:00-07:00 | `7ad0461` | Tried value-aware soft safe-rollout targets. | A 40-hand value-target replay preserved 200 action-value examples, but the best KL2 train-selected sweep still predicted only `5` player-1 raises vs `11` target, so live gate extension was skipped. |
+| 2026-05-20T00:32:12-07:00 | `ecdae88` | Increased action-value pressure and mixed value replay. | Strong value-only training repaired the cheap safe smoke test but broke exact/range; 2x value mixed replay kept small exact/range probes positive and narrowed cheap safe to `-0.335 +/- 0.481` over 100 paired deals, still not a confirmed repair. |
 
 Current fixed-limit Hold'em gate:
 
@@ -463,6 +464,16 @@ Current fixed-limit Hold'em gate:
   player-1 raises vs `11` target, even with extra player-1 call/raise weighting.
   Because the supervised seat mix still missed the known failure mode, no live
   exact/range/safe rollout extension was run.
+- Raising the value-loss pressure on that same cache did repair the cheap
+  safe-rollout smoke test in isolation (`+1.7500 +/- 1.3565` over 40 paired
+  deals), but it broke the protective gates (`-1.5950 +/- 0.4842` vs tight
+  exact e8 and `-0.5300 +/- 0.5159` vs `tight-range-pot-odds`, both over 100
+  paired deals). Mixing 774 original range-replay examples with two copies of
+  the 200-example value cache and using sqrt-balanced weighting preserved the
+  small exact/range checks (`+0.3800 +/- 0.3470` and `+0.3500 +/- 0.3405`), but
+  the 100-paired cheap safe confirmation was still negative at `-0.3350 +/-
+  0.4811`. The value signal is now clearly useful, but the player-1 safe seat
+  still needs better calibration than replay ratio alone provides.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
