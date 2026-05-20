@@ -288,6 +288,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T05:26:32-07:00 | `ad3612d` | Delayed global calibration until after three opponent aggressions. | Small exact/range h100 probes stayed positive (`+0.480 +/- 0.461`, `+0.610 +/- 0.222`), but safe h100 failed (`-0.530 +/- 0.585`; model-player seats `-1.250`, `+0.190`), so the delay lost the rollout repair. |
 | 2026-05-20T05:34:02-07:00 | `fac3618` | Tried asymmetric per-player calibration without a global bias. | Small exact/range h100 probes again stayed positive (`+0.480 +/- 0.461`, `+0.610 +/- 0.222`), but safe h100 failed (`-0.485 +/- 0.604`; model-player seats `-0.630`, `-0.340`), so the p0 nudge was not enough. |
 | 2026-05-20T05:48:15-07:00 | `fd4e3ac` | Added opponent-aggression-gated training weights. | P1-only gated value-replay weighting after two opponent aggressions worsened h100 safe rollout to `-0.920 +/- 0.602`; a stronger KL2/uniform metric probe shifted p0 and did not increase p1 raises, so this is tooling/diagnostics only. |
+| 2026-05-20T05:53:44-07:00 | `be2c55e` | Tried global plus player-1 gated training weights. | The h40 safe smoke was only `+0.0625 +/- 0.9083`, with model-player 1 still negative (`-0.4750`), so this branch is too noisy and not a current-best candidate. |
 
 Current fixed-limit Hold'em gate:
 
@@ -732,7 +733,10 @@ Current fixed-limit Hold'em gate:
   examples and failed h100 cheap safe rollout at `-0.920 +/- 0.602`; a stronger
   KL2/uniform metric probe still did not increase p1 response raises, so the
   current repair direction needs better conditional targets rather than another
-  scalar weight sweep.
+  scalar weight sweep. Adding a mild global after-two-aggressions raise/fold
+  weight to the p1 gate made the h40 safe smoke slightly positive (`+0.0625 +/-
+  0.9083`) but still left player 1 negative, so it was stopped before
+  exact/range extension.
 
 ## Research Roadmap
 
