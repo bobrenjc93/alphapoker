@@ -4,10 +4,13 @@ import pytest
 pytest.importorskip("treys")
 
 from alphapoker.holdem_dataset import HoldemPolicyExample, write_policy_examples  # noqa: E402
+from alphapoker.holdem_features import HOLDEM_CANONICAL_ACTIONS  # noqa: E402
 from alphapoker.holdem_model import HoldemPolicyNet  # noqa: E402
 from alphapoker.train_holdem_policy import (  # noqa: E402
     _shard_hands,
     _split_train_validation_indices,
+    action_weight_overrides_from_specs,
+    apply_action_weight_overrides,
     build_parser,
     class_weight_exponent_for_mode,
     class_weights_from_targets,
@@ -46,6 +49,10 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "balanced",
             "--class-weight-exponent",
             "0.75",
+            "--action-weight",
+            "raise=2.0",
+            "--action-weight",
+            "fold=0.5",
             "--facing-bet-weight",
             "3.0",
             "--jobs",
@@ -70,6 +77,7 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.init_allow_input_expansion
     assert args.class_weighting == "balanced"
     assert args.class_weight_exponent == 0.75
+    assert args.action_weight == ["raise=2.0", "fold=0.5"]
     assert args.facing_bet_weight == 3.0
     assert args.jobs == 4
     assert args.progress
@@ -252,6 +260,28 @@ def test_class_weight_exponent_requires_weighting() -> None:
         class_weight_exponent_for_mode("none", 0.75)
     with pytest.raises(ValueError, match="positive"):
         class_weight_exponent_for_mode("balanced", 0.0)
+
+
+def test_action_weight_overrides_adjust_effective_class_weights() -> None:
+    torch = pytest.importorskip("torch")
+    base_weights = torch.ones(5)
+
+    overrides = action_weight_overrides_from_specs(["raise=2.0", "fold=0.5"])
+    weights = apply_action_weight_overrides(base_weights, overrides)
+
+    raise_index = HOLDEM_CANONICAL_ACTIONS.index("raise")
+    fold_index = HOLDEM_CANONICAL_ACTIONS.index("fold")
+    assert weights[raise_index] / weights[fold_index] == pytest.approx(4.0)
+    assert float(weights.mean()) == pytest.approx(1.0)
+
+
+def test_action_weight_overrides_validate_specs() -> None:
+    with pytest.raises(ValueError, match="ACTION=WEIGHT"):
+        action_weight_overrides_from_specs(["raise"])
+    with pytest.raises(ValueError, match="unknown"):
+        action_weight_overrides_from_specs(["jam=2.0"])
+    with pytest.raises(ValueError, match="positive"):
+        action_weight_overrides_from_specs(["raise=0.0"])
 
 
 def test_facing_bet_weights_upweight_call_fold_states() -> None:

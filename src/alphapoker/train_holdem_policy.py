@@ -25,6 +25,38 @@ from alphapoker.train import write_json
 CLASS_WEIGHTING_MODES = ("none", "balanced", "sqrt-balanced")
 
 
+def action_weight_overrides_from_specs(specs: list[str] | None) -> dict[str, float]:
+    overrides: dict[str, float] = {}
+    for spec in specs or []:
+        if "=" not in spec:
+            raise ValueError("action weight must use ACTION=WEIGHT")
+        action, value_text = spec.split("=", 1)
+        if action not in HOLDEM_CANONICAL_ACTIONS:
+            raise ValueError(f"unknown Hold'em action for weight: {action}")
+        try:
+            value = float(value_text)
+        except ValueError as error:
+            raise ValueError(f"invalid weight for action {action}: {value_text}") from error
+        if value <= 0.0:
+            raise ValueError("action weight must be positive")
+        overrides[action] = value
+    return overrides
+
+
+def apply_action_weight_overrides(class_weights, overrides: dict[str, float]):
+    if not overrides:
+        return class_weights
+    import torch
+
+    if class_weights is None:
+        weights = torch.ones(len(HOLDEM_CANONICAL_ACTIONS), dtype=torch.float32)
+    else:
+        weights = class_weights.clone()
+    for action, weight in overrides.items():
+        weights[HOLDEM_CANONICAL_ACTIONS.index(action)] *= weight
+    return weights / weights.mean()
+
+
 def class_weight_exponent_for_mode(mode: str, exponent: float | None = None) -> float | None:
     if mode not in CLASS_WEIGHTING_MODES:
         raise ValueError(f"Unknown class weighting mode: {mode}")
@@ -374,9 +406,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         class_weighting,
         class_weight_exponent,
     )
+    action_weight_overrides = action_weight_overrides_from_specs(
+        getattr(args, "action_weight", None)
+    )
+    class_weights = apply_action_weight_overrides(class_weights, action_weight_overrides)
     resolved_class_weight_exponent = class_weight_exponent_for_mode(
         class_weighting,
         class_weight_exponent,
+    )
+    effective_class_weights = (
+        None
+        if class_weights is None
+        else {
+            action: float(class_weights[index].detach().cpu())
+            for index, action in enumerate(HOLDEM_CANONICAL_ACTIONS)
+        }
     )
 
     def loss_for(batch_features, batch_targets, batch_masks, batch_weights=None):
@@ -525,6 +569,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "init_kl_weight": init_kl_weight,
         "class_weighting": class_weighting,
         "class_weight_exponent": resolved_class_weight_exponent,
+        "action_weight_overrides": action_weight_overrides,
+        "effective_class_weights": effective_class_weights,
         "facing_bet_weight": facing_bet_weight,
         "facing_bet_examples": int(facing_bet_mask.sum().item()),
         "facing_bet_train_examples": int(facing_bet_mask[train_indices].sum().item()),
@@ -595,6 +641,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--lr", type=float, default=3e-3)
     parser.add_argument("--class-weighting", choices=CLASS_WEIGHTING_MODES, default="none")
     parser.add_argument("--class-weight-exponent", type=float)
+    parser.add_argument(
+        "--action-weight",
+        action="append",
+        default=[],
+        metavar="ACTION=WEIGHT",
+        help="Multiply one action's loss weight, for example --action-weight raise=2.0.",
+    )
     parser.add_argument("--facing-bet-weight", type=float, default=1.0)
     parser.add_argument("--validation-fraction", type=float, default=0.0)
     parser.add_argument("--jobs", type=int, default=1)
