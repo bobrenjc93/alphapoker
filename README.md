@@ -130,6 +130,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Optional action-value example weighting, including per-player weighting, for
   Hold'em policy distillation from cached rollout-value labels.
 - Cacheable Hold'em policy-imitation training examples for larger expert runs.
+- Resumable Hold'em policy-imitation shard caching for long example-generation
+  runs.
 - Held-out Hold'em policy-imitation evaluation for cloned experts.
 - Optional balanced, sqrt-balanced, and custom-exponent action-class weighting
   for Hold'em policy distillation.
@@ -336,6 +338,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T14:09:57-07:00 | `292c792` | Compared neural rollout search to the same-seed control. | The current-best control was also negative but better at `-0.4375 +/- 1.2763`; raising the rollout override margin to 1.0 worsened to `-2.8125 +/- 2.8362`, so this search wrapper is rejected for now. |
 | 2026-05-20T15:02:25-07:00 | `f4897cc` | Tried no-history 500-hand softer class balancing. | Power-0.75 class balancing fixed the worst over-raise diagnostics and stayed positive on exact (`+0.427 +/- 0.139`) and range (`+0.133 +/- 0.095`) h500 probes, but cheap safe rollout failed badly at `-2.1125 +/- 0.4944`; not a candidate. |
 | 2026-05-20T15:07:50-07:00 | `4b4f384` | Probed p1 runtime bias on the softer checkpoint. | Mild p1 facing-bet bias improved cheap safe h40 from `-2.1125` to `-1.625`, but stayed clearly negative and still produced zero model-player-1 raises; stronger raise/fold bias worsened to `-1.8375`, so runtime calibration is rejected. |
+| 2026-05-20T15:13:09-07:00 | `63e761c` | Added resumable policy-example shard caching. | `--examples-shard-cache-dir` now records manifest-validated shards as they complete and reuses matching shards on rerun, so slow tight-range feature generation can resume instead of losing finished shards. |
 
 Current fixed-limit Hold'em gate:
 
