@@ -1,0 +1,163 @@
+{
+  "action_history_features": false,
+  "action_value_example_weight": 1.0,
+  "action_value_loss_weight": 0.0,
+  "action_value_target_examples": 0,
+  "action_value_target_scale": 1.0,
+  "action_value_weighted_examples": 0,
+  "action_weight_overrides": {},
+  "best_epoch": 23,
+  "best_loss": 0.6201778650283813,
+  "best_train_loss": 0.4031413495540619,
+  "best_validation_loss": 0.6201778650283813,
+  "checkpoint": "experiments/holdem_tight_range_feature_distill_500_power075_balanced_val10/holdem_policy.pt",
+  "class_weight_exponent": 0.75,
+  "class_weighting": "balanced",
+  "effective_class_weights": {
+    "bet": 0.5711174011230469,
+    "call": 0.5280879139900208,
+    "check": 0.4831065237522125,
+    "fold": 0.6035996675491333,
+    "raise": 2.8140885829925537
+  },
+  "epochs": 300,
+  "equity_sims": 8,
+  "examples": 2136,
+  "expert_player": null,
+  "expert_policy": "tight-range-pot-odds",
+  "extra_examples": 0,
+  "extra_examples_in": [],
+  "facing_bet_action_weight_after_opponent_aggressions": null,
+  "facing_bet_action_weight_overrides": {},
+  "facing_bet_action_weighted_examples": 0,
+  "facing_bet_examples": 1041,
+  "facing_bet_predicted_action_counts": {
+    "bet": 0,
+    "call": 521,
+    "check": 0,
+    "fold": 428,
+    "raise": 92
+  },
+  "facing_bet_target_action_counts": {
+    "bet": 0,
+    "call": 523,
+    "check": 0,
+    "fold": 464,
+    "raise": 54
+  },
+  "facing_bet_train_examples": 941,
+  "facing_bet_validation_examples": 100,
+  "facing_bet_weight": 1.0,
+  "feature_equity_checkpoint": null,
+  "feature_equity_mode": "tight-range",
+  "feature_equity_sims": 4,
+  "final_loss": 0.005703088827431202,
+  "final_train_loss": 0.005703088827431202,
+  "final_validation_loss": 2.868427276611328,
+  "hands": 500,
+  "init_kl_example_weighting": "example",
+  "init_kl_weight": 0.0,
+  "jobs": 8,
+  "lr": 0.003,
+  "opponent_policy": "tight-turn-river-exact-pot-odds",
+  "overall_accuracy": 0.8164793848991394,
+  "player_action_value_weight_overrides": {},
+  "player_action_value_weighted_examples": 0,
+  "player_action_weight_overrides": {},
+  "player_action_weighted_examples": 0,
+  "player_facing_bet_action_weight_after_opponent_aggressions": null,
+  "player_facing_bet_action_weight_overrides": {},
+  "player_facing_bet_action_weighted_examples": 0,
+  "player_facing_bet_predicted_action_counts": {
+    "0": {
+      "bet": 0,
+      "call": 450,
+      "check": 0,
+      "fold": 214,
+      "raise": 87
+    },
+    "1": {
+      "bet": 0,
+      "call": 71,
+      "check": 0,
+      "fold": 214,
+      "raise": 5
+    }
+  },
+  "player_facing_bet_target_action_counts": {
+    "0": {
+      "bet": 0,
+      "call": 430,
+      "check": 0,
+      "fold": 269,
+      "raise": 52
+    },
+    "1": {
+      "bet": 0,
+      "call": 93,
+      "check": 0,
+      "fold": 195,
+      "raise": 2
+    }
+  },
+  "player_predicted_action_counts": {
+    "0": {
+      "bet": 241,
+      "call": 450,
+      "check": 182,
+      "fold": 214,
+      "raise": 87
+    },
+    "1": {
+      "bet": 248,
+      "call": 71,
+      "check": 424,
+      "fold": 214,
+      "raise": 5
+    }
+  },
+  "player_target_action_counts": {
+    "0": {
+      "bet": 238,
+      "call": 430,
+      "check": 185,
+      "fold": 269,
+      "raise": 52
+    },
+    "1": {
+      "bet": 249,
+      "call": 93,
+      "check": 423,
+      "fold": 195,
+      "raise": 2
+    }
+  },
+  "predicted_action_counts": {
+    "bet": 489,
+    "call": 521,
+    "check": 606,
+    "fold": 428,
+    "raise": 92
+  },
+  "record_facing_bet_only": false,
+  "record_min_opponent_aggressions": null,
+  "rollout_margin": 1.0,
+  "rollout_sims": null,
+  "seed": 611,
+  "selection_metric": "validation_loss",
+  "soft_target_action_mass": null,
+  "soft_target_examples": 0,
+  "soft_target_temperature": null,
+  "target_action_counts": {
+    "bet": 487,
+    "call": 523,
+    "check": 608,
+    "fold": 464,
+    "raise": 54
+  },
+  "train_accuracy": 0.8288241624832153,
+  "train_examples": 1922,
+  "validation_accuracy": 0.7056074738502502,
+  "validation_examples": 214,
+  "validation_fraction": 0.1
+}
