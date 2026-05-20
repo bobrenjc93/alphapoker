@@ -181,6 +181,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Hold'em match-evaluation action-count and facing-bet response diagnostics by
   model/opponent role and player seat, with optional progress reporting for
   long checkpoint evaluations.
+- Hold'em neural decision diagnostics by player, facing-bet state, and opponent
+  aggression bucket, including action probabilities and raise logit margins.
 - Optional evaluator-side facing-bet logit calibration for neural Hold'em
   policies, including global and per-player action biases plus
   aggression-count gates for response calibration.
@@ -339,6 +341,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T15:02:25-07:00 | `f4897cc` | Tried no-history 500-hand softer class balancing. | Power-0.75 class balancing fixed the worst over-raise diagnostics and stayed positive on exact (`+0.427 +/- 0.139`) and range (`+0.133 +/- 0.095`) h500 probes, but cheap safe rollout failed badly at `-2.1125 +/- 0.4944`; not a candidate. |
 | 2026-05-20T15:07:50-07:00 | `4b4f384` | Probed p1 runtime bias on the softer checkpoint. | Mild p1 facing-bet bias improved cheap safe h40 from `-2.1125` to `-1.625`, but stayed clearly negative and still produced zero model-player-1 raises; stronger raise/fold bias worsened to `-1.8375`, so runtime calibration is rejected. |
 | 2026-05-20T15:13:09-07:00 | `63e761c` | Added resumable policy-example shard caching. | `--examples-shard-cache-dir` now records manifest-validated shards as they complete and reuses matching shards on rerun, so slow tight-range feature generation can resume instead of losing finished shards. |
+| 2026-05-20T15:19:25-07:00 | `5df10bc` | Added neural decision diagnostics to Hold'em evaluation. | `--model-decision-diagnostics` reports bucketed action probabilities, legal logits, top margins, and raise-vs-call/fold margins by player, facing-bet state, and opponent-aggression bucket. |
+| 2026-05-20T15:24:33-07:00 | `61b52b0` | Diagnosed current-best and softer-checkpoint cheap safe failures. | Current best p1 facing-bet raise probability was `0.183` with raise logits `-1.04` vs call and `-1.32` vs fold; the softer 500 checkpoint collapsed to p1 raise probability `0.017` with raise `-8.18` vs call, explaining why scalar p1 bias did not repair it. |
 
 Current fixed-limit Hold'em gate:
 
@@ -380,7 +384,10 @@ Current fixed-limit Hold'em gate:
   `-2.1125 +/- 0.4944` over 40 paired deals. Reducing raises alone leaves the
   model too passive as player 1 against the safe-rollout opponent. Mild p1
   facing-bet runtime bias improved only to `-1.625 +/- 0.5185`, and stronger
-  bias worsened to `-1.8375 +/- 0.5545`; neither repairs the branch.
+  bias worsened to `-1.8375 +/- 0.5545`; neither repairs the branch. Decision
+  diagnostics confirmed the branch is deeply suppressing player-1 raises while
+  facing bets: average p1 raise probability was only `0.017`, with the raise
+  logit `-8.18` below call and `-9.33` below fold on the h40 cheap-safe seed.
 - A small DAgger-style counterexample fine-tune on 200 player-0 and 200
   player-1 hands against that safe-rollout opponent repaired the rollout probe
   to `+0.2250 +/- 0.4165`, but it damaged the main tight exact gate to
