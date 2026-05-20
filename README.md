@@ -231,6 +231,7 @@ broader context for range-aware and safe-rollout probes.
 | 2026-05-19T22:56:26-07:00 | `93e7682` | Tried soft rollout action-probability targets. | A 20-hand soft safe-rollout replay raised target mass, but player 1 still under-raised and cheap safe rollout failed at `-1.8625 +/- 0.8881` over 40 paired deals. |
 | 2026-05-19T23:08:24-07:00 | `145dea5` | Targeted soft safe-rollout labels at player 1. | KL2 train selection improved p1 raise imitation and made the cheap safe probe noisy-positive (`+0.5750 +/- 1.0963`), but exact and range gates failed (`-0.4000 +/- 0.3654`, `-0.3050 +/- 0.1972`). |
 | 2026-05-19T23:19:47-07:00 | `99690c8` | Made the p1 soft branch blend-compatible with the current best. | A 50% aggression-triggered blend stayed near flat on exact/range/safe (`-0.0500 +/- 0.3281`, `+0.0750 +/- 0.3311`, `+0.0375 +/- 0.6366`); no current-best update. |
+| 2026-05-19T23:23:50-07:00 | `53aa6b7` | Mixed base replay with p1 soft safe-rollout labels. | The 774-example base replay plus 155 p1-soft labels matched p1 raises, but cheap safe rollout still failed at `-0.2625 +/- 0.5495`; p0 regressed while p1 improved. |
 
 Current fixed-limit Hold'em gate:
 
@@ -427,6 +428,12 @@ Current fixed-limit Hold'em gate:
   exact e8, and `+0.0750 +/- 0.3311` vs `tight-range-pot-odds` e4, both over
   100 paired deals. Blending soft p1 labels is not enough to recover the
   current-best exact/range edge.
+- Mixing the compatible p1-soft labels into the 774-example action-history base
+  replay preserved the supervised p1 raise target (`21` predicted vs `23`
+  target), but the cheap safe rollout gate still failed at `-0.2625 +/-
+  0.5495` over 40 paired deals. The seat split flipped: player 1 improved to
+  `+0.8250`, while player 0 regressed to `-1.3500`. The next fix needs to
+  balance both safe seats while preserving the base range replay.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
