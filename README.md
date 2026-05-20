@@ -116,8 +116,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Imperfect-information pot-odds rollout policy for one-step action-value search.
 - Opponent-range-conditioned pot-odds policy that filters hidden-card samples by
   observed opponent actions under an assumed baseline policy.
-- Range-aware rollout and safe-rollout Hold'em policies for future response
-  labeling and robustness gates.
+- Range-aware rollout, safe-rollout, and range-default safe-rollout Hold'em
+  policies for future response labeling and robustness gates.
 - JSON metric output for Hold'em policy-vs-policy self-play baselines.
 - Supervised fixed-limit Hold'em policy distillation from the equity baseline.
 - Supervised fixed-limit Hold'em policy distillation from pot-odds experts.
@@ -314,6 +314,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T09:18:15-07:00 | `113914d` | Combined current p0, h300 p1, and p1 response bias. | Current best for player 0 plus h300 for player 1 with p1 `raise=+0.5`, `fold=-0.5` after one opponent aggression still failed h40 safe at `-0.3125 +/- 0.887`; player 1 stayed negative at `-0.725` despite `18` facing-bet raises. |
 | 2026-05-20T09:29:02-07:00 | `3c3e072` | Collected h300-behavior player-1 response replay. | A 100-hand h300-behavior cache added 133 focused labels (`call/fold/raise = 56/26/51`), and the 1,643-example mix kept p1 cached raises close (`195` predicted vs `212` target), but h40 safe failed at `-0.975 +/- 1.020` with player 1 at `-2.100`. |
 | 2026-05-20T09:34:02-07:00 | `64600f8` | Added range-aware rollout and safe-rollout policies. | `tight-range-rollout-pot-odds` and `tight-range-safe-rollout-pot-odds` are available for self-play, evaluation, and dataset labeling; focused tests passed (`113 passed`). Initial h40/h4 probes were interrupted as too slow, so this teacher needs caching before real gates. |
+| 2026-05-20T09:52:21-07:00 | `81bbece` | Added a range-default safe-rollout policy. | `tight-range-default-safe-rollout-pot-odds` keeps cheap exact rollout action values but uses a range-aware default fallback for the safe gate; focused Hold'em tests passed (`115 passed`). |
+| 2026-05-20T09:57:23-07:00 | `be4d019` | Probed range-default safe-rollout practicality. | The current-best h40 probe was interrupted after roughly three minutes without output; h4 completed in 29.27s and failed at `-5.125 +/- 3.300` vs `tight-range-default-safe-rollout-pot-odds` s1, so the current best remains unchanged. |
 
 Current fixed-limit Hold'em gate:
 
@@ -880,6 +882,13 @@ Current fixed-limit Hold'em gate:
   but a current-best h40 probe ran for more than seven minutes and even h4 ran
   for more than two minutes before interruption. This path needs caching or a
   cheaper approximation before it can replace the old safe-rollout labels.
+- A cheaper range-default variant avoids nested range rollout by using exact
+  rollout action values with a range-aware default action for the safe fallback.
+  The tooling works and focused Hold'em tests pass, but it is still not cheap
+  enough for routine h40 gates: the h40 current-best probe was interrupted after
+  roughly three minutes, and the h4 timing artifact took 29.27s while failing at
+  `-5.125 +/- 3.300`. This variant is useful as a design checkpoint, not a new
+  gate yet.
 
 ## Research Roadmap
 
