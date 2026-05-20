@@ -262,6 +262,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T01:52:49-07:00 | `401a12e` | Added facing-bet target-action training weights. | Training can now weight response-state target actions globally or by player; `tests/test_train_holdem_policy.py` passed (`32 passed`). |
 | 2026-05-20T02:04:24-07:00 | `332b2a2` | Tried player-1 facing-bet call/fold weighting. | P1 `call=4.0`, `fold=0.5` improved h40 safe to `+0.325 +/- 0.949` and h100 safe to `+0.235 +/- 0.572`, but h100 range failed at `-0.230 +/- 0.317`; adding p1 `raise=2.0` flattened h40 safe to `+0.0125 +/- 0.849`. Current best unchanged. |
 | 2026-05-20T02:07:36-07:00 | `e96c5fc` | Added training-time facing-bet response diagnostics. | Policy-distillation metrics now report target and predicted action counts restricted to facing-bet states, globally and by player; `tests/test_train_holdem_policy.py` passed (`33 passed`). |
+| 2026-05-20T02:14:51-07:00 | `53a53e5` | Tried stronger lower-KL player-1 facing-bet call/fold weighting. | KL2 p1 `call=12.0`, `fold=0.25` moved cached p1 response counts toward target (`call 47->52`, `fold 87->84`, `raise 28->26`), but h40 safe failed at `-0.800 +/- 0.944`; both seats were negative. |
 
 Current fixed-limit Hold'em gate:
 
@@ -638,6 +639,12 @@ Current fixed-limit Hold'em gate:
   `metrics.json` now reports target and predicted action counts only on
   facing-bet states, both globally and split by player. This changes
   observability, not the current best.
+- A stronger lower-KL player-1 response-action pass (`init_kl_weight=2.0`, p1
+  facing-bet `call=12.0`, `fold=0.25`) finally moved the cached p1 response
+  argmax counts toward target (`call 47->52`, `fold 87->84`, `raise 28->26`),
+  but failed the live h40 safe-rollout smoke test at `-0.800 +/- 0.944`.
+  Player 0 regressed to `-1.05` and player 1 was still negative at `-0.55`, so
+  stronger scalar weighting is not enough.
 
 ## Research Roadmap
 
