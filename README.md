@@ -295,6 +295,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T06:19:43-07:00 | `bf1eddb` | Added focused conditional response replay tooling. | Training can now record only facing-bet states after N opponent aggressions and append extra cached examples; focused dataset/training/evaluator tests passed (`91 passed`). |
 | 2026-05-20T06:19:49-07:00 | `ab3fd60` | Tried focused player-1 after-two-aggression response replay. | 36 focused p1 response labels moved cached p1 raises, and x4/x2 replay mixes repaired h40 safe smoke (`+0.825 +/- 0.612`, `+0.575 +/- 0.661`), but both failed exact h100 (`-0.595 +/- 0.492`, `-0.615 +/- 0.472`); current best is unchanged. |
 | 2026-05-20T06:31:59-07:00 | `f31e5b6` | Swept focused replay dose and runtime blends. | Runtime blends after two opponent aggressions were h40-safe positive overall (`+0.325`, `+0.475`, `+0.600`) but left p1 negative; x1 failed safe (`-0.625 +/- 0.673`) and x1.5 was near-flat with p1 still weak (`-0.0875 +/- 0.814`, p1 `-1.700`), so no exact/range extension. |
+| 2026-05-20T06:36:04-07:00 | `5d74a42` | Added same-seed expanded-current-best safe baseline. | The action-history-expanded current best failed the blend seed's h40 cheap-safe control at `-1.375 +/- 0.782` with both seats negative (`p0 -1.175`, `p1 -1.575`), confirming the robustness gap persists without the focused branch. |
+| 2026-05-20T06:49:03-07:00 | `dcc1246` | Tried broader player-1 after-one-aggression response replay. | 101 focused p1 response labels and an x1 mix repaired h40 safe to `+0.2375 +/- 0.692` with both seats non-negative and kept h100 range strong at `+0.920 +/- 0.345`, but exact h100 was only `+0.065 +/- 0.329` with player 0 negative, so this is a side checkpoint only. |
 
 Current fixed-limit Hold'em gate:
 
@@ -761,6 +763,17 @@ Current fixed-limit Hold'em gate:
   0.673`), and x1.5 was only near-flat overall (`-0.0875 +/- 0.814`) because
   player 1 was still very weak (`-1.700`). The focused p1 labels need a better
   integration mechanism than simple replay dose or checkpoint blending.
+- A same-seed control confirmed that the action-history-expanded current-best
+  checkpoint itself still has the cheap safe-rollout gap: on the blend probe
+  seed it scored `-1.375 +/- 0.782` over 40 paired deals, with model-player 0 at
+  `-1.175` and model-player 1 at `-1.575`.
+- Broadening the focused player-1 response cache from after two opponent
+  aggressions to after one produced 101 facing-bet labels. Mixing that cache
+  once into the 1,174-example base replay repaired the h40 cheap safe smoke to
+  `+0.2375 +/- 0.692` with both seats non-negative (`p0 +0.450`, `p1 +0.025`)
+  and kept the h100 `tight-range-pot-odds` probe strong at `+0.920 +/- 0.345`.
+  The h100 tight exact gate was only `+0.065 +/- 0.329`, with player 0 negative
+  at `-0.770`, so this is a side checkpoint rather than a current-best update.
 
 ## Research Roadmap
 
