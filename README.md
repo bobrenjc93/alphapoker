@@ -218,6 +218,7 @@ broader context for range-aware and safe-rollout probes.
 | 2026-05-19T21:33:48-07:00 | `584196a` | Switched balanced p0+p1 safe replay to full class balancing. | Small exact/range stayed positive (`+0.4950 +/- 0.6832`, `+0.3650 +/- 0.7355`) and safe s1 smoked positive at `+0.5375 +/- 1.2551`, but a 100-paired safe confirmation was flat-negative at `-0.0850 +/- 0.9937`; side checkpoint only. |
 | 2026-05-19T21:38:59-07:00 | `013dd7b` | Lowered the KL anchor on the balanced-class safe replay. | KL4 did not improve the supervised raise/fold mix and failed cheap safe rollout at `-1.2125 +/- 1.4531`; no exact/range extension. |
 | 2026-05-19T21:47:45-07:00 | `2e72c2c` | Tested action-history-compatible adaptive blends. | Expanded the current best to action-history inputs and blended toward the balanced-class side checkpoint after opponent aggression; 50% failed at `-2.5500 +/- 1.7593`, while 25% still failed at `-0.5875 +/- 1.3301`. |
+| 2026-05-19T21:52:00-07:00 | `b7de1aa` | Selected full-balanced safe replay by train loss. | Removing the validation split ran to epoch 200, but still collapsed raise/fold (`raise` target 440 vs predicted 297; `fold` target 390 vs predicted 533) and failed cheap safe rollout at `-0.8250 +/- 1.1044`; no exact/range extension. |
 
 Current fixed-limit Hold'em gate:
 
@@ -359,6 +360,13 @@ Current fixed-limit Hold'em gate:
   toward the balanced-class side checkpoint, but adaptive blending after the
   opponent's first aggressive action was too disruptive. A 50% blend failed at
   `-2.5500 +/- 1.7593`, and a 25% blend still failed at `-0.5875 +/- 1.3301`.
+- Selecting the full-balanced safe replay checkpoint by train loss instead of
+  validation loss did not solve the raise/fold confusion. The model trained
+  through epoch 200, but still predicted only 297 raises for 440 raise labels
+  and 533 folds for 390 fold labels. Cheap safe rollout failed at `-0.8250 +/-
+  1.1044`, with player 1 still the weak seat (`-1.7500`), so the next useful
+  change is likely loss shaping or richer expert targets rather than checkpoint
+  selection.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
