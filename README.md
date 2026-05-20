@@ -170,7 +170,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   model/opponent role and player seat, with optional progress reporting for
   long checkpoint evaluations.
 - Optional evaluator-side facing-bet logit calibration for neural Hold'em
-  policies, including global and per-player action biases.
+  policies, including global biases, per-player action biases, and
+  aggression-count gates for player-specific response calibration.
 - Fixed-limit Hold'em equity regression model and threshold-policy evaluation.
 - Both-seat training data for fixed-limit Hold'em equity regression.
 - Cacheable Hold'em equity-value training examples for longer runs.
@@ -275,6 +276,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T02:26:22-07:00 | `b2c87a5` | Tried p1-only facing-bet weights without global facing-bet upweighting. | Removing `facing_bet_weight=3.0` still over-raised player 0 on cached responses (`raise=108` vs target `77`), so the branch was stopped at metrics. |
 | 2026-05-20T02:31:07-07:00 | `7349203` | Added evaluator-side facing-bet logit calibration. | Tooling can bias model logits only while facing a bet/raise, globally or per player; `tests/test_evaluate_holdem_model.py` passed (`21 passed`). |
 | 2026-05-20T02:34:48-07:00 | `7e42eca` | Tried runtime response calibration on the current best. | Global facing-bet `raise=+0.5`, `fold=-0.5` improved the h40 safe s1 smoke to `+0.050 +/- 0.715`; player 1 stayed negative and exact/range gates are not confirmed, so current best is unchanged. |
+| 2026-05-20T03:06:49-07:00 | `47ba023` | Gated player-specific logit calibration by observed aggression. | Player-specific facing-bet biases can now wait until at least N opponent bets/raises; `tests/test_evaluate_holdem_model.py` passed (`22 passed`). |
+| 2026-05-20T03:19:48-07:00 | `3f63500` | Probed global, player-specific, and aggression-gated runtime calibration. | Global bias kept h100 exact/range positive but failed safe s1 (`-0.285 +/- 0.493`); ungated player-1 raise/fold repaired safe (`+0.655 +/- 0.548`) but failed range (`-0.385 +/- 0.342`); after-two-aggressions player-1 raise/fold stayed positive on protective exact/range/safe h100 seeds (`+0.550`, `+0.265`, `+0.220`) but is not confirmed enough to replace the current best. |
 
 Current fixed-limit Hold'em gate:
 
@@ -674,13 +677,18 @@ Current fixed-limit Hold'em gate:
   over-raise issue. With only p1 target-action weights and uniform KL, p1 still
   over-shifted (`call=65`, `fold=67`, `raise=30`) and player 0 raised even more
   (`raise=108` vs target `77`), so the branch was stopped at metrics.
-- Evaluator-only facing-bet logit calibration is the newest runtime diagnostic.
-  Applying global biases of `raise=+0.5` and `fold=-0.5` to the current-best
-  checkpoint improved the cheap h40 safe-rollout smoke from the uncalibrated
-  `-1.425 +/- 0.949` on the same seed to `+0.050 +/- 0.715`, with
-  model-facing actions at call41/fold38/raise46. Player 0 was positive
-  (`+0.600`) but player 1 remained negative (`-0.500`), and no exact/range
-  confirmation has been run yet, so this is not a current-best update.
+- Evaluator-only facing-bet logit calibration is still a runtime diagnostic,
+  not a current-best update. Applying global biases of `raise=+0.5` and
+  `fold=-0.5` to the current-best checkpoint improved the cheap h40
+  safe-rollout smoke from the uncalibrated `-1.425 +/- 0.949` on the same seed
+  to `+0.050 +/- 0.715`, and kept h100 exact/range probes positive (`+0.530
+  +/- 0.516` and `+0.265 +/- 0.370`), but failed h100 safe rollout (`-0.285
+  +/- 0.493`). Adding ungated player-1 `raise=+0.5`, `fold=-0.5` biases
+  repaired h100 safe rollout (`+0.655 +/- 0.548`) but failed range (`-0.385
+  +/- 0.342`). Gating that player-1 adjustment until after two opponent
+  aggressions kept the protective h100 exact/range/safe seeds positive
+  (`+0.550 +/- 0.523`, `+0.265 +/- 0.370`, `+0.220 +/- 0.602`), but the safe
+  signal is too noisy and the exact/range points do not improve the main gate.
 
 ## Research Roadmap
 
