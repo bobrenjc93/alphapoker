@@ -137,6 +137,189 @@ def _summed_action_counts(metrics: list[dict[str, Any]], key: str) -> dict[str, 
     return counts
 
 
+def _empty_model_decision_bucket() -> dict[str, Any]:
+    return {
+        "count": 0,
+        "action_counts": {action: 0 for action in HOLDEM_CANONICAL_ACTIONS},
+        "prob_sums": {action: 0.0 for action in HOLDEM_CANONICAL_ACTIONS},
+        "legal_logit_sums": {action: 0.0 for action in HOLDEM_CANONICAL_ACTIONS},
+        "legal_logit_counts": {action: 0 for action in HOLDEM_CANONICAL_ACTIONS},
+        "chosen_prob_sum": 0.0,
+        "top_logit_margin_sum": 0.0,
+        "raise_vs_call_logit_sum": 0.0,
+        "raise_vs_call_count": 0,
+        "raise_vs_fold_logit_sum": 0.0,
+        "raise_vs_fold_count": 0,
+    }
+
+
+class ModelDecisionDiagnostics:
+    def __init__(self) -> None:
+        self._buckets: dict[str, dict[str, Any]] = defaultdict(_empty_model_decision_bucket)
+
+    def record(self, state: FixedLimitHoldemState, logits, mask, action_index: int) -> None:
+        import torch
+
+        masked_logits = logits.masked_fill(~mask, -1e9)
+        probs = torch.softmax(masked_logits, dim=0)
+        player = state.current_player()
+        facing_bet = bool(
+            mask[HOLDEM_CANONICAL_ACTIONS.index("call")]
+            and mask[HOLDEM_CANONICAL_ACTIONS.index("fold")]
+        )
+        bucket_names = ["all", f"player_{player}"]
+        bucket_names.append("facing_bet" if facing_bet else "not_facing_bet")
+        bucket_names.append(
+            f"player_{player}_{'facing_bet' if facing_bet else 'not_facing_bet'}"
+        )
+        if facing_bet:
+            opponent_aggressions = opponent_aggressions_before_current_decision(state)
+            capped_aggressions = min(opponent_aggressions, 2)
+            bucket_names.append(f"facing_bet_opp_aggr_{capped_aggressions}")
+            bucket_names.append(
+                f"player_{player}_facing_bet_opp_aggr_{capped_aggressions}"
+            )
+
+        legal_logits = [
+            float(logits[index].detach().cpu())
+            for index, legal in enumerate(mask)
+            if bool(legal)
+        ]
+        top_margin = 0.0
+        if len(legal_logits) >= 2:
+            ordered_logits = sorted(legal_logits, reverse=True)
+            top_margin = ordered_logits[0] - ordered_logits[1]
+
+        for name in bucket_names:
+            self._record_bucket(name, logits, mask, probs, action_index, top_margin)
+
+    def _record_bucket(
+        self,
+        name: str,
+        logits,
+        mask,
+        probs,
+        action_index: int,
+        top_margin: float,
+    ) -> None:
+        bucket = self._buckets[name]
+        bucket["count"] += 1
+        action = HOLDEM_CANONICAL_ACTIONS[action_index]
+        bucket["action_counts"][action] += 1
+        bucket["chosen_prob_sum"] += float(probs[action_index].detach().cpu())
+        bucket["top_logit_margin_sum"] += top_margin
+        for index, action_name in enumerate(HOLDEM_CANONICAL_ACTIONS):
+            bucket["prob_sums"][action_name] += float(probs[index].detach().cpu())
+            if bool(mask[index]):
+                bucket["legal_logit_sums"][action_name] += float(
+                    logits[index].detach().cpu()
+                )
+                bucket["legal_logit_counts"][action_name] += 1
+        self._record_logit_diff(bucket, logits, mask, "raise", "call")
+        self._record_logit_diff(bucket, logits, mask, "raise", "fold")
+
+    @staticmethod
+    def _record_logit_diff(
+        bucket: dict[str, Any],
+        logits,
+        mask,
+        left_action: str,
+        right_action: str,
+    ) -> None:
+        left_index = HOLDEM_CANONICAL_ACTIONS.index(left_action)
+        right_index = HOLDEM_CANONICAL_ACTIONS.index(right_action)
+        if bool(mask[left_index]) and bool(mask[right_index]):
+            key = f"{left_action}_vs_{right_action}"
+            bucket[f"{key}_logit_sum"] += float(
+                (logits[left_index] - logits[right_index]).detach().cpu()
+            )
+            bucket[f"{key}_count"] += 1
+
+    def as_raw(self) -> dict[str, Any]:
+        return dict(self._buckets)
+
+
+def merge_model_decision_diagnostics_raw(
+    raw_items: list[dict[str, Any]],
+) -> dict[str, Any]:
+    merged: dict[str, dict[str, Any]] = {}
+    for raw in raw_items:
+        for name, bucket in raw.items():
+            target = merged.setdefault(name, _empty_model_decision_bucket())
+            target["count"] += int(bucket["count"])
+            target["chosen_prob_sum"] += float(bucket["chosen_prob_sum"])
+            target["top_logit_margin_sum"] += float(bucket["top_logit_margin_sum"])
+            target["raise_vs_call_logit_sum"] += float(
+                bucket["raise_vs_call_logit_sum"]
+            )
+            target["raise_vs_call_count"] += int(bucket["raise_vs_call_count"])
+            target["raise_vs_fold_logit_sum"] += float(
+                bucket["raise_vs_fold_logit_sum"]
+            )
+            target["raise_vs_fold_count"] += int(bucket["raise_vs_fold_count"])
+            for action in HOLDEM_CANONICAL_ACTIONS:
+                target["action_counts"][action] += int(bucket["action_counts"][action])
+                target["prob_sums"][action] += float(bucket["prob_sums"][action])
+                target["legal_logit_sums"][action] += float(
+                    bucket["legal_logit_sums"][action]
+                )
+                target["legal_logit_counts"][action] += int(
+                    bucket["legal_logit_counts"][action]
+                )
+    return merged
+
+
+def format_model_decision_diagnostics(raw: dict[str, Any]) -> dict[str, Any]:
+    formatted = {}
+    for name, bucket in sorted(raw.items()):
+        count = int(bucket["count"])
+        if count == 0:
+            continue
+        legal_logit_counts = bucket["legal_logit_counts"]
+        formatted[name] = {
+            "count": count,
+            "action_counts": bucket["action_counts"],
+            "avg_action_probs": {
+                action: float(bucket["prob_sums"][action]) / count
+                for action in HOLDEM_CANONICAL_ACTIONS
+            },
+            "avg_legal_logits": {
+                action: (
+                    float(bucket["legal_logit_sums"][action])
+                    / int(legal_logit_counts[action])
+                )
+                for action in HOLDEM_CANONICAL_ACTIONS
+                if int(legal_logit_counts[action]) > 0
+            },
+            "avg_chosen_prob": float(bucket["chosen_prob_sum"]) / count,
+            "avg_top_logit_margin": float(bucket["top_logit_margin_sum"]) / count,
+            "avg_raise_vs_call_logit": (
+                float(bucket["raise_vs_call_logit_sum"])
+                / int(bucket["raise_vs_call_count"])
+                if int(bucket["raise_vs_call_count"]) > 0
+                else None
+            ),
+            "avg_raise_vs_fold_logit": (
+                float(bucket["raise_vs_fold_logit_sum"])
+                / int(bucket["raise_vs_fold_count"])
+                if int(bucket["raise_vs_fold_count"]) > 0
+                else None
+            ),
+        }
+    return formatted
+
+
+def attach_model_decision_diagnostics(
+    metrics: dict[str, Any],
+    raw_items: list[dict[str, Any]],
+) -> None:
+    if not raw_items:
+        return
+    raw = merge_model_decision_diagnostics_raw(raw_items)
+    metrics["model_decision_diagnostics_raw"] = raw
+    metrics["model_decision_diagnostics"] = format_model_decision_diagnostics(raw)
+
+
 def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, Any]:
     if len(metrics) == 1:
         return metrics[0]
@@ -190,6 +373,14 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
     ):
         if key in first:
             aggregated[key] = first[key]
+    attach_model_decision_diagnostics(
+        aggregated,
+        [
+            item["model_decision_diagnostics_raw"]
+            for item in metrics
+            if "model_decision_diagnostics_raw" in item
+        ],
+    )
     return aggregated
 
 
@@ -252,6 +443,7 @@ def model_policy_from_checkpoint(
     model_rollout_opponent_equity_sims: int = 8,
     model_rollout_opponent_rollout_sims: int | None = None,
     model_rollout_opponent_rollout_margin: float = 1.0,
+    decision_diagnostics: ModelDecisionDiagnostics | None = None,
 ) -> HoldemPolicy:
     import torch
 
@@ -305,7 +497,11 @@ def model_policy_from_checkpoint(
     facing_bet_logit_biases = facing_bet_logit_biases or {}
     player_facing_bet_logit_biases = player_facing_bet_logit_biases or {}
 
-    def select_model_action(state: FixedLimitHoldemState) -> str:
+    def select_model_action(
+        state: FixedLimitHoldemState,
+        *,
+        record_diagnostics: bool = True,
+    ) -> str:
         features = torch.tensor([feature_encoder.encode(state)], dtype=torch.float32)
         mask = torch.tensor(holdem_legal_action_mask(state), dtype=torch.bool)
         facing_bet = bool(
@@ -366,6 +562,8 @@ def model_policy_from_checkpoint(
                             logits[HOLDEM_CANONICAL_ACTIONS.index(action)] += bias
             logits = logits.masked_fill(~mask, -1e9)
             action_index = int(logits.argmax().item())
+        if decision_diagnostics is not None and record_diagnostics:
+            decision_diagnostics.record(state, logits, mask, action_index)
         return HOLDEM_CANONICAL_ACTIONS[action_index]
 
     if model_rollout_sims is None:
@@ -381,7 +579,12 @@ def model_policy_from_checkpoint(
             state,
             rollout_rng,
             simulations=model_rollout_sims,
-            continuation_policy_factory=lambda _: select_model_action,
+            continuation_policy_factory=lambda _: (
+                lambda rollout_state: select_model_action(
+                    rollout_state,
+                    record_diagnostics=False,
+                )
+            ),
             opponent_policy_factory=lambda rng: make_policy(
                 rollout_opponent_policy,
                 rng,
@@ -437,13 +640,17 @@ def evaluate_model_shard(
     model_rollout_opponent_equity_sims: int,
     model_rollout_opponent_rollout_sims: int | None,
     model_rollout_opponent_rollout_margin: float,
+    model_decision_diagnostics: bool,
     model_player: int,
     shard_index: int,
 ) -> dict[str, Any]:
     eval_seed = seed + shard_index * 1_000_003
     opponent_rng = random.Random(eval_seed + 1)
     player_checkpoint = player_checkpoints[model_player]
-    return {
+    decision_diagnostics = (
+        ModelDecisionDiagnostics() if model_decision_diagnostics else None
+    )
+    metrics = {
         "checkpoint": str(checkpoint),
         "player_checkpoint": str(player_checkpoint),
         "player0_checkpoint": str(player_checkpoints[0]),
@@ -473,6 +680,7 @@ def evaluate_model_shard(
                 model_rollout_opponent_rollout_margin=(
                     model_rollout_opponent_rollout_margin
                 ),
+                decision_diagnostics=decision_diagnostics,
             ),
             opponent_policy=make_opponent_policy(
                 opponent_policy,
@@ -520,6 +728,9 @@ def evaluate_model_shard(
         ),
         "shard_index": shard_index,
     }
+    if decision_diagnostics is not None:
+        attach_model_decision_diagnostics(metrics, [decision_diagnostics.as_raw()])
+    return metrics
 
 
 def evaluate_model_paired_shard(
@@ -547,9 +758,13 @@ def evaluate_model_paired_shard(
     model_rollout_opponent_equity_sims: int,
     model_rollout_opponent_rollout_sims: int | None,
     model_rollout_opponent_rollout_margin: float,
+    model_decision_diagnostics: bool,
     shard_index: int,
 ) -> dict[str, Any]:
     eval_seed = seed + shard_index * 1_000_003
+    decision_diagnostics = (
+        ModelDecisionDiagnostics() if model_decision_diagnostics else None
+    )
     model_policies = tuple(
         model_policy_from_checkpoint(
             player_checkpoints[model_player],
@@ -575,6 +790,7 @@ def evaluate_model_paired_shard(
             model_rollout_opponent_rollout_margin=(
                 model_rollout_opponent_rollout_margin
             ),
+            decision_diagnostics=decision_diagnostics,
         )
         for model_player in (0, 1)
     )
@@ -588,7 +804,7 @@ def evaluate_model_paired_shard(
         )
         for model_player in (0, 1)
     )
-    return {
+    metrics = {
         "checkpoint": str(checkpoint),
         "player0_checkpoint": str(player_checkpoints[0]),
         "player1_checkpoint": str(player_checkpoints[1]),
@@ -633,6 +849,9 @@ def evaluate_model_paired_shard(
         ),
         "shard_index": shard_index,
     }
+    if decision_diagnostics is not None:
+        attach_model_decision_diagnostics(metrics, [decision_diagnostics.as_raw()])
+    return metrics
 
 
 def report_progress(enabled: bool, result: dict[str, Any]) -> None:
@@ -729,6 +948,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if model_rollout_opponent_rollout_margin_arg is None
         else float(model_rollout_opponent_rollout_margin_arg)
     )
+    model_decision_diagnostics = bool(
+        getattr(args, "model_decision_diagnostics", False)
+    )
     model_players = normalize_model_players(args.model_player)
     player_checkpoints = player_checkpoints_from_args(args)
     shard_hands = split_hands(args.hands, args.jobs)
@@ -768,6 +990,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "model_rollout_opponent_rollout_margin": (
                     model_rollout_opponent_rollout_margin
                 ),
+                "model_decision_diagnostics": model_decision_diagnostics,
                 "shard_index": shard_index,
             }
             for shard_index, shard_size in enumerate(shard_hands)
@@ -794,9 +1017,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     report_progress(progress, result)
             shard_metrics.sort(key=lambda item: item["shard_index"])
         metrics = aggregate_policy_match_shards(shard_metrics)
+        attach_model_decision_diagnostics(
+            metrics,
+            [
+                item["model_decision_diagnostics_raw"]
+                for item in shard_metrics
+                if "model_decision_diagnostics_raw" in item
+            ],
+        )
         metrics["jobs"] = args.jobs
         metrics["shard_hands"] = shard_hands
         metrics["paired_seats"] = True
+        metrics["model_decision_diagnostics_enabled"] = model_decision_diagnostics
         if args.out is not None:
             write_json(args.out, metrics)
         return metrics
@@ -833,6 +1065,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "model_rollout_opponent_rollout_margin": (
                 model_rollout_opponent_rollout_margin
             ),
+            "model_decision_diagnostics": model_decision_diagnostics,
             "model_player": model_player,
             "shard_index": shard_index,
         }
@@ -862,11 +1095,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             shard_metrics_by_player[model_player],
             key=lambda item: item["shard_index"],
         )
-        seat_metrics.append(aggregate_policy_match_shards(player_shards))
+        seat_metric = aggregate_policy_match_shards(player_shards)
+        attach_model_decision_diagnostics(
+            seat_metric,
+            [
+                item["model_decision_diagnostics_raw"]
+                for item in player_shards
+                if "model_decision_diagnostics_raw" in item
+            ],
+        )
+        seat_metrics.append(seat_metric)
     metrics = aggregate_model_player_metrics(seat_metrics)
     metrics["jobs"] = args.jobs
     metrics["shard_hands"] = shard_hands
     metrics["paired_seats"] = False
+    metrics["model_decision_diagnostics_enabled"] = model_decision_diagnostics
     if args.out is not None:
         write_json(args.out, metrics)
     return metrics
@@ -956,6 +1199,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Rollout margin for the opponent policy used inside neural policy rollouts.",
     )
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
+    parser.add_argument(
+        "--model-decision-diagnostics",
+        action="store_true",
+        help="Record aggregate neural action probabilities and logit margins by state bucket.",
+    )
     parser.add_argument("--jobs", type=int, default=1)
     parser.add_argument("--paired-seats", action="store_true")
     parser.add_argument("--progress", action="store_true")

@@ -89,6 +89,7 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
             "1",
             "--model-rollout-opponent-rollout-margin",
             "1.5",
+            "--model-decision-diagnostics",
             "--model-player",
             "1",
         ]
@@ -110,6 +111,7 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
     assert args.model_rollout_opponent_equity_sims == 2
     assert args.model_rollout_opponent_rollout_sims == 1
     assert args.model_rollout_opponent_rollout_margin == 1.5
+    assert args.model_decision_diagnostics
 
 
 def test_holdem_model_eval_parser_accepts_both_model_players() -> None:
@@ -531,6 +533,37 @@ def test_holdem_model_eval_run_smoke(tmp_path) -> None:
     assert not metrics["paired_seats"]
     assert sum(metrics["model_action_counts"].values()) > 0
     assert sum(metrics["opponent_action_counts"].values()) > 0
+
+
+def test_holdem_model_eval_records_model_decision_diagnostics(tmp_path) -> None:
+    policy_checkpoint = tmp_path / "policy.pt"
+    write_biased_policy_checkpoint(policy_checkpoint, "bet")
+
+    metrics = run(
+        build_parser().parse_args(
+            [
+                "--checkpoint",
+                str(policy_checkpoint),
+                "--hands",
+                "1",
+                "--model-player",
+                "both",
+                "--opponent-policy",
+                "random",
+                "--model-decision-diagnostics",
+            ]
+        )
+    )
+
+    diagnostics = metrics["model_decision_diagnostics"]
+    all_bucket = diagnostics["all"]
+    assert metrics["model_decision_diagnostics_enabled"]
+    assert all_bucket["count"] == sum(metrics["model_action_counts"].values())
+    assert all_bucket["action_counts"] == metrics["model_action_counts"]
+    assert set(all_bucket["avg_action_probs"]) == set(HOLDEM_CANONICAL_ACTIONS)
+    assert "avg_top_logit_margin" in all_bucket
+    assert "player_0" in diagnostics
+    assert "player_1" in diagnostics
 
 
 def test_holdem_model_eval_run_paired_seats_smoke(tmp_path) -> None:
