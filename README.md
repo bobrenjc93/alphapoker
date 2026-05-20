@@ -214,6 +214,7 @@ broader context for range-aware and safe-rollout probes.
 | 2026-05-19T20:23:11-07:00 | `5574b59` | Mixed action-history range replay with safe-expert labels. | A 774-example base replay plus 472 safe labels still failed safe rollout s1 at `-1.5750 +/- 1.1819`; no exact/range extension. |
 | 2026-05-19T20:39:47-07:00 | `c6c7dee` | Targeted action-history safe labels at player 1. | P1-focused replay kept small exact/range probes positive (`+0.6000 +/- 0.7372`, `+0.7800 +/- 0.7019`) and improved the cheap safe point to `-0.6250 +/- 1.1647`, but safe remained negative and P1 was still weak. |
 | 2026-05-19T20:58:41-07:00 | `70e91b1` | Increased player-1 safe replay to 300 hands. | The larger P1 dose kept small exact/range probes positive (`+0.9700 +/- 0.7543`, `+0.2600 +/- 0.3663`) but cheap safe stayed negative at `-0.7125 +/- 1.3259`; P1 improved to `-0.9250` while P0 regressed. |
+| 2026-05-19T21:21:42-07:00 | `13822dd` | Rebalanced 300-hand safe replay across both seats. | The 2,305-example mix kept small exact/range probes positive (`+0.4350 +/- 0.8808`, `+0.4250 +/- 0.5490`) but cheap safe stayed negative at `-0.8125 +/- 1.0932`; both safe seats were negative. |
 
 Current fixed-limit Hold'em gate:
 
@@ -336,6 +337,11 @@ Current fixed-limit Hold'em gate:
   rollout stayed negative (`-0.7125 +/- 1.3259`). Small exact/range checks were
   still positive (`+0.9700 +/- 0.7543` and `+0.2600 +/- 0.3663`), which points
   to a seat-balance problem rather than a simple need for more player-1 labels.
+- Adding a matching 300-hand player-0 safe cache produced a larger balanced
+  2,305-example replay set, but still failed the cheap safe rollout probe:
+  `-0.8125 +/- 1.0932`, with player 0 at `-0.9000` and player 1 at `-0.7250`.
+  The exact/range smoke checks remained positive but below the current best,
+  so seat-balanced safe replay alone is also not enough.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
