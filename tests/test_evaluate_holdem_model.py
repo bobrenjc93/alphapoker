@@ -5,12 +5,14 @@ torch = pytest.importorskip("torch")
 pytest.importorskip("treys")
 
 from alphapoker.evaluate_holdem_model import (  # noqa: E402
+    action_logit_biases_from_specs,
     build_parser,
     evaluation_process_context,
     make_opponent_policy,
     model_policy_from_checkpoint,
     opponent_aggressions_before_current_decision,
     parse_model_players,
+    player_action_logit_biases_from_specs,
     run,
     split_hands,
 )
@@ -59,6 +61,10 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
             "0.25",
             "--blend-after-opponent-aggressions",
             "1",
+            "--facing-bet-logit-bias",
+            "call=0.5",
+            "--player-facing-bet-logit-bias",
+            "0:raise=-1.0",
             "--model-player",
             "1",
         ]
@@ -68,6 +74,8 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
     assert str(args.blend_checkpoint) == "blend.pt"
     assert args.blend_weight == 0.25
     assert args.blend_after_opponent_aggressions == 1
+    assert args.facing_bet_logit_bias == ["call=0.5"]
+    assert args.player_facing_bet_logit_bias == ["0:raise=-1.0"]
 
 
 def test_holdem_model_eval_parser_accepts_both_model_players() -> None:
@@ -263,6 +271,37 @@ def test_model_policy_can_blend_after_opponent_aggression(tmp_path) -> None:
     raised_state = state.apply(RAISE)
     assert opponent_aggressions_before_current_decision(raised_state) == 1
     assert policy(raised_state) == blend_action
+
+
+def test_model_policy_applies_facing_bet_logit_bias(tmp_path) -> None:
+    state = deal_fixed_limit_holdem()
+    raised_state = state.apply(RAISE)
+    policy_checkpoint = tmp_path / "policy.pt"
+    write_biased_policy_checkpoint(policy_checkpoint, "fold")
+
+    policy = model_policy_from_checkpoint(
+        policy_checkpoint,
+        facing_bet_logit_biases=action_logit_biases_from_specs(["call=20.0"]),
+    )
+
+    assert policy(raised_state) == "call"
+
+
+def test_model_policy_applies_player_facing_bet_logit_bias(tmp_path) -> None:
+    state = deal_fixed_limit_holdem()
+    raised_state = state.apply(RAISE)
+    current_player = raised_state.current_player()
+    policy_checkpoint = tmp_path / "policy.pt"
+    write_biased_policy_checkpoint(policy_checkpoint, "fold")
+
+    policy = model_policy_from_checkpoint(
+        policy_checkpoint,
+        player_facing_bet_logit_biases=player_action_logit_biases_from_specs(
+            [f"{current_player}:call=20.0"]
+        ),
+    )
+
+    assert policy(raised_state) == "call"
 
 
 def test_model_policy_blend_rejects_incompatible_features(tmp_path) -> None:
