@@ -173,6 +173,8 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
         "blend_checkpoint",
         "blend_weight",
         "blend_after_opponent_aggressions",
+        "blend_facing_bet_only",
+        "blend_players",
         "facing_bet_logit_biases",
         "facing_bet_logit_bias_after_opponent_aggressions",
         "player_facing_bet_logit_biases",
@@ -238,6 +240,8 @@ def model_policy_from_checkpoint(
     blend_checkpoint_path: Path | None = None,
     blend_weight: float = 0.5,
     blend_after_opponent_aggressions: int | None = None,
+    blend_facing_bet_only: bool = False,
+    blend_players: tuple[int, ...] | None = None,
     facing_bet_logit_biases: dict[str, float] | None = None,
     facing_bet_logit_bias_after_opponent_aggressions: int | None = None,
     player_facing_bet_logit_biases: dict[tuple[int, str], float] | None = None,
@@ -254,6 +258,14 @@ def model_policy_from_checkpoint(
             raise ValueError("blend_after_opponent_aggressions must be positive")
         if blend_checkpoint_path is None:
             raise ValueError("blend_after_opponent_aggressions requires a blend checkpoint")
+    if blend_facing_bet_only and blend_checkpoint_path is None:
+        raise ValueError("blend_facing_bet_only requires a blend checkpoint")
+    if blend_players is not None:
+        if blend_checkpoint_path is None:
+            raise ValueError("blend_players requires a blend checkpoint")
+        invalid_players = [player for player in blend_players if player not in (0, 1)]
+        if invalid_players:
+            raise ValueError("blend_players must contain only players 0 and 1")
     if facing_bet_logit_bias_after_opponent_aggressions is not None:
         if facing_bet_logit_bias_after_opponent_aggressions < 1:
             raise ValueError(
@@ -286,15 +298,24 @@ def model_policy_from_checkpoint(
     def select_action(state: FixedLimitHoldemState) -> str:
         features = torch.tensor([feature_encoder.encode(state)], dtype=torch.float32)
         mask = torch.tensor(holdem_legal_action_mask(state), dtype=torch.bool)
+        facing_bet = bool(
+            mask[HOLDEM_CANONICAL_ACTIONS.index("call")]
+            and mask[HOLDEM_CANONICAL_ACTIONS.index("fold")]
+        )
+        current_player = state.current_player()
         with torch.no_grad():
             logits = model(features).squeeze(0)
             if blend_model is not None:
                 blend_logits = blend_model(features).squeeze(0)
                 active_blend_weight = blend_weight
+                if blend_facing_bet_only and not facing_bet:
+                    active_blend_weight = 0.0
+                if blend_players is not None and current_player not in blend_players:
+                    active_blend_weight = 0.0
                 if blend_after_opponent_aggressions is not None:
                     opponent_aggressions = opponent_aggressions_before_current_decision(state)
                     active_blend_weight = (
-                        blend_weight
+                        active_blend_weight
                         if opponent_aggressions >= blend_after_opponent_aggressions
                         else 0.0
                     )
@@ -302,10 +323,6 @@ def model_policy_from_checkpoint(
                     (1.0 - active_blend_weight) * logits
                     + active_blend_weight * blend_logits
                 )
-            facing_bet = bool(
-                mask[HOLDEM_CANONICAL_ACTIONS.index("call")]
-                and mask[HOLDEM_CANONICAL_ACTIONS.index("fold")]
-            )
             if facing_bet:
                 visible_opponent_aggressions: int | None = None
                 apply_global_biases = True
@@ -320,7 +337,6 @@ def model_policy_from_checkpoint(
                 if apply_global_biases:
                     for action, bias in facing_bet_logit_biases.items():
                         logits[HOLDEM_CANONICAL_ACTIONS.index(action)] += bias
-                current_player = state.current_player()
                 apply_player_biases = True
                 if (
                     player_facing_bet_logit_bias_after_opponent_aggressions
@@ -368,6 +384,8 @@ def evaluate_model_shard(
     blend_checkpoint: Path | None,
     blend_weight: float,
     blend_after_opponent_aggressions: int | None,
+    blend_facing_bet_only: bool,
+    blend_players: tuple[int, ...] | None,
     facing_bet_logit_biases: dict[str, float],
     facing_bet_logit_bias_after_opponent_aggressions: int | None,
     player_facing_bet_logit_biases: dict[tuple[int, str], float],
@@ -390,6 +408,8 @@ def evaluate_model_shard(
                 blend_checkpoint_path=blend_checkpoint,
                 blend_weight=blend_weight,
                 blend_after_opponent_aggressions=blend_after_opponent_aggressions,
+                blend_facing_bet_only=blend_facing_bet_only,
+                blend_players=blend_players,
                 facing_bet_logit_biases=facing_bet_logit_biases,
                 facing_bet_logit_bias_after_opponent_aggressions=(
                     facing_bet_logit_bias_after_opponent_aggressions
@@ -417,6 +437,8 @@ def evaluate_model_shard(
         "blend_checkpoint": str(blend_checkpoint) if blend_checkpoint is not None else None,
         "blend_weight": blend_weight if blend_checkpoint is not None else None,
         "blend_after_opponent_aggressions": blend_after_opponent_aggressions,
+        "blend_facing_bet_only": blend_facing_bet_only,
+        "blend_players": list(blend_players) if blend_players is not None else None,
         "facing_bet_logit_biases": facing_bet_logit_biases,
         "facing_bet_logit_bias_after_opponent_aggressions": (
             facing_bet_logit_bias_after_opponent_aggressions
@@ -444,6 +466,8 @@ def evaluate_model_paired_shard(
     blend_checkpoint: Path | None,
     blend_weight: float,
     blend_after_opponent_aggressions: int | None,
+    blend_facing_bet_only: bool,
+    blend_players: tuple[int, ...] | None,
     facing_bet_logit_biases: dict[str, float],
     facing_bet_logit_bias_after_opponent_aggressions: int | None,
     player_facing_bet_logit_biases: dict[tuple[int, str], float],
@@ -458,6 +482,8 @@ def evaluate_model_paired_shard(
             blend_checkpoint_path=blend_checkpoint,
             blend_weight=blend_weight,
             blend_after_opponent_aggressions=blend_after_opponent_aggressions,
+            blend_facing_bet_only=blend_facing_bet_only,
+            blend_players=blend_players,
             facing_bet_logit_biases=facing_bet_logit_biases,
             facing_bet_logit_bias_after_opponent_aggressions=(
                 facing_bet_logit_bias_after_opponent_aggressions
@@ -496,6 +522,8 @@ def evaluate_model_paired_shard(
         "blend_checkpoint": str(blend_checkpoint) if blend_checkpoint is not None else None,
         "blend_weight": blend_weight if blend_checkpoint is not None else None,
         "blend_after_opponent_aggressions": blend_after_opponent_aggressions,
+        "blend_facing_bet_only": blend_facing_bet_only,
+        "blend_players": list(blend_players) if blend_players is not None else None,
         "facing_bet_logit_biases": facing_bet_logit_biases,
         "facing_bet_logit_bias_after_opponent_aggressions": (
             facing_bet_logit_bias_after_opponent_aggressions
@@ -536,6 +564,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             raise ValueError("--blend-after-opponent-aggressions must be positive")
         if blend_checkpoint is None:
             raise ValueError("--blend-after-opponent-aggressions requires --blend-checkpoint")
+    blend_facing_bet_only = bool(getattr(args, "blend_facing_bet_only", False))
+    if blend_facing_bet_only and blend_checkpoint is None:
+        raise ValueError("--blend-facing-bet-only requires --blend-checkpoint")
+    blend_players = tuple(getattr(args, "blend_player", []) or [])
+    if blend_players and blend_checkpoint is None:
+        raise ValueError("--blend-player requires --blend-checkpoint")
+    if any(player not in (0, 1) for player in blend_players):
+        raise ValueError("--blend-player values must be 0 or 1")
+    blend_players_or_none = blend_players or None
     facing_bet_logit_biases = action_logit_biases_from_specs(
         getattr(args, "facing_bet_logit_bias", None)
     )
@@ -585,6 +622,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "blend_checkpoint": blend_checkpoint,
                 "blend_weight": blend_weight,
                 "blend_after_opponent_aggressions": blend_after_opponent_aggressions,
+                "blend_facing_bet_only": blend_facing_bet_only,
+                "blend_players": blend_players_or_none,
                 "facing_bet_logit_biases": facing_bet_logit_biases,
                 "facing_bet_logit_bias_after_opponent_aggressions": (
                     facing_bet_logit_bias_after_opponent_aggressions
@@ -640,6 +679,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "blend_checkpoint": blend_checkpoint,
             "blend_weight": blend_weight,
             "blend_after_opponent_aggressions": blend_after_opponent_aggressions,
+            "blend_facing_bet_only": blend_facing_bet_only,
+            "blend_players": blend_players_or_none,
             "facing_bet_logit_biases": facing_bet_logit_biases,
             "facing_bet_logit_bias_after_opponent_aggressions": (
                 facing_bet_logit_bias_after_opponent_aggressions
@@ -695,6 +736,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--blend-checkpoint", type=Path)
     parser.add_argument("--blend-weight", type=float, default=0.5)
     parser.add_argument("--blend-after-opponent-aggressions", type=int)
+    parser.add_argument(
+        "--blend-facing-bet-only",
+        action="store_true",
+        help="Apply checkpoint blending only while the model is facing a bet or raise.",
+    )
+    parser.add_argument(
+        "--blend-player",
+        action="append",
+        default=[],
+        type=int,
+        choices=[0, 1],
+        help="Apply checkpoint blending only for this current player; repeat for both.",
+    )
     parser.add_argument(
         "--facing-bet-logit-bias",
         action="append",

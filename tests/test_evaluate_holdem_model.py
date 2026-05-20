@@ -61,6 +61,9 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
             "0.25",
             "--blend-after-opponent-aggressions",
             "1",
+            "--blend-facing-bet-only",
+            "--blend-player",
+            "1",
             "--facing-bet-logit-bias",
             "call=0.5",
             "--facing-bet-logit-bias-after-opponent-aggressions",
@@ -78,6 +81,8 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
     assert str(args.blend_checkpoint) == "blend.pt"
     assert args.blend_weight == 0.25
     assert args.blend_after_opponent_aggressions == 1
+    assert args.blend_facing_bet_only
+    assert args.blend_player == [1]
     assert args.facing_bet_logit_bias == ["call=0.5"]
     assert args.facing_bet_logit_bias_after_opponent_aggressions == 2
     assert args.player_facing_bet_logit_bias == ["0:raise=-1.0"]
@@ -279,6 +284,56 @@ def test_model_policy_can_blend_after_opponent_aggression(tmp_path) -> None:
     assert policy(raised_state) == blend_action
 
 
+def test_model_policy_can_blend_only_while_facing_bet(tmp_path) -> None:
+    state = deal_fixed_limit_holdem()
+    non_facing_state = state.apply("call")
+    facing_state = state.apply(RAISE)
+    primary_action = non_facing_state.legal_actions()[0]
+    blend_action = facing_state.legal_actions()[-1]
+    primary_checkpoint = tmp_path / "primary.pt"
+    blend_checkpoint = tmp_path / "blend.pt"
+    write_biased_policy_checkpoint(primary_checkpoint, primary_action)
+    write_biased_policy_checkpoint(blend_checkpoint, blend_action)
+
+    policy = model_policy_from_checkpoint(
+        primary_checkpoint,
+        blend_checkpoint_path=blend_checkpoint,
+        blend_weight=1.0,
+        blend_facing_bet_only=True,
+    )
+
+    assert policy(non_facing_state) == primary_action
+    assert policy(facing_state) == blend_action
+
+
+def test_model_policy_can_blend_only_for_selected_player(tmp_path) -> None:
+    state = deal_fixed_limit_holdem().apply(RAISE)
+    current_player = state.current_player()
+    other_player = 1 - current_player
+    primary_action = state.legal_actions()[0]
+    blend_action = state.legal_actions()[-1]
+    primary_checkpoint = tmp_path / "primary.pt"
+    blend_checkpoint = tmp_path / "blend.pt"
+    write_biased_policy_checkpoint(primary_checkpoint, primary_action)
+    write_biased_policy_checkpoint(blend_checkpoint, blend_action)
+
+    inactive_policy = model_policy_from_checkpoint(
+        primary_checkpoint,
+        blend_checkpoint_path=blend_checkpoint,
+        blend_weight=1.0,
+        blend_players=(other_player,),
+    )
+    active_policy = model_policy_from_checkpoint(
+        primary_checkpoint,
+        blend_checkpoint_path=blend_checkpoint,
+        blend_weight=1.0,
+        blend_players=(current_player,),
+    )
+
+    assert inactive_policy(state) == primary_action
+    assert active_policy(state) == blend_action
+
+
 def test_model_policy_applies_facing_bet_logit_bias(tmp_path) -> None:
     state = deal_fixed_limit_holdem()
     raised_state = state.apply(RAISE)
@@ -409,6 +464,9 @@ def test_holdem_model_eval_run_smoke(tmp_path) -> None:
                 "0.25",
                 "--blend-after-opponent-aggressions",
                 "1",
+                "--blend-facing-bet-only",
+                "--blend-player",
+                "1",
                 "--hands",
                 "1",
                 "--model-player",
@@ -428,6 +486,8 @@ def test_holdem_model_eval_run_smoke(tmp_path) -> None:
     assert metrics["blend_checkpoint"] == str(blend_checkpoint)
     assert metrics["blend_weight"] == 0.25
     assert metrics["blend_after_opponent_aggressions"] == 1
+    assert metrics["blend_facing_bet_only"]
+    assert metrics["blend_players"] == [1]
     assert not metrics["paired_seats"]
     assert sum(metrics["model_action_counts"].values()) > 0
     assert sum(metrics["opponent_action_counts"].values()) > 0
@@ -462,6 +522,9 @@ def test_holdem_model_eval_run_paired_seats_smoke(tmp_path) -> None:
                 str(blend_checkpoint),
                 "--blend-after-opponent-aggressions",
                 "1",
+                "--blend-facing-bet-only",
+                "--blend-player",
+                "1",
                 "--hands",
                 "2",
                 "--model-player",
@@ -485,6 +548,8 @@ def test_holdem_model_eval_run_paired_seats_smoke(tmp_path) -> None:
     assert metrics["player0_checkpoint"] == str(policy_checkpoint)
     assert metrics["player1_checkpoint"] == str(blend_checkpoint)
     assert metrics["blend_after_opponent_aggressions"] == 1
+    assert metrics["blend_facing_bet_only"]
+    assert metrics["blend_players"] == [1]
     assert len(metrics["seat_metrics"]) == 2
     assert sum(metrics["model_action_counts"].values()) == sum(
         sum(seat["model_action_counts"].values()) for seat in metrics["seat_metrics"]
