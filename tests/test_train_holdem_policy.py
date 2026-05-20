@@ -5,7 +5,9 @@ pytest.importorskip("treys")
 
 from alphapoker.holdem_dataset import HoldemPolicyExample, write_policy_examples  # noqa: E402
 from alphapoker.holdem_features import (  # noqa: E402
+    HOLDEM_ACTION_HISTORY_FEATURE_DIM,
     HOLDEM_CANONICAL_ACTIONS,
+    HOLDEM_FEATURE_DIM,
     HOLDEM_PLAYER_FEATURE_DIM,
     HOLDEM_PLAYER_FEATURE_OFFSET,
 )
@@ -22,6 +24,7 @@ from alphapoker.train_holdem_policy import (  # noqa: E402
     example_weights_from_masks,
     facing_bet_action_weights_from_masks_targets,
     load_policy_checkpoint_state,
+    opponent_aggression_count_mask_from_features,
     player_action_weight_overrides_from_specs,
     player_action_weights_from_features_targets,
     player_action_value_weights_from_features_mask,
@@ -78,8 +81,12 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "1:raise=3.0",
             "--facing-bet-action-weight",
             "call=2.0",
+            "--facing-bet-action-weight-after-opponent-aggressions",
+            "2",
             "--player-facing-bet-action-weight",
             "1:fold=0.5",
+            "--player-facing-bet-action-weight-after-opponent-aggressions",
+            "3",
             "--player-action-value-weight",
             "1=2.5",
             "--facing-bet-weight",
@@ -114,7 +121,9 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.action_weight == ["raise=2.0", "fold=0.5"]
     assert args.player_action_weight == ["1:raise=3.0"]
     assert args.facing_bet_action_weight == ["call=2.0"]
+    assert args.facing_bet_action_weight_after_opponent_aggressions == 2
     assert args.player_facing_bet_action_weight == ["1:fold=0.5"]
+    assert args.player_facing_bet_action_weight_after_opponent_aggressions == 3
     assert args.player_action_value_weight == ["1=2.5"]
     assert args.facing_bet_weight == 3.0
     assert args.jobs == 4
@@ -443,6 +452,60 @@ def test_facing_bet_action_weights_apply_only_to_response_targets() -> None:
     assert weights.tolist() == [2.5, 1.0, 1.0]
 
 
+def test_opponent_aggression_count_mask_uses_action_history_features() -> None:
+    torch = pytest.importorskip("torch")
+    features = torch.zeros(
+        (3, HOLDEM_FEATURE_DIM + HOLDEM_ACTION_HISTORY_FEATURE_DIM)
+    )
+    features[0, -4] = 1.0 / 16.0
+    features[1, -4] = 2.0 / 16.0
+    features[2, -4] = 3.0 / 16.0
+
+    mask = opponent_aggression_count_mask_from_features(features, 2)
+
+    assert mask.tolist() == [False, True, True]
+    with pytest.raises(ValueError, match="requires action-history features"):
+        opponent_aggression_count_mask_from_features(torch.zeros((1, HOLDEM_FEATURE_DIM)), 2)
+    with pytest.raises(ValueError, match="threshold must be positive"):
+        opponent_aggression_count_mask_from_features(features, 0)
+
+
+def test_facing_bet_action_weights_can_gate_on_opponent_aggressions() -> None:
+    torch = pytest.importorskip("torch")
+    features = torch.zeros(
+        (3, HOLDEM_FEATURE_DIM + HOLDEM_ACTION_HISTORY_FEATURE_DIM)
+    )
+    features[0, -4] = 1.0 / 16.0
+    features[1, -4] = 2.0 / 16.0
+    features[2, -4] = 3.0 / 16.0
+    masks = torch.tensor(
+        [
+            [False, False, True, True, False],
+            [False, False, True, True, False],
+            [False, False, True, True, False],
+        ],
+        dtype=torch.bool,
+    )
+    targets = torch.tensor(
+        [
+            HOLDEM_CANONICAL_ACTIONS.index("call"),
+            HOLDEM_CANONICAL_ACTIONS.index("call"),
+            HOLDEM_CANONICAL_ACTIONS.index("fold"),
+        ]
+    )
+
+    overrides = action_weight_overrides_from_specs(["call=2.5"])
+    weights = facing_bet_action_weights_from_masks_targets(
+        masks,
+        targets,
+        overrides,
+        features=features,
+        after_opponent_aggressions=2,
+    )
+
+    assert weights.tolist() == [1.0, 2.5, 1.0]
+
+
 def test_player_facing_bet_action_weights_apply_only_to_selected_player_response() -> None:
     torch = pytest.importorskip("torch")
     feature_dim = HOLDEM_PLAYER_FEATURE_OFFSET + HOLDEM_PLAYER_FEATURE_DIM
@@ -475,6 +538,48 @@ def test_player_facing_bet_action_weights_apply_only_to_selected_player_response
         masks,
         targets,
         overrides,
+    )
+
+    assert weights.tolist() == [1.0, 3.0, 1.0, 1.0]
+
+
+def test_player_facing_bet_action_weights_can_gate_on_opponent_aggressions() -> None:
+    torch = pytest.importorskip("torch")
+    feature_dim = HOLDEM_FEATURE_DIM + HOLDEM_ACTION_HISTORY_FEATURE_DIM
+    features = torch.zeros((4, feature_dim))
+    features[0, HOLDEM_PLAYER_FEATURE_OFFSET + 1] = 1.0
+    features[1, HOLDEM_PLAYER_FEATURE_OFFSET + 1] = 1.0
+    features[2, HOLDEM_PLAYER_FEATURE_OFFSET] = 1.0
+    features[3, HOLDEM_PLAYER_FEATURE_OFFSET + 1] = 1.0
+    features[0, -4] = 1.0 / 16.0
+    features[1, -4] = 2.0 / 16.0
+    features[2, -4] = 2.0 / 16.0
+    features[3, -4] = 3.0 / 16.0
+    masks = torch.tensor(
+        [
+            [False, False, True, True, False],
+            [False, False, True, True, False],
+            [False, False, True, True, False],
+            [True, True, False, False, False],
+        ],
+        dtype=torch.bool,
+    )
+    targets = torch.tensor(
+        [
+            HOLDEM_CANONICAL_ACTIONS.index("call"),
+            HOLDEM_CANONICAL_ACTIONS.index("call"),
+            HOLDEM_CANONICAL_ACTIONS.index("call"),
+            HOLDEM_CANONICAL_ACTIONS.index("call"),
+        ]
+    )
+
+    overrides = player_action_weight_overrides_from_specs(["1:call=3.0"])
+    weights = player_facing_bet_action_weights_from_features_masks_targets(
+        features,
+        masks,
+        targets,
+        overrides,
+        after_opponent_aggressions=2,
     )
 
     assert weights.tolist() == [1.0, 3.0, 1.0, 1.0]

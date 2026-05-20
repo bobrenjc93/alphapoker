@@ -20,7 +20,9 @@ from alphapoker.holdem_dataset import (
 from alphapoker.holdem_dataset import read_policy_examples, write_policy_examples
 from alphapoker.holdem_equity_feature import equity_estimator_from_checkpoint
 from alphapoker.holdem_features import (
+    HOLDEM_ACTION_HISTORY_FEATURE_DIM,
     HOLDEM_CANONICAL_ACTIONS,
+    HOLDEM_FEATURE_DIM,
     HOLDEM_PLAYER_FEATURE_DIM,
     HOLDEM_PLAYER_FEATURE_OFFSET,
 )
@@ -150,10 +152,28 @@ def facing_bet_mask_from_masks(masks):
     return masks[:, call_index] & masks[:, fold_index]
 
 
+def opponent_aggression_count_mask_from_features(features, minimum: int):
+    if minimum < 1:
+        raise ValueError("opponent aggression threshold must be positive")
+    if features.shape[1] < HOLDEM_FEATURE_DIM + HOLDEM_ACTION_HISTORY_FEATURE_DIM:
+        raise ValueError("opponent aggression gating requires action-history features")
+    import torch
+
+    opponent_aggression_feature = features[:, -HOLDEM_ACTION_HISTORY_FEATURE_DIM + 1]
+    max_total_aggressions = 16.0
+    opponent_aggressions = torch.round(
+        opponent_aggression_feature * max_total_aggressions
+    ).long()
+    return opponent_aggressions >= minimum
+
+
 def facing_bet_action_weights_from_masks_targets(
     masks,
     targets,
     overrides: dict[str, float],
+    *,
+    features=None,
+    after_opponent_aggressions: int | None = None,
 ):
     import torch
 
@@ -161,6 +181,13 @@ def facing_bet_action_weights_from_masks_targets(
     if not overrides:
         return weights
     facing_bet = facing_bet_mask_from_masks(masks)
+    if after_opponent_aggressions is not None:
+        if features is None:
+            raise ValueError("opponent aggression gating requires features")
+        facing_bet = facing_bet & opponent_aggression_count_mask_from_features(
+            features,
+            after_opponent_aggressions,
+        )
     for action, value in overrides.items():
         action_index = HOLDEM_CANONICAL_ACTIONS.index(action)
         selected = facing_bet & (targets == action_index)
@@ -173,6 +200,8 @@ def player_facing_bet_action_weights_from_features_masks_targets(
     masks,
     targets,
     overrides: dict[tuple[int, str], float],
+    *,
+    after_opponent_aggressions: int | None = None,
 ):
     import torch
 
@@ -181,6 +210,11 @@ def player_facing_bet_action_weights_from_features_masks_targets(
         return weights
     players = player_indices_from_features(features)
     facing_bet = facing_bet_mask_from_masks(masks)
+    if after_opponent_aggressions is not None:
+        facing_bet = facing_bet & opponent_aggression_count_mask_from_features(
+            features,
+            after_opponent_aggressions,
+        )
     for (player, action), value in overrides.items():
         action_index = HOLDEM_CANONICAL_ACTIONS.index(action)
         selected = (players == player) & facing_bet & (targets == action_index)
@@ -610,8 +644,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     facing_bet_action_weight_overrides = action_weight_overrides_from_specs(
         getattr(args, "facing_bet_action_weight", None)
     )
+    facing_bet_action_weight_after_opponent_aggressions = getattr(
+        args,
+        "facing_bet_action_weight_after_opponent_aggressions",
+        None,
+    )
     player_facing_bet_action_weight_overrides = player_action_weight_overrides_from_specs(
         getattr(args, "player_facing_bet_action_weight", None)
+    )
+    player_facing_bet_action_weight_after_opponent_aggressions = getattr(
+        args,
+        "player_facing_bet_action_weight_after_opponent_aggressions",
+        None,
     )
     facing_bet_weights = example_weights_from_masks(masks, facing_bet_weight)
     player_action_weights = player_action_weights_from_features_targets(
@@ -623,6 +667,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         masks,
         targets,
         facing_bet_action_weight_overrides,
+        features=features,
+        after_opponent_aggressions=(
+            facing_bet_action_weight_after_opponent_aggressions
+        ),
     )
     player_facing_bet_action_weights = (
         player_facing_bet_action_weights_from_features_masks_targets(
@@ -630,6 +678,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             masks,
             targets,
             player_facing_bet_action_weight_overrides,
+            after_opponent_aggressions=(
+                player_facing_bet_action_weight_after_opponent_aggressions
+            ),
         )
     )
     if action_value_target_mask is None:
@@ -1029,6 +1080,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if player_action_weight_overrides
         else 0,
         "facing_bet_action_weight_overrides": facing_bet_action_weight_overrides,
+        "facing_bet_action_weight_after_opponent_aggressions": (
+            facing_bet_action_weight_after_opponent_aggressions
+        ),
         "facing_bet_action_weighted_examples": int(
             (facing_bet_action_weights != 1.0).sum().item()
         )
@@ -1038,6 +1092,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             f"{player}:{action}": weight
             for (player, action), weight in player_facing_bet_action_weight_overrides.items()
         },
+        "player_facing_bet_action_weight_after_opponent_aggressions": (
+            player_facing_bet_action_weight_after_opponent_aggressions
+        ),
         "player_facing_bet_action_weighted_examples": int(
             (player_facing_bet_action_weights != 1.0).sum().item()
         )
@@ -1171,6 +1228,14 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--facing-bet-action-weight-after-opponent-aggressions",
+        type=int,
+        help=(
+            "Apply --facing-bet-action-weight only when action-history features show "
+            "at least this many prior opponent bets or raises."
+        ),
+    )
+    parser.add_argument(
         "--player-facing-bet-action-weight",
         action="append",
         default=[],
@@ -1178,6 +1243,14 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Multiply examples for one current-player/action target only when facing "
             "a bet, for example --player-facing-bet-action-weight 1:call=2.0."
+        ),
+    )
+    parser.add_argument(
+        "--player-facing-bet-action-weight-after-opponent-aggressions",
+        type=int,
+        help=(
+            "Apply --player-facing-bet-action-weight only when action-history "
+            "features show at least this many prior opponent bets or raises."
         ),
     )
     parser.add_argument(
