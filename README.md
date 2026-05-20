@@ -278,6 +278,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T02:34:48-07:00 | `7e42eca` | Tried runtime response calibration on the current best. | Global facing-bet `raise=+0.5`, `fold=-0.5` improved the h40 safe s1 smoke to `+0.050 +/- 0.715`; player 1 stayed negative and exact/range gates are not confirmed, so current best is unchanged. |
 | 2026-05-20T03:06:49-07:00 | `47ba023` | Gated player-specific logit calibration by observed aggression. | Player-specific facing-bet biases can now wait until at least N opponent bets/raises; `tests/test_evaluate_holdem_model.py` passed (`22 passed`). |
 | 2026-05-20T03:19:48-07:00 | `3f63500` | Probed global, player-specific, and aggression-gated runtime calibration. | Global bias kept h100 exact/range positive but failed safe s1 (`-0.285 +/- 0.493`); ungated player-1 raise/fold repaired safe (`+0.655 +/- 0.548`) but failed range (`-0.385 +/- 0.342`); after-two-aggressions player-1 raise/fold stayed positive on protective exact/range/safe h100 seeds (`+0.550`, `+0.265`, `+0.220`) but is not confirmed enough to replace the current best. |
+| 2026-05-20T03:35:33-07:00 | `d5bece6` | Confirmed gated runtime calibration on a larger safe-rollout probe. | After-two-aggressions player-1 raise/fold calibration stayed positive vs cheap safe rollout over 200 paired deals (`+0.2925 +/- 0.4591`; model-player seats `+0.4300`, `+0.1550`), but the interval still crosses zero, so current best is unchanged. |
 
 Current fixed-limit Hold'em gate:
 
@@ -688,7 +689,11 @@ Current fixed-limit Hold'em gate:
   +/- 0.342`). Gating that player-1 adjustment until after two opponent
   aggressions kept the protective h100 exact/range/safe seeds positive
   (`+0.550 +/- 0.523`, `+0.265 +/- 0.370`, `+0.220 +/- 0.602`), but the safe
-  signal is too noisy and the exact/range points do not improve the main gate.
+  signal is noisy and the exact/range points do not improve the main gate. A
+  larger 200-paired safe-rollout confirmation stayed positive at `+0.2925 +/-
+  0.4591`, with model-player 0 at `+0.4300` and model-player 1 at `+0.1550`;
+  the confidence interval still crosses zero, so this remains a promising
+  calibration probe rather than a replacement for the current best.
 
 ## Research Roadmap
 
