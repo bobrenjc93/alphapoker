@@ -229,6 +229,7 @@ broader context for range-aware and safe-rollout probes.
 | 2026-05-19T22:15:43-07:00 | `562c955` | Swept milder and call-aware action shaping. | `raise=1.5`, `fold=0.75` failed safe rollout (`-1.7375 +/- 1.4825`); p1-focused heavy shaping also failed (`-0.8375 +/- 1.1339`); adding `call=1.5` kept exact/range near flat-positive but safe was too noisy (`+0.3000 +/- 2.0511`). |
 | 2026-05-19T22:29:07-07:00 | `4191fc5` | Tried player-action weighting for player-1 responses. | KL8 p1 call/raise upweighting still failed cheap safe rollout (`-1.0250 +/- 1.4232`); KL2 moved p1 raises but stayed negative (`-0.4000 +/- 1.5183`), and a more call-heavy KL2 variant failed at `-1.4500 +/- 1.7017`. |
 | 2026-05-19T22:56:26-07:00 | `93e7682` | Tried soft rollout action-probability targets. | A 20-hand soft safe-rollout replay raised target mass, but player 1 still under-raised and cheap safe rollout failed at `-1.8625 +/- 0.8881` over 40 paired deals. |
+| 2026-05-19T23:08:24-07:00 | `145dea5` | Targeted soft safe-rollout labels at player 1. | KL2 train selection improved p1 raise imitation and made the cheap safe probe noisy-positive (`+0.5750 +/- 1.0963`), but exact and range gates failed (`-0.4000 +/- 0.3654`, `-0.3050 +/- 0.1972`). |
 
 Current fixed-limit Hold'em gate:
 
@@ -409,6 +410,14 @@ Current fixed-limit Hold'em gate:
   0.8881` over 40 paired deals, with player 0 at `+0.2250` and player 1 at
   `-3.9500`, so the rollout-value signal needs a better seat-specific training
   setup before scaling.
+- Targeting those soft safe-rollout labels at player 1 and selecting by train
+  loss with a weaker KL2 anchor finally moved supervised player-1 raises in the
+  desired direction (`14` predicted vs `23` target, compared with `3` predicted
+  under KL6 validation selection). The live safe rollout smoke test became
+  noisy-positive (`+0.5750 +/- 1.0963` over 40 paired deals), but the branch
+  failed the protective gates: `-0.4000 +/- 0.3654` vs tight exact e8 and
+  `-0.3050 +/- 0.1972` vs `tight-range-pot-odds` e4, both over 100 paired
+  deals. It is a useful robustness diagnostic, not a candidate.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
