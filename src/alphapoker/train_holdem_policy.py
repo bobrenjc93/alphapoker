@@ -423,6 +423,88 @@ def generate_policy_examples_shard(
     )
 
 
+def _policy_example_shard_cache_path(shard_cache_dir: Path, index: int) -> Path:
+    return shard_cache_dir / f"shard_{index:04d}.json"
+
+
+def _policy_example_shard_cache_manifest(
+    *,
+    hands: int,
+    seed: int,
+    equity_sims: int,
+    expert_player: int | None,
+    expert_policy: str,
+    opponent_policy: str,
+    rollout_sims: int | None,
+    rollout_margin: float,
+    feature_equity_sims: int | None,
+    feature_equity_mode: str,
+    feature_equity_checkpoint: Path | None,
+    behavior_checkpoint: Path | None,
+    action_history_features: bool,
+    soft_target_temperature: float | None,
+    record_facing_bet_only: bool,
+    record_min_opponent_aggressions: int | None,
+    jobs: int,
+    shard_hands: list[int],
+) -> dict[str, Any]:
+    return {
+        "version": 1,
+        "hands": hands,
+        "seed": seed,
+        "equity_sims": equity_sims,
+        "expert_player": expert_player,
+        "expert_policy": expert_policy,
+        "opponent_policy": opponent_policy,
+        "rollout_sims": rollout_sims,
+        "rollout_margin": rollout_margin,
+        "feature_equity_sims": feature_equity_sims,
+        "feature_equity_mode": feature_equity_mode,
+        "feature_equity_checkpoint": (
+            str(feature_equity_checkpoint)
+            if feature_equity_checkpoint is not None
+            else None
+        ),
+        "behavior_checkpoint": (
+            str(behavior_checkpoint) if behavior_checkpoint is not None else None
+        ),
+        "action_history_features": action_history_features,
+        "soft_target_temperature": soft_target_temperature,
+        "record_facing_bet_only": record_facing_bet_only,
+        "record_min_opponent_aggressions": record_min_opponent_aggressions,
+        "jobs": jobs,
+        "shard_hands": shard_hands,
+    }
+
+
+def _prepare_policy_example_shard_cache(
+    shard_cache_dir: Path,
+    manifest: dict[str, Any],
+) -> None:
+    shard_cache_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = shard_cache_dir / "manifest.json"
+    if manifest_path.exists():
+        cached_manifest = json.loads(manifest_path.read_text())
+        if cached_manifest != manifest:
+            raise ValueError(
+                "--examples-shard-cache-dir manifest does not match current "
+                "generation arguments"
+            )
+        return
+    write_json(manifest_path, manifest)
+
+
+def _write_policy_examples_shard_cache(
+    shard_cache_dir: Path,
+    index: int,
+    examples: list[Any],
+) -> None:
+    path = _policy_example_shard_cache_path(shard_cache_dir, index)
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    write_policy_examples(tmp_path, examples)
+    tmp_path.replace(path)
+
+
 def generate_policy_training_examples(
     *,
     hands: int,
@@ -443,10 +525,49 @@ def generate_policy_training_examples(
     record_min_opponent_aggressions: int | None,
     jobs: int,
     progress: bool = False,
+    shard_cache_dir: Path | None = None,
 ):
     if jobs < 1:
         raise ValueError("jobs must be positive")
+    shard_hands = _shard_hands(hands, jobs)
+    if shard_cache_dir is not None:
+        _prepare_policy_example_shard_cache(
+            shard_cache_dir,
+            _policy_example_shard_cache_manifest(
+                hands=hands,
+                seed=seed,
+                equity_sims=equity_sims,
+                expert_player=expert_player,
+                expert_policy=expert_policy,
+                opponent_policy=opponent_policy,
+                rollout_sims=rollout_sims,
+                rollout_margin=rollout_margin,
+                feature_equity_sims=feature_equity_sims,
+                feature_equity_mode=feature_equity_mode,
+                feature_equity_checkpoint=feature_equity_checkpoint,
+                behavior_checkpoint=behavior_checkpoint,
+                action_history_features=action_history_features,
+                soft_target_temperature=soft_target_temperature,
+                record_facing_bet_only=record_facing_bet_only,
+                record_min_opponent_aggressions=record_min_opponent_aggressions,
+                jobs=jobs,
+                shard_hands=shard_hands,
+            ),
+        )
+    if not shard_hands:
+        return []
     if jobs == 1:
+        if shard_cache_dir is not None:
+            shard_path = _policy_example_shard_cache_path(shard_cache_dir, 0)
+            if shard_path.exists():
+                examples = read_policy_examples(shard_path)
+                if progress:
+                    print(
+                        f"examples shard 0: hands={hands} examples={len(examples)} cached",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                return examples
         examples = generate_policy_examples_shard(
             0,
             hands=hands,
@@ -472,48 +593,69 @@ def generate_policy_training_examples(
                 file=sys.stderr,
                 flush=True,
             )
+        if shard_cache_dir is not None:
+            _write_policy_examples_shard_cache(shard_cache_dir, 0, examples)
         return examples
 
     examples = []
-    shard_hands = _shard_hands(hands, jobs)
-    if not shard_hands:
-        return examples
-    with ProcessPoolExecutor(max_workers=min(jobs, len(shard_hands))) as executor:
-        future_to_index = {
-            executor.submit(
-                generate_policy_examples_shard,
-                index,
-                hands=shard_size,
-                seed=seed,
-                equity_sims=equity_sims,
-                expert_player=expert_player,
-                expert_policy=expert_policy,
-                opponent_policy=opponent_policy,
-                rollout_sims=rollout_sims,
-                rollout_margin=rollout_margin,
-                feature_equity_sims=feature_equity_sims,
-                feature_equity_mode=feature_equity_mode,
-                feature_equity_checkpoint=feature_equity_checkpoint,
-                behavior_checkpoint=behavior_checkpoint,
-                action_history_features=action_history_features,
-                soft_target_temperature=soft_target_temperature,
-                record_facing_bet_only=record_facing_bet_only,
-                record_min_opponent_aggressions=record_min_opponent_aggressions,
-            ): index
-            for index, shard_size in enumerate(shard_hands)
-        }
-        shard_results = {}
-        for future in as_completed(future_to_index):
-            index = future_to_index[future]
-            result = future.result()
-            shard_results[index] = result
-            if progress:
-                print(
-                    f"examples shard {index}: hands={shard_hands[index]} "
-                    f"examples={len(result)}",
-                    file=sys.stderr,
-                    flush=True,
-                )
+    shard_results = {}
+    missing_shards = []
+    if shard_cache_dir is not None:
+        for index, shard_size in enumerate(shard_hands):
+            shard_path = _policy_example_shard_cache_path(shard_cache_dir, index)
+            if shard_path.exists():
+                result = read_policy_examples(shard_path)
+                shard_results[index] = result
+                if progress:
+                    print(
+                        f"examples shard {index}: hands={shard_size} "
+                        f"examples={len(result)} cached",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+            else:
+                missing_shards.append((index, shard_size))
+    else:
+        missing_shards = list(enumerate(shard_hands))
+
+    if missing_shards:
+        with ProcessPoolExecutor(max_workers=min(jobs, len(missing_shards))) as executor:
+            future_to_index = {
+                executor.submit(
+                    generate_policy_examples_shard,
+                    index,
+                    hands=shard_size,
+                    seed=seed,
+                    equity_sims=equity_sims,
+                    expert_player=expert_player,
+                    expert_policy=expert_policy,
+                    opponent_policy=opponent_policy,
+                    rollout_sims=rollout_sims,
+                    rollout_margin=rollout_margin,
+                    feature_equity_sims=feature_equity_sims,
+                    feature_equity_mode=feature_equity_mode,
+                    feature_equity_checkpoint=feature_equity_checkpoint,
+                    behavior_checkpoint=behavior_checkpoint,
+                    action_history_features=action_history_features,
+                    soft_target_temperature=soft_target_temperature,
+                    record_facing_bet_only=record_facing_bet_only,
+                    record_min_opponent_aggressions=record_min_opponent_aggressions,
+                ): index
+                for index, shard_size in missing_shards
+            }
+            for future in as_completed(future_to_index):
+                index = future_to_index[future]
+                result = future.result()
+                shard_results[index] = result
+                if shard_cache_dir is not None:
+                    _write_policy_examples_shard_cache(shard_cache_dir, index, result)
+                if progress:
+                    print(
+                        f"examples shard {index}: hands={shard_hands[index]} "
+                        f"examples={len(result)}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
     for index in sorted(shard_results):
         examples.extend(shard_results[index])
     return examples
@@ -535,6 +677,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     examples_in = getattr(args, "examples_in", None)
     extra_examples_in = getattr(args, "extra_examples_in", None) or []
     examples_out = getattr(args, "examples_out", None)
+    examples_shard_cache_dir = getattr(args, "examples_shard_cache_dir", None)
     jobs = getattr(args, "jobs", 1)
     rollout_margin = float(getattr(args, "rollout_margin", 1.0))
     if examples_in is not None:
@@ -563,6 +706,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             ),
             jobs=jobs,
             progress=bool(getattr(args, "progress", False)),
+            shard_cache_dir=examples_shard_cache_dir,
         )
     extra_example_count = 0
     for extra_examples_path in extra_examples_in:
@@ -1184,6 +1328,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     metrics["extra_examples"] = int(extra_example_count)
     if examples_out is not None:
         metrics["examples_out"] = str(examples_out)
+    if examples_shard_cache_dir is not None:
+        metrics["examples_shard_cache_dir"] = str(examples_shard_cache_dir)
     write_json(out_dir / "metrics.json", metrics)
     return metrics
 
@@ -1320,6 +1466,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Append cached examples to the primary generated or cached examples.",
     )
     parser.add_argument("--examples-out", type=Path)
+    parser.add_argument(
+        "--examples-shard-cache-dir",
+        type=Path,
+        help=(
+            "Write generated example shards as they finish and reuse matching "
+            "cached shards on rerun."
+        ),
+    )
     parser.add_argument("--out", type=Path, required=True)
     return parser
 

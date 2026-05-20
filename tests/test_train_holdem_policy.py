@@ -23,6 +23,7 @@ from alphapoker.train_holdem_policy import (  # noqa: E402
     class_weights_from_targets,
     example_weights_from_masks,
     facing_bet_action_weights_from_masks_targets,
+    generate_policy_training_examples,
     load_policy_checkpoint_state,
     opponent_aggression_count_mask_from_features,
     player_action_weight_overrides_from_specs,
@@ -74,6 +75,8 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "focused.json",
             "--examples-out",
             "cached.json",
+            "--examples-shard-cache-dir",
+            "shards",
             "--class-weighting",
             "balanced",
             "--class-weight-exponent",
@@ -139,6 +142,7 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert str(args.examples_in) == "examples.json"
     assert [str(path) for path in args.extra_examples_in] == ["focused.json"]
     assert str(args.examples_out) == "cached.json"
+    assert str(args.examples_shard_cache_dir) == "shards"
 
 
 def test_train_holdem_policy_parser_accepts_feature_equity_checkpoint() -> None:
@@ -636,6 +640,109 @@ def test_train_holdem_policy_parser_accepts_tight_range_feature() -> None:
 def test_shard_hands_for_parallel_policy_training() -> None:
     assert _shard_hands(11, 4) == [3, 3, 3, 2]
     assert _shard_hands(2, 4) == [1, 1]
+
+
+def test_generate_policy_training_examples_reuses_shard_cache(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    calls: list[int] = []
+
+    def fake_generate_policy_examples_shard(index: int, **kwargs):
+        calls.append(index)
+        return [
+            HoldemPolicyExample(
+                features=[float(index), float(kwargs["hands"])],
+                action_index=0,
+                legal_mask=[True, False, False, False, False],
+            )
+        ]
+
+    monkeypatch.setattr(
+        "alphapoker.train_holdem_policy.generate_policy_examples_shard",
+        fake_generate_policy_examples_shard,
+    )
+    cache_dir = tmp_path / "shards"
+    generation_args = {
+        "hands": 3,
+        "seed": 11,
+        "equity_sims": 2,
+        "expert_player": None,
+        "expert_policy": "equity",
+        "opponent_policy": "random",
+        "rollout_sims": None,
+        "rollout_margin": 1.0,
+        "feature_equity_sims": None,
+        "feature_equity_mode": "random",
+        "feature_equity_checkpoint": None,
+        "behavior_checkpoint": None,
+        "action_history_features": False,
+        "soft_target_temperature": None,
+        "record_facing_bet_only": False,
+        "record_min_opponent_aggressions": None,
+        "jobs": 1,
+        "shard_cache_dir": cache_dir,
+    }
+
+    first = generate_policy_training_examples(**generation_args)
+
+    assert calls == [0]
+    assert (cache_dir / "manifest.json").exists()
+    assert (cache_dir / "shard_0000.json").exists()
+
+    def fail_generate_policy_examples_shard(index: int, **kwargs):
+        raise AssertionError("cached shard should be reused")
+
+    monkeypatch.setattr(
+        "alphapoker.train_holdem_policy.generate_policy_examples_shard",
+        fail_generate_policy_examples_shard,
+    )
+
+    assert generate_policy_training_examples(**generation_args) == first
+
+
+def test_generate_policy_training_examples_rejects_stale_shard_cache(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    def fake_generate_policy_examples_shard(index: int, **kwargs):
+        return [
+            HoldemPolicyExample(
+                features=[float(index)],
+                action_index=0,
+                legal_mask=[True, False, False, False, False],
+            )
+        ]
+
+    monkeypatch.setattr(
+        "alphapoker.train_holdem_policy.generate_policy_examples_shard",
+        fake_generate_policy_examples_shard,
+    )
+    cache_dir = tmp_path / "shards"
+    generation_args = {
+        "hands": 1,
+        "seed": 11,
+        "equity_sims": 2,
+        "expert_player": None,
+        "expert_policy": "equity",
+        "opponent_policy": "random",
+        "rollout_sims": None,
+        "rollout_margin": 1.0,
+        "feature_equity_sims": None,
+        "feature_equity_mode": "random",
+        "feature_equity_checkpoint": None,
+        "behavior_checkpoint": None,
+        "action_history_features": False,
+        "soft_target_temperature": None,
+        "record_facing_bet_only": False,
+        "record_min_opponent_aggressions": None,
+        "jobs": 1,
+        "shard_cache_dir": cache_dir,
+    }
+    generate_policy_training_examples(**generation_args)
+
+    with pytest.raises(ValueError, match="manifest does not match"):
+        generate_policy_training_examples(**{**generation_args, "seed": 12})
 
 
 def test_split_train_validation_indices_is_deterministic() -> None:
