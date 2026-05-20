@@ -306,6 +306,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T08:33:35-07:00 | `72da424` | Added player/state gates for checkpoint blending. | Evaluator blending can now apply only while facing a bet/raise and only for selected current-player seats; evaluator and Hold'em aggregation tests passed (`31 passed`). |
 | 2026-05-20T08:39:54-07:00 | `6613512` | Tried p1-only conditional response blending toward the h300 checkpoint. | Restricting the blend to player 1, facing-bet states, after one opponent aggression failed h40 safe: 50% scored `-0.600 +/- 0.627` (p0 `+0.100`, p1 `-1.300`), and 100% scored `-0.850 +/- 0.848` (p0 `+0.100`, p1 `-1.800`); current best unchanged. |
 | 2026-05-20T08:55:35-07:00 | `a4319fd` | Checked h300 same-seed seat composites. | On the response-blend seed, current best failed h40 safe at `-1.1375 +/- 0.741` (p0 `+0.100`, p1 `-2.375`), h300-both failed at `-0.6625 +/- 1.246`, current p0 plus h300 p1 was best but still negative at `-0.325 +/- 0.741`, and h300 p0 plus current p1 failed at `-1.475 +/- 0.978`. |
+| 2026-05-20T09:06:55-07:00 | `2b149a4` | Retrained the h300 replay mix with validation selection. | A 10% validation split selected epoch 31 and under-raised p1 cached responses (`86` predicted raises vs `161` target); h40 safe was only `+0.025 +/- 0.862` and h100 safe failed at `-0.260 +/- 0.485` with player 1 still negative (`-1.130`). |
 
 Current fixed-limit Hold'em gate:
 
@@ -837,6 +838,14 @@ Current fixed-limit Hold'em gate:
   was the least bad at `-0.325 +/- 0.741` (`+0.100`, `-0.750`), and h300 p0
   plus current p1 failed at `-1.475 +/- 0.978` (`-0.575`, `-2.375`). The h300
   response checkpoint is not a reusable seat-composite repair.
+- Validation-selected replay reduced overfitting but did not repair player 1.
+  Replaying the same 1,510 examples with a 10% validation split selected epoch
+  31 instead of the train-loss epoch 299 and under-raised cached p1 responses
+  (`86` predicted raises vs `161` target). Live h40 safe on seed `79918` was
+  only `+0.025 +/- 0.862` (`+0.850`, `-0.800`), and h100 safe on seed `79917`
+  failed at `-0.260 +/- 0.485` (`+0.610`, `-1.130`). Validation selection is
+  not enough; the next useful repair needs better player-1 response targets or
+  a stronger gate than single-seed h40 smoke tests.
 
 ## Research Roadmap
 
