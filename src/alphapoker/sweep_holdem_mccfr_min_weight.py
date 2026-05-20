@@ -10,7 +10,10 @@ from typing import Any
 
 from alphapoker.evaluate_holdem_mccfr import evaluate_checkpoint
 from alphapoker.evaluate_holdem_model import parse_model_players
-from alphapoker.holdem_mccfr import HOLDEM_MCCFR_STRATEGY_MODES
+from alphapoker.holdem_mccfr import (
+    HOLDEM_MCCFR_STRATEGY_MODES,
+    HOLDEM_MCCFR_SUPPORT_MODES,
+)
 from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES
 from alphapoker.train import write_json
 from alphapoker.train_holdem_policy_gradient import model_player_label, normalize_model_players
@@ -37,6 +40,7 @@ def evaluate_weight(
     fallback_policy: str,
     min_strategy_weight: float,
     strategy_mode: str,
+    strategy_support_mode: str,
     equity_sims: int,
     rollout_sims: int | None,
     model_players: tuple[int, ...],
@@ -52,6 +56,7 @@ def evaluate_weight(
         fallback_policy=fallback_policy,
         min_strategy_weight=min_strategy_weight,
         strategy_mode=strategy_mode,
+        strategy_support_mode=strategy_support_mode,
         equity_sims=equity_sims,
         rollout_sims=rollout_sims,
         model_players=model_players,
@@ -79,6 +84,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             fallback_policy=args.fallback_policy,
             min_strategy_weight=weight,
             strategy_mode=args.strategy_mode,
+            strategy_support_mode=args.strategy_support_mode,
             equity_sims=args.equity_sims,
             rollout_sims=args.rollout_sims,
             model_players=model_players,
@@ -97,6 +103,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "opponent_policy": args.opponent_policy,
         "fallback_policy": args.fallback_policy,
         "strategy_mode": args.strategy_mode,
+        "strategy_support_mode": args.strategy_support_mode,
         "equity_sims": args.equity_sims,
         "rollout_sims": args.rollout_sims,
         "model_player": model_player_label(model_players),
@@ -131,6 +138,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--opponent-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="pot-odds")
     parser.add_argument("--fallback-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="pot-odds")
     parser.add_argument("--strategy-mode", choices=HOLDEM_MCCFR_STRATEGY_MODES, default="average")
+    parser.add_argument(
+        "--strategy-support-mode",
+        choices=HOLDEM_MCCFR_SUPPORT_MODES,
+        default="count",
+    )
     parser.add_argument(
         "--weights",
         type=parse_min_strategy_weights,

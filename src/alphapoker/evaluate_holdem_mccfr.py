@@ -22,6 +22,7 @@ from alphapoker.holdem_evaluation import (
 )
 from alphapoker.holdem_mccfr import (
     HOLDEM_MCCFR_STRATEGY_MODES,
+    HOLDEM_MCCFR_SUPPORT_MODES,
     HoldemAbstractionCFRTrainer,
     holdem_policy_from_trainer,
 )
@@ -56,6 +57,7 @@ def evaluate_mccfr_shard(
     fallback_policy: str,
     min_strategy_weight: float,
     strategy_mode: str,
+    strategy_support_mode: str,
     equity_sims: int,
     rollout_sims: int | None,
     model_player: int,
@@ -81,6 +83,7 @@ def evaluate_mccfr_shard(
                 fallback_policy=fallback,
                 min_strategy_weight=min_strategy_weight,
                 strategy_mode=strategy_mode,
+                strategy_support_mode=strategy_support_mode,
             ),
             opponent_policy=make_opponent_policy(
                 opponent_policy,
@@ -98,6 +101,7 @@ def evaluate_mccfr_shard(
         "fallback_policy": fallback_policy,
         "min_strategy_weight": min_strategy_weight,
         "strategy_mode": strategy_mode,
+        "strategy_support_mode": strategy_support_mode,
         "shard_index": shard_index,
     }
 
@@ -111,6 +115,7 @@ def evaluate_mccfr_paired_shard(
     fallback_policy: str,
     min_strategy_weight: float,
     strategy_mode: str,
+    strategy_support_mode: str,
     equity_sims: int,
     rollout_sims: int | None,
     shard_index: int,
@@ -133,6 +138,7 @@ def evaluate_mccfr_paired_shard(
                 fallback_policy=fallback,
                 min_strategy_weight=min_strategy_weight,
                 strategy_mode=strategy_mode,
+                strategy_support_mode=strategy_support_mode,
             )
         )
         opponent_policies.append(
@@ -158,6 +164,7 @@ def evaluate_mccfr_paired_shard(
         "fallback_policy": fallback_policy,
         "min_strategy_weight": min_strategy_weight,
         "strategy_mode": strategy_mode,
+        "strategy_support_mode": strategy_support_mode,
         "shard_index": shard_index,
     }
 
@@ -171,6 +178,7 @@ def evaluate_checkpoint(
     fallback_policy: str,
     min_strategy_weight: float,
     strategy_mode: str,
+    strategy_support_mode: str,
     equity_sims: int,
     rollout_sims: int | None,
     model_players: tuple[int, ...],
@@ -191,6 +199,7 @@ def evaluate_checkpoint(
                 "fallback_policy": fallback_policy,
                 "min_strategy_weight": min_strategy_weight,
                 "strategy_mode": strategy_mode,
+                "strategy_support_mode": strategy_support_mode,
                 "equity_sims": equity_sims,
                 "rollout_sims": rollout_sims,
                 "shard_index": shard_index,
@@ -213,6 +222,7 @@ def evaluate_checkpoint(
         metrics["fallback_policy"] = fallback_policy
         metrics["min_strategy_weight"] = min_strategy_weight
         metrics["strategy_mode"] = strategy_mode
+        metrics["strategy_support_mode"] = strategy_support_mode
         metrics["traversal"] = trainer.traversal
         metrics["abstraction"] = trainer.abstraction
         metrics["iterations"] = trainer.iterations
@@ -232,6 +242,7 @@ def evaluate_checkpoint(
             "fallback_policy": fallback_policy,
             "min_strategy_weight": min_strategy_weight,
             "strategy_mode": strategy_mode,
+            "strategy_support_mode": strategy_support_mode,
             "equity_sims": equity_sims,
             "rollout_sims": rollout_sims,
             "model_player": model_player,
@@ -263,6 +274,7 @@ def evaluate_checkpoint(
     metrics["fallback_policy"] = fallback_policy
     metrics["min_strategy_weight"] = min_strategy_weight
     metrics["strategy_mode"] = strategy_mode
+    metrics["strategy_support_mode"] = strategy_support_mode
     metrics["traversal"] = trainer.traversal
     metrics["abstraction"] = trainer.abstraction
     metrics["iterations"] = trainer.iterations
@@ -282,6 +294,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         fallback_policy=args.fallback_policy,
         min_strategy_weight=args.min_strategy_weight,
         strategy_mode=args.strategy_mode,
+        strategy_support_mode=args.strategy_support_mode,
         equity_sims=args.equity_sims,
         rollout_sims=args.rollout_sims,
         model_players=normalize_model_players(args.model_player),
@@ -302,6 +315,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fallback-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="pot-odds")
     parser.add_argument("--min-strategy-weight", type=float, default=0.0)
     parser.add_argument("--strategy-mode", choices=HOLDEM_MCCFR_STRATEGY_MODES, default="average")
+    parser.add_argument(
+        "--strategy-support-mode",
+        choices=HOLDEM_MCCFR_SUPPORT_MODES,
+        default="count",
+        help=(
+            "Use raw infoset update counts or accumulated average-strategy mass "
+            "when deciding whether to fall back below --min-strategy-weight."
+        ),
+    )
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))

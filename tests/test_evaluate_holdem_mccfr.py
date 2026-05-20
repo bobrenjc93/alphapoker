@@ -24,6 +24,8 @@ def test_evaluate_holdem_mccfr_parser_accepts_options() -> None:
             "5",
             "--strategy-mode",
             "current",
+            "--strategy-support-mode",
+            "reach",
             "--paired-seats",
         ]
     )
@@ -35,6 +37,7 @@ def test_evaluate_holdem_mccfr_parser_accepts_options() -> None:
     assert args.fallback_policy == "tuned-pot-odds"
     assert args.min_strategy_weight == 5
     assert args.strategy_mode == "current"
+    assert args.strategy_support_mode == "reach"
     assert args.paired_seats
 
 
@@ -134,6 +137,7 @@ def test_evaluate_holdem_mccfr_reuses_deals_across_seats(tmp_path) -> None:
         fallback_policy="random",
         min_strategy_weight=0.0,
         strategy_mode="average",
+        strategy_support_mode="count",
         equity_sims=2,
         rollout_sims=None,
         model_player=0,
@@ -147,6 +151,7 @@ def test_evaluate_holdem_mccfr_reuses_deals_across_seats(tmp_path) -> None:
         fallback_policy="random",
         min_strategy_weight=0.0,
         strategy_mode="average",
+        strategy_support_mode="count",
         equity_sims=2,
         rollout_sims=None,
         model_player=1,

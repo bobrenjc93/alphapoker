@@ -27,6 +27,7 @@ from alphapoker.leduc import RAISE
 HoldemAbstractStrategy = dict[str, dict[str, float]]
 HOLDEM_ABSTRACTIONS = ("fine", "medium", "equity", "coarse")
 HOLDEM_MCCFR_STRATEGY_MODES = ("average", "current")
+HOLDEM_MCCFR_SUPPORT_MODES = ("count", "reach")
 _EQUITY_ABSTRACTION_SIMS = 8
 
 
@@ -497,18 +498,26 @@ def holdem_policy_from_trainer(
     fallback_policy: HoldemPolicy | None = None,
     min_strategy_weight: float = 0.0,
     strategy_mode: str = "average",
+    strategy_support_mode: str = "count",
 ) -> HoldemPolicy:
     if strategy_mode not in HOLDEM_MCCFR_STRATEGY_MODES:
         raise ValueError(
             f"strategy_mode must be one of {', '.join(HOLDEM_MCCFR_STRATEGY_MODES)}"
         )
+    if strategy_support_mode not in HOLDEM_MCCFR_SUPPORT_MODES:
+        raise ValueError(
+            "strategy_support_mode must be one of "
+            f"{', '.join(HOLDEM_MCCFR_SUPPORT_MODES)}"
+        )
 
     def strategy_support(infoset: InfoSet) -> float:
-        return (
-            float(infoset.strategy_update_count)
-            if infoset.strategy_update_count > 0
-            else sum(infoset.strategy_sum)
-        )
+        if strategy_support_mode == "count":
+            return (
+                float(infoset.strategy_update_count)
+                if infoset.strategy_update_count > 0
+                else sum(infoset.strategy_sum)
+            )
+        return sum(infoset.strategy_sum)
 
     def selected_strategy(infoset: InfoSet) -> dict[str, float]:
         if strategy_mode == "average":

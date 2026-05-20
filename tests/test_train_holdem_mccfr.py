@@ -34,6 +34,8 @@ def test_train_holdem_mccfr_parser_accepts_eval_options() -> None:
             "10",
             "--strategy-mode",
             "current",
+            "--strategy-support-mode",
+            "reach",
             "--discard-checkpoint",
             "--out",
             "out",
@@ -53,6 +55,7 @@ def test_train_holdem_mccfr_parser_accepts_eval_options() -> None:
     assert args.fallback_policy == "tuned-pot-odds"
     assert args.min_strategy_weight == 10
     assert args.strategy_mode == "current"
+    assert args.strategy_support_mode == "reach"
     assert args.discard_checkpoint
 
 
@@ -94,11 +97,13 @@ def test_train_holdem_mccfr_run_smoke(tmp_path) -> None:
     assert metrics["abstraction"] == "coarse"
     assert metrics["min_strategy_weight"] == 0.0
     assert metrics["strategy_mode"] == "average"
+    assert metrics["strategy_support_mode"] == "count"
     assert not metrics["checkpoint_saved"]
     assert not (tmp_path / "run" / "holdem_mccfr.json").exists()
     assert metrics["evaluation"]["hands"] == 1
     assert metrics["evaluation"]["jobs"] == 1
     assert metrics["evaluation"]["strategy_mode"] == "average"
+    assert metrics["evaluation"]["strategy_support_mode"] == "count"
 
 
 def test_train_holdem_mccfr_resumes_from_checkpoint(tmp_path) -> None:

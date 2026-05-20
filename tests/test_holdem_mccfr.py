@@ -5,6 +5,7 @@ import pytest
 
 pytest.importorskip("treys")
 
+from alphapoker.cfr import InfoSet  # noqa: E402
 from alphapoker.holdem import FixedLimitHoldemState, deal_fixed_limit_holdem  # noqa: E402
 from alphapoker.kuhn import CALL  # noqa: E402
 from alphapoker.holdem_mccfr import (  # noqa: E402
@@ -124,6 +125,37 @@ def test_holdem_mccfr_trainer_policy_can_fallback_on_low_weight() -> None:
     assert policy(state) == state.legal_actions()[0]
 
 
+def test_holdem_mccfr_trainer_policy_can_gate_by_reach_support() -> None:
+    trainer = HoldemAbstractionCFRTrainer(seed=9, max_bets_per_round=4, traversal="external")
+    state = deal_fixed_limit_holdem(random.Random(10))
+    actions = state.legal_actions()
+    trainer.infosets[abstract_holdem_information_key(state, abstraction=trainer.abstraction)] = (
+        InfoSet(
+            actions=actions,
+            strategy_sum=[0.0, 0.0, 1.0],
+            strategy_update_count=10,
+        )
+    )
+
+    count_policy = holdem_policy_from_trainer(
+        trainer,
+        random.Random(11),
+        fallback_policy=lambda fallback_state: fallback_state.legal_actions()[0],
+        min_strategy_weight=5.0,
+        strategy_support_mode="count",
+    )
+    reach_policy = holdem_policy_from_trainer(
+        trainer,
+        random.Random(11),
+        fallback_policy=lambda fallback_state: fallback_state.legal_actions()[0],
+        min_strategy_weight=5.0,
+        strategy_support_mode="reach",
+    )
+
+    assert count_policy(state) == actions[2]
+    assert reach_policy(state) == actions[0]
+
+
 def test_holdem_mccfr_trainer_policy_can_use_current_strategy() -> None:
     trainer = HoldemAbstractionCFRTrainer(seed=10, max_bets_per_round=4, traversal="external")
     trainer.train(2)
@@ -145,6 +177,17 @@ def test_holdem_mccfr_trainer_policy_rejects_bad_strategy_mode() -> None:
             trainer,
             random.Random(14),
             strategy_mode="bad",
+        )
+
+
+def test_holdem_mccfr_trainer_policy_rejects_bad_support_mode() -> None:
+    trainer = HoldemAbstractionCFRTrainer(seed=14, max_bets_per_round=4)
+
+    with pytest.raises(ValueError, match="strategy_support_mode"):
+        holdem_policy_from_trainer(
+            trainer,
+            random.Random(15),
+            strategy_support_mode="bad",
         )
 
 

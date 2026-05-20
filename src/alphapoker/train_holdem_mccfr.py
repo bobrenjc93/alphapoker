@@ -12,6 +12,7 @@ from alphapoker.evaluate_holdem_model import parse_model_players
 from alphapoker.holdem_mccfr import (
     HOLDEM_ABSTRACTIONS,
     HOLDEM_MCCFR_STRATEGY_MODES,
+    HOLDEM_MCCFR_SUPPORT_MODES,
     HoldemAbstractionCFRTrainer,
 )
 from alphapoker.holdem_self_play import HOLDEM_SELF_PLAY_POLICIES
@@ -59,6 +60,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "abstraction": trainer.abstraction,
         "min_strategy_weight": args.min_strategy_weight,
         "strategy_mode": args.strategy_mode,
+        "strategy_support_mode": args.strategy_support_mode,
         "checkpoint_saved": not args.discard_checkpoint,
     }
     if args.checkpoint_in is not None:
@@ -73,6 +75,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             fallback_policy=args.fallback_policy,
             min_strategy_weight=args.min_strategy_weight,
             strategy_mode=args.strategy_mode,
+            strategy_support_mode=args.strategy_support_mode,
             equity_sims=args.equity_sims,
             rollout_sims=args.rollout_sims,
             model_players=normalize_model_players(args.model_player),
@@ -103,6 +106,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fallback-policy", choices=HOLDEM_SELF_PLAY_POLICIES, default="pot-odds")
     parser.add_argument("--min-strategy-weight", type=float, default=0.0)
     parser.add_argument("--strategy-mode", choices=HOLDEM_MCCFR_STRATEGY_MODES, default="average")
+    parser.add_argument(
+        "--strategy-support-mode",
+        choices=HOLDEM_MCCFR_SUPPORT_MODES,
+        default="count",
+    )
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
