@@ -163,6 +163,9 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Hold'em RL checkpoint selection by single-opponent or multi-opponent
   evaluation gates, with weighted-mean or minimum-score aggregation and
   per-opponent equity/rollout settings.
+- Sampled abstract Hold'em MCCFR with coarse, medium, and equity abstractions,
+  fallback-gated evaluation, min-strategy-weight sweeps, and corrected
+  external-sampling average-policy updates.
 - Backward-compatible Hold'em hand-summary, made-hand strength, legal-action,
   and pot-odds features for neural policies.
 - Optional Monte Carlo, turn/river exact, and tight range-filtered equity features
@@ -346,6 +349,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T15:24:33-07:00 | `61b52b0` | Diagnosed current-best and softer-checkpoint cheap safe failures. | Current best p1 facing-bet raise probability was `0.183` with raise logits `-1.04` vs call and `-1.32` vs fold; the softer 500 checkpoint collapsed to p1 raise probability `0.017` with raise `-8.18` vs call, explaining why scalar p1 bias did not repair it. |
 | 2026-05-20T15:28:42-07:00 | `4356bda` | Added raise-probability gates for runtime calibration. | Evaluator-side facing-bet logit biases can now require a minimum pre-bias raise probability before applying global or player-specific calibration. |
 | 2026-05-20T15:34:22-07:00 | `7822c7a` | Probed raise-probability-gated runtime calibration. | Min-raise-prob `0.15` kept h100 exact and range positive (`+0.480 +/- 0.461`, `+0.470 +/- 0.246`), but cheap safe h100 remained flat-negative at `-0.100 +/- 0.616`; not a replacement. |
+| 2026-05-20T15:49:41-07:00 | `b578227` | Fixed external-sampling Hold'em MCCFR averaging. | Average-policy updates now touch only the traversed player's infosets with own reach probability; focused MCCFR tests passed (`24 passed`). A corrected 5k equity-abstraction hybrid with tight-exact fallback was weak-positive at `+0.174 +/- 0.131` over 500 paired deals (`min_strategy_weight=25`), still below the neural current best. |
 
 Current fixed-limit Hold'em gate:
 
@@ -985,6 +989,12 @@ Current fixed-limit Hold'em gate:
   2k for player 0 and current best for player 1 gave `-0.200 +/- 0.744` on the
   cheap safe h40 check because player 1 was still weak (`-1.35`). Using 2k for
   player 1 was worse at `-1.4375 +/- 0.600`.
+- Fixing external-sampling MCCFR average-policy updates made the abstract CFR
+  path more coherent: the corrected 5k equity-abstraction checkpoint plus
+  tight-exact fallback was weak-positive on a 500-paired tight exact smoke
+  (`+0.174 +/- 0.131`) with both seats positive. It is still far below the
+  neural current best and raises heavily (`295` model raises vs `131` opponent
+  raises), so it remains a self-play diagnostic rather than a candidate policy.
 
 ## Research Roadmap
 
