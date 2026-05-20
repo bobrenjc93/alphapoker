@@ -1,0 +1,18 @@
+holdem_mccfr.json was generated for this run and omitted from git because it was
+39 MB.
+
+Run summary:
+- 5,000 external-sampling MCCFR iterations.
+- Equity abstraction with max_bets_per_round=2.
+- 117,795 infosets.
+- Tight-exact fallback sweep best: min_strategy_weight=25, +0.273 +/- 0.134
+  chips/hand over 500 paired deals.
+- Range gate at that threshold: -0.167 +/- 0.143 chips/hand over 500 paired
+  deals.
+- Cheap safe-rollout s1 smoke at that threshold: +1.135 +/- 0.384 chips/hand
+  over 100 paired deals.
+
+The cap-2 abstraction improved the cheap safe-rollout smoke and kept the tight
+exact gate positive, but it failed the range gate and still raised far more than
+the opponent on exact/range probes. It is recorded as a diagnostic branch, not a
+current-best replacement.
