@@ -152,6 +152,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   baselines.
 - State-dependent Hold'em checkpoint blending that can switch toward a
   robustness checkpoint after observed opponent aggression.
+- Seat-specific Hold'em checkpoint evaluation that can assign different
+  checkpoint policies to player 0 and player 1.
 - Cross-seat Hold'em neural checkpoint evaluation.
 - Hold'em match-evaluation action-count diagnostics by model/opponent role and
   player seat, with optional progress reporting for long checkpoint evaluations.
@@ -233,6 +235,8 @@ broader context for range-aware and safe-rollout probes.
 | 2026-05-19T23:19:47-07:00 | `99690c8` | Made the p1 soft branch blend-compatible with the current best. | A 50% aggression-triggered blend stayed near flat on exact/range/safe (`-0.0500 +/- 0.3281`, `+0.0750 +/- 0.3311`, `+0.0375 +/- 0.6366`); no current-best update. |
 | 2026-05-19T23:23:50-07:00 | `53aa6b7` | Mixed base replay with p1 soft safe-rollout labels. | The 774-example base replay plus 155 p1-soft labels matched p1 raises, but cheap safe rollout still failed at `-0.2625 +/- 0.5495`; p0 regressed while p1 improved. |
 | 2026-05-19T23:31:23-07:00 | `4b1d806` | Added symmetric p0 soft safe-rollout replay. | The 774-example base replay plus p0/p1 soft labels still failed cheap safe rollout at `-0.4250 +/- 0.6793`; both-seat soft replay over-corrected p0 raises. |
+| 2026-05-19T23:35:10-07:00 | `56db2ee` | Added seat-specific checkpoint evaluation. | Tooling can now evaluate different neural checkpoints for player 0 and player 1; `tests/test_evaluate_holdem_model.py` passed (`19 passed`). |
+| 2026-05-19T23:38:10-07:00 | `0e012e4` | Tried a current-best plus p1-soft seat composite. | Current best for player 0 plus p1-soft for player 1 failed cheap safe rollout at `-1.7625 +/- 0.9729`; no exact/range extension. |
 
 Current fixed-limit Hold'em gate:
 
@@ -441,6 +445,12 @@ Current fixed-limit Hold'em gate:
   set (`112` predicted raises vs `79` target) and still failed cheap safe
   rollout at `-0.4250 +/- 0.6793` over 40 paired deals. Both seats need
   value-aware calibration, not just mirrored scalar weighting.
+- Seat-specific checkpoint evaluation is now supported, which lets experiments
+  assign separate neural policies to player 0 and player 1 without requiring
+  compatible feature metadata. The first composite, current best for player 0
+  plus the compatible p1-soft checkpoint for player 1, failed cheap safe rollout
+  at `-1.7625 +/- 0.9729` over 40 paired deals. The p1-soft branch was not a
+  drop-in second-seat repair.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
