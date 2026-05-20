@@ -321,6 +321,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T10:08:05-07:00 | `191ee1a` | Probed the fast range-default safe-rollout gate. | h4 finished in 8.67s with the same `-5.125 +/- 3.300` result; h40 finished in 175.72s but failed at `-1.425 +/- 0.753` with model-player seats `-0.450` and `-2.400`, so the current best remains unchanged. |
 | 2026-05-20T10:15:59-07:00 | `78ff000` | Collected fast range-default player-1 response labels. | A 40-hand behavior cache from the current best produced 46 after-one facing-bet labels with target `call/fold/raise = 18/8/20`, less fold-heavy than the older cheap-safe h100 cache (`34/27/40`). |
 | 2026-05-20T10:18:59-07:00 | `c1a9806` | Tried replaying the fast range-default response labels. | Adding the 46-label cache to the 1,174-example base replay matched cached p1 responses reasonably (`65/95/48` predicted vs `77/85/46` target), but h40 fast-range-default failed worse at `-1.625 +/- 0.714`; no exact/range extension. |
+| 2026-05-20T10:25:14-07:00 | `308e775` | Tried runtime p1 response calibration on the fast range-default gate. | Current best with p1 `raise=+0.5`, `fold=-0.5` after one opponent aggression failed h40 fast-range-default at `-1.800 +/- 0.696`; player 1 regressed to `-3.150`, so simple local calibration is rejected. |
 
 Current fixed-limit Hold'em gate:
 
@@ -905,6 +906,10 @@ Current fixed-limit Hold'em gate:
   but a direct KL4/sqrt/facing3 replay mix did not transfer to live play. It
   matched cached p1 responses reasonably, then failed h40 fast range-default at
   `-1.625 +/- 0.714`, slightly worse than the unchanged current best.
+- Runtime p1 response calibration also failed on the fast range-default gate:
+  p1 `raise=+0.5`, `fold=-0.5` after one opponent aggression increased p1
+  facing-bet raises but worsened h40 to `-1.800 +/- 0.696`, with player 1 at
+  `-3.150`. The gap is not a simple local logit-bias issue.
 
 ## Research Roadmap
 
