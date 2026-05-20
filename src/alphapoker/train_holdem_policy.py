@@ -57,6 +57,24 @@ def class_weights_from_targets(
     return weights / weights.mean()
 
 
+def example_weights_from_masks(masks, facing_bet_weight: float):
+    if facing_bet_weight <= 0.0:
+        raise ValueError("facing bet weight must be positive")
+    import torch
+
+    weights = torch.ones(masks.shape[0], dtype=torch.float32, device=masks.device)
+    if facing_bet_weight == 1.0:
+        return weights
+    call_index = HOLDEM_CANONICAL_ACTIONS.index("call")
+    fold_index = HOLDEM_CANONICAL_ACTIONS.index("fold")
+    facing_bet = masks[:, call_index] & masks[:, fold_index]
+    return torch.where(
+        facing_bet,
+        torch.full_like(weights, facing_bet_weight),
+        weights,
+    )
+
+
 def _shard_hands(hands: int, jobs: int) -> list[int]:
     if jobs < 1:
         raise ValueError("jobs must be positive")
@@ -269,6 +287,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     validation_features = features[validation_indices] if validation_indices else None
     validation_targets = targets[validation_indices] if validation_indices else None
     validation_masks = masks[validation_indices] if validation_indices else None
+    facing_bet_weight = float(getattr(args, "facing_bet_weight", 1.0))
+    example_weights = example_weights_from_masks(masks, facing_bet_weight)
+    use_example_weights = facing_bet_weight != 1.0
+    train_example_weights = example_weights[train_indices] if use_example_weights else None
+    validation_example_weights = (
+        example_weights[validation_indices]
+        if use_example_weights and validation_indices
+        else None
+    )
+    call_index = HOLDEM_CANONICAL_ACTIONS.index("call")
+    fold_index = HOLDEM_CANONICAL_ACTIONS.index("fold")
+    facing_bet_mask = masks[:, call_index] & masks[:, fold_index]
 
     torch.manual_seed(0)
     model = HoldemPolicyNet(input_dim=features.shape[1])
@@ -307,20 +337,39 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         class_weight_exponent,
     )
 
-    def loss_for(batch_features, batch_targets, batch_masks):
+    def loss_for(batch_features, batch_targets, batch_masks, batch_weights=None):
         logits = model(batch_features)
         masked_logits = logits.masked_fill(~batch_masks, -1e9)
-        loss = F.cross_entropy(masked_logits, batch_targets, weight=class_weights)
+        if batch_weights is None:
+            loss = F.cross_entropy(masked_logits, batch_targets, weight=class_weights)
+        else:
+            losses = F.cross_entropy(
+                masked_logits,
+                batch_targets,
+                weight=class_weights,
+                reduction="none",
+            )
+            loss = (losses * batch_weights).sum() / batch_weights.sum().clamp_min(1e-12)
         if anchor_model is None:
             return loss
         with torch.no_grad():
             anchor_logits = anchor_model(batch_features).masked_fill(~batch_masks, -1e9)
             anchor_probs = F.softmax(anchor_logits, dim=1)
-        policy_kl = F.kl_div(
-            F.log_softmax(masked_logits, dim=1),
-            anchor_probs,
-            reduction="batchmean",
-        )
+        if batch_weights is None:
+            policy_kl = F.kl_div(
+                F.log_softmax(masked_logits, dim=1),
+                anchor_probs,
+                reduction="batchmean",
+            )
+        else:
+            kl_losses = F.kl_div(
+                F.log_softmax(masked_logits, dim=1),
+                anchor_probs,
+                reduction="none",
+            ).sum(dim=1)
+            policy_kl = (
+                (kl_losses * batch_weights).sum() / batch_weights.sum().clamp_min(1e-12)
+            )
         return loss + init_kl_weight * policy_kl
 
     best_loss = float("inf")
@@ -331,13 +380,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     best_train_loss = float("inf")
     best_validation_loss: float | None = None
     for epoch in range(args.epochs):
-        loss = loss_for(train_features, train_targets, train_masks)
+        loss = loss_for(train_features, train_targets, train_masks, train_example_weights)
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()
 
         with torch.no_grad():
-            train_loss = loss_for(train_features, train_targets, train_masks)
+            train_loss = loss_for(
+                train_features,
+                train_targets,
+                train_masks,
+                train_example_weights,
+            )
             final_loss = float(train_loss.detach().cpu())
             validation_loss_value = None
             selection_loss = final_loss
@@ -346,6 +400,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     validation_features,
                     validation_targets,
                     validation_masks,
+                    validation_example_weights,
                 )
                 validation_loss_value = float(validation_loss.detach().cpu())
                 final_validation_loss = validation_loss_value
@@ -426,6 +481,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "init_kl_weight": init_kl_weight,
         "class_weighting": class_weighting,
         "class_weight_exponent": resolved_class_weight_exponent,
+        "facing_bet_weight": facing_bet_weight,
+        "facing_bet_examples": int(facing_bet_mask.sum().item()),
+        "facing_bet_train_examples": int(facing_bet_mask[train_indices].sum().item()),
+        "facing_bet_validation_examples": int(
+            facing_bet_mask[validation_indices].sum().item()
+        )
+        if validation_indices
+        else 0,
         "validation_fraction": validation_fraction,
         "train_examples": len(train_indices),
         "validation_examples": len(validation_indices),
@@ -484,6 +547,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--lr", type=float, default=3e-3)
     parser.add_argument("--class-weighting", choices=CLASS_WEIGHTING_MODES, default="none")
     parser.add_argument("--class-weight-exponent", type=float)
+    parser.add_argument("--facing-bet-weight", type=float, default=1.0)
     parser.add_argument("--validation-fraction", type=float, default=0.0)
     parser.add_argument("--jobs", type=int, default=1)
     parser.add_argument("--progress", action="store_true")

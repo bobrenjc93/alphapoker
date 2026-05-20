@@ -10,6 +10,7 @@ from alphapoker.train_holdem_policy import (  # noqa: E402
     build_parser,
     class_weight_exponent_for_mode,
     class_weights_from_targets,
+    example_weights_from_masks,
     run,
 )
 
@@ -41,6 +42,8 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "balanced",
             "--class-weight-exponent",
             "0.75",
+            "--facing-bet-weight",
+            "3.0",
             "--jobs",
             "4",
             "--progress",
@@ -61,6 +64,7 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.init_kl_weight == 0.5
     assert args.class_weighting == "balanced"
     assert args.class_weight_exponent == 0.75
+    assert args.facing_bet_weight == 3.0
     assert args.jobs == 4
     assert args.progress
     assert args.validation_fraction == 0.2
@@ -244,6 +248,29 @@ def test_class_weight_exponent_requires_weighting() -> None:
         class_weight_exponent_for_mode("balanced", 0.0)
 
 
+def test_facing_bet_weights_upweight_call_fold_states() -> None:
+    torch = pytest.importorskip("torch")
+    masks = torch.tensor(
+        [
+            [False, False, True, True, False],
+            [True, True, False, False, False],
+        ],
+        dtype=torch.bool,
+    )
+
+    weights = example_weights_from_masks(masks, 3.0)
+
+    assert weights.tolist() == [3.0, 1.0]
+
+
+def test_facing_bet_weight_must_be_positive() -> None:
+    torch = pytest.importorskip("torch")
+    masks = torch.tensor([[False, False, True, True, False]], dtype=torch.bool)
+
+    with pytest.raises(ValueError, match="must be positive"):
+        example_weights_from_masks(masks, 0.0)
+
+
 def test_train_holdem_policy_parser_accepts_tight_range_feature() -> None:
     args = build_parser().parse_args(
         [
@@ -309,6 +336,8 @@ def test_train_holdem_policy_records_validation_metrics(tmp_path) -> None:
     assert metrics["validation_accuracy"] is not None
     assert metrics["rollout_margin"] == 1.0
     assert metrics["init_kl_weight"] == 0.0
+    assert metrics["facing_bet_weight"] == 1.0
+    assert metrics["facing_bet_examples"] == 0
 
 
 def test_init_kl_weight_requires_init_checkpoint(tmp_path) -> None:
