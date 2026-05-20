@@ -185,7 +185,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   aggression bucket, including action probabilities and raise logit margins.
 - Optional evaluator-side facing-bet logit calibration for neural Hold'em
   policies, including global and per-player action biases plus
-  aggression-count gates for response calibration.
+  aggression-count and pre-bias raise-probability gates for response
+  calibration.
 - Fixed-limit Hold'em equity regression model and threshold-policy evaluation.
 - Both-seat training data for fixed-limit Hold'em equity regression.
 - Cacheable Hold'em equity-value training examples for longer runs.
@@ -343,6 +344,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T15:13:09-07:00 | `63e761c` | Added resumable policy-example shard caching. | `--examples-shard-cache-dir` now records manifest-validated shards as they complete and reuses matching shards on rerun, so slow tight-range feature generation can resume instead of losing finished shards. |
 | 2026-05-20T15:19:25-07:00 | `5df10bc` | Added neural decision diagnostics to Hold'em evaluation. | `--model-decision-diagnostics` reports bucketed action probabilities, legal logits, top margins, and raise-vs-call/fold margins by player, facing-bet state, and opponent-aggression bucket. |
 | 2026-05-20T15:24:33-07:00 | `61b52b0` | Diagnosed current-best and softer-checkpoint cheap safe failures. | Current best p1 facing-bet raise probability was `0.183` with raise logits `-1.04` vs call and `-1.32` vs fold; the softer 500 checkpoint collapsed to p1 raise probability `0.017` with raise `-8.18` vs call, explaining why scalar p1 bias did not repair it. |
+| 2026-05-20T15:28:42-07:00 | `4356bda` | Added raise-probability gates for runtime calibration. | Evaluator-side facing-bet logit biases can now require a minimum pre-bias raise probability before applying global or player-specific calibration. |
+| 2026-05-20T15:34:22-07:00 | `7822c7a` | Probed raise-probability-gated runtime calibration. | Min-raise-prob `0.15` kept h100 exact and range positive (`+0.480 +/- 0.461`, `+0.470 +/- 0.246`), but cheap safe h100 remained flat-negative at `-0.100 +/- 0.616`; not a replacement. |
 
 Current fixed-limit Hold'em gate:
 
@@ -797,7 +800,10 @@ Current fixed-limit Hold'em gate:
   raise=+0.25/fold=-0.25`, `p1 raise=+0.5/fold=-0.5`, after two opponent
   aggressions) showed the same small exact/range points but still failed safe
   rollout (`-0.485 +/- 0.604`), so scalar runtime calibration is not the repair
-  path.
+  path. Adding a minimum pre-bias raise-probability gate (`0.15`) to the
+  global-plus-player-1 after-two calibration kept h100 exact/range positive
+  (`+0.480 +/- 0.461`, `+0.470 +/- 0.246`) but still failed h100 cheap safe at
+  `-0.100 +/- 0.616`, with model-player 1 at `-0.310`.
 - Training-side opponent-aggression gating now lets facing-bet action weights
   apply only after N visible opponent bets/raises, matching the runtime
   calibration condition. The first p1-only value-replay probe touched 21 gated
