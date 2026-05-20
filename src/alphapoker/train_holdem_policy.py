@@ -90,6 +90,32 @@ def player_action_weight_overrides_from_specs(
     return overrides
 
 
+def player_value_weight_overrides_from_specs(
+    specs: list[str] | None,
+) -> dict[int, float]:
+    overrides: dict[int, float] = {}
+    for spec in specs or []:
+        if "=" not in spec:
+            raise ValueError("player value weight must use PLAYER=WEIGHT")
+        player_text, value_text = spec.split("=", 1)
+        try:
+            player = int(player_text)
+        except ValueError as error:
+            raise ValueError(f"invalid player for value weight: {player_text}") from error
+        if player not in (0, 1):
+            raise ValueError("player value weight player must be 0 or 1")
+        try:
+            value = float(value_text)
+        except ValueError as error:
+            raise ValueError(
+                f"invalid weight for player {player}: {value_text}"
+            ) from error
+        if value <= 0.0:
+            raise ValueError("player value weight must be positive")
+        overrides[player] = value
+    return overrides
+
+
 def player_indices_from_features(features):
     if features.shape[1] < HOLDEM_PLAYER_FEATURE_OFFSET + HOLDEM_PLAYER_FEATURE_DIM:
         raise ValueError("player action weights require full Hold'em state features")
@@ -114,6 +140,42 @@ def player_action_weights_from_features_targets(
     for (player, action), value in overrides.items():
         action_index = HOLDEM_CANONICAL_ACTIONS.index(action)
         selected = (players == player) & (targets == action_index)
+        weights = torch.where(selected, torch.full_like(weights, value), weights)
+    return weights
+
+
+def action_value_example_weights_from_mask(action_value_mask, weight: float):
+    if weight <= 0.0:
+        raise ValueError("action value example weight must be positive")
+    import torch
+
+    weights = torch.ones(
+        action_value_mask.shape[0],
+        dtype=torch.float32,
+        device=action_value_mask.device,
+    )
+    if weight == 1.0:
+        return weights
+    return torch.where(action_value_mask, torch.full_like(weights, weight), weights)
+
+
+def player_action_value_weights_from_features_mask(
+    features,
+    action_value_mask,
+    overrides: dict[int, float],
+):
+    import torch
+
+    weights = torch.ones(
+        action_value_mask.shape[0],
+        dtype=torch.float32,
+        device=action_value_mask.device,
+    )
+    if not overrides:
+        return weights
+    players = player_indices_from_features(features)
+    for player, value in overrides.items():
+        selected = (players == player) & action_value_mask
         weights = torch.where(selected, torch.full_like(weights, value), weights)
     return weights
 
@@ -453,6 +515,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("--action-value-target-scale must be positive")
     if action_value_loss_weight > 0.0 and action_value_targets is None:
         raise ValueError("--action-value-loss-weight requires cached action_values")
+    action_value_example_weight = float(getattr(args, "action_value_example_weight", 1.0))
+    if action_value_example_weight <= 0.0:
+        raise ValueError("--action-value-example-weight must be positive")
+    if action_value_example_weight != 1.0 and action_value_targets is None:
+        raise ValueError("--action-value-example-weight requires cached action_values")
+    player_action_value_weight_overrides = player_value_weight_overrides_from_specs(
+        getattr(args, "player_action_value_weight", None)
+    )
+    if player_action_value_weight_overrides and action_value_targets is None:
+        raise ValueError("--player-action-value-weight requires cached action_values")
     validation_fraction = getattr(args, "validation_fraction", 0.0)
     train_indices, validation_indices = _split_train_validation_indices(
         len(examples),
@@ -499,8 +571,31 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         targets,
         player_action_weight_overrides,
     )
-    example_weights = facing_bet_weights * player_action_weights
-    use_example_weights = facing_bet_weight != 1.0 or bool(player_action_weight_overrides)
+    if action_value_target_mask is None:
+        action_value_example_weights = torch.ones_like(facing_bet_weights)
+        player_action_value_weights = torch.ones_like(facing_bet_weights)
+    else:
+        action_value_example_weights = action_value_example_weights_from_mask(
+            action_value_target_mask,
+            action_value_example_weight,
+        )
+        player_action_value_weights = player_action_value_weights_from_features_mask(
+            features,
+            action_value_target_mask,
+            player_action_value_weight_overrides,
+        )
+    example_weights = (
+        facing_bet_weights
+        * player_action_weights
+        * action_value_example_weights
+        * player_action_value_weights
+    )
+    use_example_weights = (
+        facing_bet_weight != 1.0
+        or bool(player_action_weight_overrides)
+        or action_value_example_weight != 1.0
+        or bool(player_action_value_weight_overrides)
+    )
     train_example_weights = example_weights[train_indices] if use_example_weights else None
     validation_example_weights = (
         example_weights[validation_indices]
@@ -799,6 +894,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "action_value_target_examples": int(action_value_target_examples),
         "action_value_loss_weight": action_value_loss_weight,
         "action_value_target_scale": action_value_target_scale,
+        "action_value_example_weight": action_value_example_weight,
+        "action_value_weighted_examples": int(
+            action_value_target_mask.sum().item()
+        )
+        if action_value_target_mask is not None and action_value_example_weight != 1.0
+        else 0,
         "jobs": jobs,
         "epochs": args.epochs,
         "lr": args.lr,
@@ -815,6 +916,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             (player_action_weights != 1.0).sum().item()
         )
         if player_action_weight_overrides
+        else 0,
+        "player_action_value_weight_overrides": {
+            str(player): weight
+            for player, weight in player_action_value_weight_overrides.items()
+        },
+        "player_action_value_weighted_examples": int(
+            (player_action_value_weights != 1.0).sum().item()
+        )
+        if player_action_value_weight_overrides
         else 0,
         "facing_bet_weight": facing_bet_weight,
         "facing_bet_examples": int(facing_bet_mask.sum().item()),
@@ -883,6 +993,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--soft-target-temperature", type=float)
     parser.add_argument("--action-value-loss-weight", type=float, default=0.0)
     parser.add_argument("--action-value-target-scale", type=float, default=1.0)
+    parser.add_argument("--action-value-example-weight", type=float, default=1.0)
     parser.add_argument("--behavior-checkpoint", type=Path)
     parser.add_argument("--init-checkpoint", type=Path)
     parser.add_argument("--init-kl-weight", type=float, default=0.0)
@@ -906,6 +1017,16 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Multiply examples for one current-player/action target, "
             "for example --player-action-weight 1:raise=2.0."
+        ),
+    )
+    parser.add_argument(
+        "--player-action-value-weight",
+        action="append",
+        default=[],
+        metavar="PLAYER=WEIGHT",
+        help=(
+            "Multiply cached action-value examples for one current player, "
+            "for example --player-action-value-weight 1=3.0."
         ),
     )
     parser.add_argument("--facing-bet-weight", type=float, default=1.0)

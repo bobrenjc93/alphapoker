@@ -14,6 +14,7 @@ from alphapoker.train_holdem_policy import (  # noqa: E402
     _shard_hands,
     _split_train_validation_indices,
     action_weight_overrides_from_specs,
+    action_value_example_weights_from_mask,
     apply_action_weight_overrides,
     build_parser,
     class_weight_exponent_for_mode,
@@ -22,6 +23,8 @@ from alphapoker.train_holdem_policy import (  # noqa: E402
     load_policy_checkpoint_state,
     player_action_weight_overrides_from_specs,
     player_action_weights_from_features_targets,
+    player_action_value_weights_from_features_mask,
+    player_value_weight_overrides_from_specs,
     run,
 )
 
@@ -48,6 +51,8 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "0.25",
             "--action-value-target-scale",
             "2.0",
+            "--action-value-example-weight",
+            "4.0",
             "--init-checkpoint",
             "policy.pt",
             "--init-kl-weight",
@@ -67,6 +72,8 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "fold=0.5",
             "--player-action-weight",
             "1:raise=3.0",
+            "--player-action-value-weight",
+            "1=2.5",
             "--facing-bet-weight",
             "3.0",
             "--jobs",
@@ -89,6 +96,7 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.soft_target_temperature == 0.75
     assert args.action_value_loss_weight == 0.25
     assert args.action_value_target_scale == 2.0
+    assert args.action_value_example_weight == 4.0
     assert str(args.init_checkpoint) == "policy.pt"
     assert args.init_kl_weight == 0.5
     assert args.init_allow_input_expansion
@@ -96,6 +104,7 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.class_weight_exponent == 0.75
     assert args.action_weight == ["raise=2.0", "fold=0.5"]
     assert args.player_action_weight == ["1:raise=3.0"]
+    assert args.player_action_value_weight == ["1=2.5"]
     assert args.facing_bet_weight == 3.0
     assert args.jobs == 4
     assert args.progress
@@ -334,6 +343,48 @@ def test_player_action_weight_overrides_validate_specs() -> None:
         player_action_weight_overrides_from_specs(["1:raise=0.0"])
 
 
+def test_action_value_example_weights_apply_to_value_rows() -> None:
+    torch = pytest.importorskip("torch")
+    action_value_mask = torch.tensor([True, False, True], dtype=torch.bool)
+
+    weights = action_value_example_weights_from_mask(action_value_mask, 2.5)
+
+    assert weights.tolist() == [2.5, 1.0, 2.5]
+    with pytest.raises(ValueError, match="positive"):
+        action_value_example_weights_from_mask(action_value_mask, 0.0)
+
+
+def test_player_action_value_weights_apply_to_value_rows_for_player() -> None:
+    torch = pytest.importorskip("torch")
+    feature_dim = HOLDEM_PLAYER_FEATURE_OFFSET + HOLDEM_PLAYER_FEATURE_DIM
+    features = torch.zeros((4, feature_dim))
+    features[0, HOLDEM_PLAYER_FEATURE_OFFSET] = 1.0
+    features[1, HOLDEM_PLAYER_FEATURE_OFFSET + 1] = 1.0
+    features[2, HOLDEM_PLAYER_FEATURE_OFFSET + 1] = 1.0
+    features[3, HOLDEM_PLAYER_FEATURE_OFFSET] = 1.0
+    action_value_mask = torch.tensor([True, True, False, True], dtype=torch.bool)
+
+    overrides = player_value_weight_overrides_from_specs(["1=3.0"])
+    weights = player_action_value_weights_from_features_mask(
+        features,
+        action_value_mask,
+        overrides,
+    )
+
+    assert weights.tolist() == [1.0, 3.0, 1.0, 1.0]
+
+
+def test_player_action_value_weight_overrides_validate_specs() -> None:
+    with pytest.raises(ValueError, match="PLAYER=WEIGHT"):
+        player_value_weight_overrides_from_specs(["1"])
+    with pytest.raises(ValueError, match="invalid player"):
+        player_value_weight_overrides_from_specs(["1:raise=2.0"])
+    with pytest.raises(ValueError, match="0 or 1"):
+        player_value_weight_overrides_from_specs(["2=2.0"])
+    with pytest.raises(ValueError, match="positive"):
+        player_value_weight_overrides_from_specs(["1=0.0"])
+
+
 def test_facing_bet_weights_upweight_call_fold_states() -> None:
     torch = pytest.importorskip("torch")
     masks = torch.tensor(
@@ -455,6 +506,10 @@ def test_train_holdem_policy_records_validation_metrics(tmp_path) -> None:
     assert metrics["soft_target_examples"] == 0
     assert metrics["action_value_target_examples"] == 0
     assert metrics["action_value_loss_weight"] == 0.0
+    assert metrics["action_value_example_weight"] == 1.0
+    assert metrics["action_value_weighted_examples"] == 0
+    assert metrics["player_action_value_weight_overrides"] == {}
+    assert metrics["player_action_value_weighted_examples"] == 0
 
 
 def test_train_holdem_policy_accepts_soft_targets(tmp_path) -> None:
@@ -489,9 +544,13 @@ def test_train_holdem_policy_accepts_soft_targets(tmp_path) -> None:
 
 def test_train_holdem_policy_accepts_action_value_targets(tmp_path) -> None:
     examples_path = tmp_path / "examples.json"
+    feature_dim = HOLDEM_PLAYER_FEATURE_OFFSET + HOLDEM_PLAYER_FEATURE_DIM
     examples = [
         HoldemPolicyExample(
-            features=[float(index % 2), 1.0],
+            features=[
+                1.0 if feature_index == HOLDEM_PLAYER_FEATURE_OFFSET + index % 2 else 0.0
+                for feature_index in range(feature_dim)
+            ],
             action_index=index % 2,
             legal_mask=[True, True, False, False, False],
             action_probs=[0.25, 0.75, 0.0, 0.0, 0.0],
@@ -509,6 +568,10 @@ def test_train_holdem_policy_accepts_action_value_targets(tmp_path) -> None:
             "0.1",
             "--action-value-target-scale",
             "2.0",
+            "--action-value-example-weight",
+            "2.0",
+            "--player-action-value-weight",
+            "1=3.0",
             "--epochs",
             "2",
             "--out",
@@ -520,6 +583,10 @@ def test_train_holdem_policy_accepts_action_value_targets(tmp_path) -> None:
     assert metrics["action_value_target_examples"] == 6
     assert metrics["action_value_loss_weight"] == 0.1
     assert metrics["action_value_target_scale"] == 2.0
+    assert metrics["action_value_example_weight"] == 2.0
+    assert metrics["action_value_weighted_examples"] == 6
+    assert metrics["player_action_value_weight_overrides"] == {"1": 3.0}
+    assert metrics["player_action_value_weighted_examples"] == 3
 
 
 def test_init_kl_weight_requires_init_checkpoint(tmp_path) -> None:
