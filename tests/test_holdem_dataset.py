@@ -22,6 +22,7 @@ from alphapoker.holdem_dataset import (  # noqa: E402
 from alphapoker.holdem_features import (  # noqa: E402
     HOLDEM_BASE_FEATURE_DIM,
     HOLDEM_ACTION_HISTORY_FEATURE_DIM,
+    HOLDEM_CANONICAL_ACTIONS,
     HOLDEM_FEATURE_DIM,
     HOLDEM_HAND_STRENGTH_FEATURE_DIM,
     adapt_holdem_features,
@@ -407,6 +408,28 @@ def test_generate_equity_policy_examples_with_behavior_policy() -> None:
     )
 
     assert examples
+
+
+def test_generate_equity_policy_examples_with_custom_expert_policy() -> None:
+    selected = []
+
+    def expert_policy(state):
+        action = state.legal_actions()[0]
+        selected.append(action)
+        return action
+
+    examples = generate_equity_policy_examples(
+        hands=1,
+        seed=41,
+        equity_sims=2,
+        expert_policy_override=expert_policy,
+        opponent_policy="random",
+    )
+
+    assert examples
+    assert [
+        HOLDEM_CANONICAL_ACTIONS[example.action_index] for example in examples
+    ] == selected
 
 
 def test_generate_equity_value_examples_smoke() -> None:

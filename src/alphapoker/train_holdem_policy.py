@@ -26,6 +26,10 @@ from alphapoker.holdem_features import (
     HOLDEM_PLAYER_FEATURE_DIM,
     HOLDEM_PLAYER_FEATURE_OFFSET,
 )
+from alphapoker.holdem_mccfr import (
+    HOLDEM_MCCFR_STRATEGY_MODES,
+    HOLDEM_MCCFR_SUPPORT_MODES,
+)
 from alphapoker.train import write_json
 
 CLASS_WEIGHTING_MODES = ("none", "balanced", "sqrt-balanced")
@@ -388,6 +392,11 @@ def generate_policy_examples_shard(
     feature_equity_mode: str,
     feature_equity_checkpoint: Path | None,
     behavior_checkpoint: Path | None,
+    expert_mccfr_checkpoint: Path | None = None,
+    expert_mccfr_fallback_policy: str = "tight-turn-river-exact-pot-odds",
+    expert_mccfr_min_strategy_weight: float = 0.0,
+    expert_mccfr_strategy_mode: str = "average",
+    expert_mccfr_strategy_support_mode: str = "count",
     action_history_features: bool,
     soft_target_temperature: float | None,
     record_facing_bet_only: bool,
@@ -403,6 +412,32 @@ def generate_policy_examples_shard(
 
         behavior_policy = model_policy_from_checkpoint(behavior_checkpoint)
 
+    expert_policy_override = None
+    if expert_mccfr_checkpoint is not None:
+        from alphapoker.holdem_mccfr import (
+            HoldemAbstractionCFRTrainer,
+            holdem_policy_from_trainer,
+        )
+        from alphapoker.holdem_self_play import make_policy
+
+        trainer = HoldemAbstractionCFRTrainer.load_checkpoint(expert_mccfr_checkpoint)
+        shard_seed = seed + index * 1_000_003
+        fallback_policy = make_policy(
+            expert_mccfr_fallback_policy,
+            random.Random(shard_seed + 11),
+            equity_sims,
+            rollout_sims,
+            rollout_margin,
+        )
+        expert_policy_override = holdem_policy_from_trainer(
+            trainer,
+            random.Random(shard_seed + 13),
+            fallback_policy=fallback_policy,
+            min_strategy_weight=expert_mccfr_min_strategy_weight,
+            strategy_mode=expert_mccfr_strategy_mode,
+            strategy_support_mode=expert_mccfr_strategy_support_mode,
+        )
+
     return generate_equity_policy_examples(
         hands=hands,
         seed=seed + index * 1_000_003,
@@ -416,6 +451,7 @@ def generate_policy_examples_shard(
         feature_equity_mode=feature_equity_mode,
         feature_equity_fn=feature_equity_fn,
         expert_behavior_policy=behavior_policy,
+        expert_policy_override=expert_policy_override,
         action_history_features=action_history_features,
         soft_target_temperature=soft_target_temperature,
         record_facing_bet_only=record_facing_bet_only,
@@ -441,6 +477,11 @@ def _policy_example_shard_cache_manifest(
     feature_equity_mode: str,
     feature_equity_checkpoint: Path | None,
     behavior_checkpoint: Path | None,
+    expert_mccfr_checkpoint: Path | None,
+    expert_mccfr_fallback_policy: str,
+    expert_mccfr_min_strategy_weight: float,
+    expert_mccfr_strategy_mode: str,
+    expert_mccfr_strategy_support_mode: str,
     action_history_features: bool,
     soft_target_temperature: float | None,
     record_facing_bet_only: bool,
@@ -468,6 +509,15 @@ def _policy_example_shard_cache_manifest(
         "behavior_checkpoint": (
             str(behavior_checkpoint) if behavior_checkpoint is not None else None
         ),
+        "expert_mccfr_checkpoint": (
+            str(expert_mccfr_checkpoint)
+            if expert_mccfr_checkpoint is not None
+            else None
+        ),
+        "expert_mccfr_fallback_policy": expert_mccfr_fallback_policy,
+        "expert_mccfr_min_strategy_weight": expert_mccfr_min_strategy_weight,
+        "expert_mccfr_strategy_mode": expert_mccfr_strategy_mode,
+        "expert_mccfr_strategy_support_mode": expert_mccfr_strategy_support_mode,
         "action_history_features": action_history_features,
         "soft_target_temperature": soft_target_temperature,
         "record_facing_bet_only": record_facing_bet_only,
@@ -519,6 +569,11 @@ def generate_policy_training_examples(
     feature_equity_mode: str,
     feature_equity_checkpoint: Path | None,
     behavior_checkpoint: Path | None,
+    expert_mccfr_checkpoint: Path | None = None,
+    expert_mccfr_fallback_policy: str = "tight-turn-river-exact-pot-odds",
+    expert_mccfr_min_strategy_weight: float = 0.0,
+    expert_mccfr_strategy_mode: str = "average",
+    expert_mccfr_strategy_support_mode: str = "count",
     action_history_features: bool,
     soft_target_temperature: float | None,
     record_facing_bet_only: bool,
@@ -546,6 +601,11 @@ def generate_policy_training_examples(
                 feature_equity_mode=feature_equity_mode,
                 feature_equity_checkpoint=feature_equity_checkpoint,
                 behavior_checkpoint=behavior_checkpoint,
+                expert_mccfr_checkpoint=expert_mccfr_checkpoint,
+                expert_mccfr_fallback_policy=expert_mccfr_fallback_policy,
+                expert_mccfr_min_strategy_weight=expert_mccfr_min_strategy_weight,
+                expert_mccfr_strategy_mode=expert_mccfr_strategy_mode,
+                expert_mccfr_strategy_support_mode=expert_mccfr_strategy_support_mode,
                 action_history_features=action_history_features,
                 soft_target_temperature=soft_target_temperature,
                 record_facing_bet_only=record_facing_bet_only,
@@ -582,6 +642,11 @@ def generate_policy_training_examples(
             feature_equity_mode=feature_equity_mode,
             feature_equity_checkpoint=feature_equity_checkpoint,
             behavior_checkpoint=behavior_checkpoint,
+            expert_mccfr_checkpoint=expert_mccfr_checkpoint,
+            expert_mccfr_fallback_policy=expert_mccfr_fallback_policy,
+            expert_mccfr_min_strategy_weight=expert_mccfr_min_strategy_weight,
+            expert_mccfr_strategy_mode=expert_mccfr_strategy_mode,
+            expert_mccfr_strategy_support_mode=expert_mccfr_strategy_support_mode,
             action_history_features=action_history_features,
             soft_target_temperature=soft_target_temperature,
             record_facing_bet_only=record_facing_bet_only,
@@ -636,6 +701,11 @@ def generate_policy_training_examples(
                     feature_equity_mode=feature_equity_mode,
                     feature_equity_checkpoint=feature_equity_checkpoint,
                     behavior_checkpoint=behavior_checkpoint,
+                    expert_mccfr_checkpoint=expert_mccfr_checkpoint,
+                    expert_mccfr_fallback_policy=expert_mccfr_fallback_policy,
+                    expert_mccfr_min_strategy_weight=expert_mccfr_min_strategy_weight,
+                    expert_mccfr_strategy_mode=expert_mccfr_strategy_mode,
+                    expert_mccfr_strategy_support_mode=expert_mccfr_strategy_support_mode,
                     action_history_features=action_history_features,
                     soft_target_temperature=soft_target_temperature,
                     record_facing_bet_only=record_facing_bet_only,
@@ -673,6 +743,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("--feature-equity-mode requires --feature-equity-sims")
     if args.feature_equity_checkpoint is not None and args.feature_equity_mode != "random":
         raise ValueError("--feature-equity-mode is only used with --feature-equity-sims")
+    if (
+        args.expert_mccfr_checkpoint is not None
+        and args.soft_target_temperature is not None
+    ):
+        raise ValueError("--expert-mccfr-checkpoint does not support soft targets")
 
     examples_in = getattr(args, "examples_in", None)
     extra_examples_in = getattr(args, "extra_examples_in", None) or []
@@ -696,6 +771,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             feature_equity_mode=args.feature_equity_mode,
             feature_equity_checkpoint=args.feature_equity_checkpoint,
             behavior_checkpoint=args.behavior_checkpoint,
+            expert_mccfr_checkpoint=args.expert_mccfr_checkpoint,
+            expert_mccfr_fallback_policy=args.expert_mccfr_fallback_policy,
+            expert_mccfr_min_strategy_weight=args.expert_mccfr_min_strategy_weight,
+            expert_mccfr_strategy_mode=args.expert_mccfr_strategy_mode,
+            expert_mccfr_strategy_support_mode=args.expert_mccfr_strategy_support_mode,
             action_history_features=bool(getattr(args, "action_history_features", False)),
             soft_target_temperature=getattr(args, "soft_target_temperature", None),
             record_facing_bet_only=bool(getattr(args, "record_facing_bet_only", False)),
@@ -1202,6 +1282,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "equity_sims": args.equity_sims,
         "expert_player": args.expert_player,
         "expert_policy": args.expert_policy,
+        "expert_mccfr_checkpoint": (
+            str(args.expert_mccfr_checkpoint)
+            if args.expert_mccfr_checkpoint is not None
+            else None
+        ),
+        "expert_mccfr_fallback_policy": args.expert_mccfr_fallback_policy,
+        "expert_mccfr_min_strategy_weight": args.expert_mccfr_min_strategy_weight,
+        "expert_mccfr_strategy_mode": args.expert_mccfr_strategy_mode,
+        "expert_mccfr_strategy_support_mode": args.expert_mccfr_strategy_support_mode,
         "opponent_policy": args.opponent_policy,
         "rollout_sims": args.rollout_sims,
         "rollout_margin": rollout_margin,
@@ -1340,6 +1429,33 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--expert-player", type=int, choices=[0, 1])
     parser.add_argument("--expert-policy", choices=HOLDEM_EXPERT_POLICIES, default="equity")
+    parser.add_argument(
+        "--expert-mccfr-checkpoint",
+        type=Path,
+        help="Use a Hold'em MCCFR checkpoint as the supervised expert policy.",
+    )
+    parser.add_argument(
+        "--expert-mccfr-fallback-policy",
+        choices=HOLDEM_DATASET_OPPONENT_POLICIES,
+        default="tight-turn-river-exact-pot-odds",
+        help="Fallback policy for unsupported MCCFR infosets while labeling examples.",
+    )
+    parser.add_argument(
+        "--expert-mccfr-min-strategy-weight",
+        type=float,
+        default=0.0,
+        help="Minimum MCCFR support before falling back while labeling examples.",
+    )
+    parser.add_argument(
+        "--expert-mccfr-strategy-mode",
+        choices=HOLDEM_MCCFR_STRATEGY_MODES,
+        default="average",
+    )
+    parser.add_argument(
+        "--expert-mccfr-strategy-support-mode",
+        choices=HOLDEM_MCCFR_SUPPORT_MODES,
+        default="count",
+    )
     parser.add_argument(
         "--opponent-policy",
         choices=HOLDEM_DATASET_OPPONENT_POLICIES,

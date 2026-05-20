@@ -158,6 +158,31 @@ def test_train_holdem_policy_parser_accepts_feature_equity_checkpoint() -> None:
     assert str(args.feature_equity_checkpoint) == "equity.pt"
 
 
+def test_train_holdem_policy_parser_accepts_mccfr_expert() -> None:
+    args = build_parser().parse_args(
+        [
+            "--expert-mccfr-checkpoint",
+            "holdem_mccfr.json",
+            "--expert-mccfr-fallback-policy",
+            "tight-turn-river-exact-pot-odds",
+            "--expert-mccfr-min-strategy-weight",
+            "100",
+            "--expert-mccfr-strategy-mode",
+            "average",
+            "--expert-mccfr-strategy-support-mode",
+            "count",
+            "--out",
+            "out",
+        ]
+    )
+
+    assert str(args.expert_mccfr_checkpoint) == "holdem_mccfr.json"
+    assert args.expert_mccfr_fallback_policy == "tight-turn-river-exact-pot-odds"
+    assert args.expert_mccfr_min_strategy_weight == 100.0
+    assert args.expert_mccfr_strategy_mode == "average"
+    assert args.expert_mccfr_strategy_support_mode == "count"
+
+
 def test_train_holdem_policy_parser_accepts_rollout_expert() -> None:
     args = build_parser().parse_args(
         [

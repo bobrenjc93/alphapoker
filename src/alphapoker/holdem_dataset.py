@@ -306,6 +306,7 @@ def generate_equity_policy_examples(
     feature_equity_mode: str = "random",
     feature_equity_fn: HoldemEquityEstimator | None = None,
     expert_behavior_policy: HoldemPolicy | None = None,
+    expert_policy_override: HoldemPolicy | None = None,
     action_history_features: bool = False,
     soft_target_temperature: float | None = None,
     record_facing_bet_only: bool = False,
@@ -320,17 +321,22 @@ def generate_equity_policy_examples(
     deal_rng = random.Random(seed)
     policy_rng = random.Random(seed + 1)
     feature_rng = random.Random(seed + 3)
-    if expert_policy not in HOLDEM_EXPERT_POLICIES:
-        raise ValueError(f"Unknown expert policy: {expert_policy}")
-    expert_action_policy = make_policy(
-        expert_policy,
-        policy_rng,
-        equity_sims,
-        rollout_sims,
-        rollout_margin,
-    )
+    if expert_policy_override is None:
+        if expert_policy not in HOLDEM_EXPERT_POLICIES:
+            raise ValueError(f"Unknown expert policy: {expert_policy}")
+        expert_action_policy = make_policy(
+            expert_policy,
+            policy_rng,
+            equity_sims,
+            rollout_sims,
+            rollout_margin,
+        )
+    else:
+        expert_action_policy = expert_policy_override
     expert_action_value_fn = None
     if soft_target_temperature is not None:
+        if expert_policy_override is not None:
+            raise ValueError("soft targets are not available for custom expert policies")
         if soft_target_temperature <= 0.0:
             raise ValueError("soft target temperature must be positive")
         expert_action_value_fn = make_policy_action_value_fn(
