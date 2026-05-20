@@ -251,6 +251,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T01:12:46-07:00 | `113c325` | Tried value-weighted replay and p1-only value replay. | Direct p1 value weighting kept exact positive but flattened range and did not repair safe rollout; p1-only value replay failed cheap safe rollout badly at `-2.2625 +/- 0.8761`. |
 | 2026-05-20T01:20:57-07:00 | `88bfdc3` | Added facing-bet response diagnostics to Hold'em evaluation. | Evaluators now report action counts while a player is facing a bet/raise by role and seat; evaluator/model tests passed (`38 passed`). |
 | 2026-05-20T01:21:06-07:00 | `484a296` | Compared safe-rollout facing-bet behavior for current best and the value400 side checkpoint. | On the same h40 safe seed, current best was `-1.425 +/- 0.949` with model-facing call49/fold46/raise34; value400 improved to `-0.050 +/- 0.944` with call51/fold41/raise49 but player 1 remained weak (`-1.55`), so current best is unchanged. |
+| 2026-05-20T01:32:11-07:00 | `5eea34f` | Tried a seat-specific value400/current-best composite. | Value400 for player 0 plus current best for player 1 was positive on h40 safe (`+0.450 +/- 0.831`) and range h100 (`+0.405 +/- 0.313`), but safe h100 stayed negative (`-0.220 +/- 0.538`) and exact h100 was only `+0.240 +/- 0.468`; current best is unchanged. |
 
 Current fixed-limit Hold'em gate:
 
@@ -593,6 +594,12 @@ Current fixed-limit Hold'em gate:
   raised more while facing bets (call51/fold41/raise49), but player 1 remained
   weak at `-1.55`, so it remains a diagnostic side checkpoint rather than the
   current best.
+- A seat-specific composite using the value400 side checkpoint for player 0 and
+  the current best for player 1 exploited that split on the cheap h40 safe seed
+  (`+0.450 +/- 0.831`), and its range h100 probe was positive (`+0.405 +/-
+  0.313`). The h100 safe confirmation was still negative (`-0.220 +/- 0.538`),
+  while exact h100 was only `+0.240 +/- 0.468`; runtime seat composition is not
+  a confirmed robustness repair.
 
 ## Research Roadmap
 
