@@ -308,6 +308,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T08:55:35-07:00 | `a4319fd` | Checked h300 same-seed seat composites. | On the response-blend seed, current best failed h40 safe at `-1.1375 +/- 0.741` (p0 `+0.100`, p1 `-2.375`), h300-both failed at `-0.6625 +/- 1.246`, current p0 plus h300 p1 was best but still negative at `-0.325 +/- 0.741`, and h300 p0 plus current p1 failed at `-1.475 +/- 0.978`. |
 | 2026-05-20T09:06:55-07:00 | `2b149a4` | Retrained the h300 replay mix with validation selection. | A 10% validation split selected epoch 31 and under-raised p1 cached responses (`86` predicted raises vs `161` target); h40 safe was only `+0.025 +/- 0.862` and h100 safe failed at `-0.260 +/- 0.485` with player 1 still negative (`-1.130`). |
 | 2026-05-20T09:12:18-07:00 | `71293fb` | Upweighted h300 player-1 action-value examples. | `--player-action-value-weight 1=3.0` kept cached p1 raises near target (`147` predicted vs `161` target), but live h40 safe failed at `-0.3875 +/- 0.805`; both seats were negative and facing-bet raises dropped to `26`. |
+| 2026-05-20T09:18:15-07:00 | `113914d` | Combined current p0, h300 p1, and p1 response bias. | Current best for player 0 plus h300 for player 1 with p1 `raise=+0.5`, `fold=-0.5` after one opponent aggression still failed h40 safe at `-0.3125 +/- 0.887`; player 1 stayed negative at `-0.725` despite `18` facing-bet raises. |
 
 Current fixed-limit Hold'em gate:
 
@@ -853,6 +854,12 @@ Current fixed-limit Hold'em gate:
   too passive while facing bets: h40 safe on seed `79918` failed at `-0.3875
   +/- 0.805` with both seats negative (`-0.275`, `-0.500`) and only `26`
   model-facing raises. More value pressure on the same labels is not enough.
+- Combining the best pieces of the h300 branch did not repair it either.
+  Current best for player 0 plus h300 for player 1, with p1 `raise=+0.5` and
+  `fold=-0.5` after one opponent aggression, still failed h40 safe on seed
+  `79918` at `-0.3125 +/- 0.887`. Player 0 stayed at `+0.100`, but player 1
+  remained negative at `-0.725` even with `18` facing-bet raises, so the p1
+  policy needs better decisions, not just more aggression.
 
 ## Research Roadmap
 
