@@ -354,6 +354,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T15:59:09-07:00 | `7dc75b6` | Scaled corrected Hold'em MCCFR to 20k iterations. | Best exact h500 fallback hybrid was `+0.184 +/- 0.143` at `min_strategy_weight=50`; player 0 was strong (`+0.608`) but player 1 was negative (`-0.240`), so scaling did not produce a candidate. |
 | 2026-05-20T16:06:39-07:00 | `dad765f` | Added reach-support gating for Hold'em MCCFR fallback. | Evaluators can now gate fallback by accumulated average-strategy mass as well as raw update count; focused tests passed (`26 passed`). The 5k reach-support sweep failed the tight exact h500 gate, with best threshold `10000` at `-0.035 +/- 0.145`. |
 | 2026-05-20T16:15:30-07:00 | `2cbb728` | Tried cap-2 corrected Hold'em MCCFR abstraction. | Tight exact h500 improved to `+0.273 +/- 0.134` and cheap safe s1 h100 spiked to `+1.135 +/- 0.384`, but range e4 h500 failed at `-0.167 +/- 0.143`; diagnostic only. |
+| 2026-05-20T16:45:30-07:00 | `83a6961` | Swept cap-2 MCCFR fallback thresholds against range and cheap safe gates. | Range e4 h500 failed at every threshold, best `-0.162 +/- 0.149` at weight `10`; cheap safe s1 h100 peaked at `+1.335 +/- 0.536` at weight `100`, so cap-2 is rejected as a balanced candidate. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1017,6 +1018,12 @@ Current fixed-limit Hold'em gate:
   s1 h100 with both seats positive. The same threshold failed the range gate at
   `-0.167 +/- 0.143` over 500 paired deals and still over-raised
   (`337` model raises vs `108` opponent raises), so this remains diagnostic.
+- A full cap-2 fallback threshold follow-up confirmed the split. The range e4
+  h500 sweep failed at every threshold (`0,10,25,50,100,250,500`), with the
+  least bad result only `-0.162 +/- 0.149` at `min_strategy_weight=10`.
+  Meanwhile, the cheap safe s1 h100 sweep peaked at `+1.335 +/- 0.536` at
+  `min_strategy_weight=100`. The safe repair is real enough to study, but it
+  does not coexist with the range gate in this abstraction.
 
 ## Research Roadmap
 
