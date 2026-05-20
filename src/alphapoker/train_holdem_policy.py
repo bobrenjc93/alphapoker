@@ -888,6 +888,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         action: int((predictions == index).sum().item())
         for index, action in enumerate(HOLDEM_CANONICAL_ACTIONS)
     }
+    facing_bet_target_action_counts = {
+        action: int(((targets == index) & facing_bet_mask).sum().item())
+        for index, action in enumerate(HOLDEM_CANONICAL_ACTIONS)
+    }
+    facing_bet_predicted_action_counts = {
+        action: int(((predictions == index) & facing_bet_mask).sum().item())
+        for index, action in enumerate(HOLDEM_CANONICAL_ACTIONS)
+    }
     soft_target_action_mass = None
     if soft_targets is not None:
         soft_target_action_mass = {
@@ -896,18 +904,31 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         }
     player_target_action_counts = None
     player_predicted_action_counts = None
+    player_facing_bet_target_action_counts = None
+    player_facing_bet_predicted_action_counts = None
     if features.shape[1] >= HOLDEM_PLAYER_FEATURE_OFFSET + HOLDEM_PLAYER_FEATURE_DIM:
         players = player_indices_from_features(features)
         player_target_action_counts = {}
         player_predicted_action_counts = {}
+        player_facing_bet_target_action_counts = {}
+        player_facing_bet_predicted_action_counts = {}
         for player in (0, 1):
             selected = players == player
+            selected_facing_bet = selected & facing_bet_mask
             player_target_action_counts[str(player)] = {
                 action: int(((targets == index) & selected).sum().item())
                 for index, action in enumerate(HOLDEM_CANONICAL_ACTIONS)
             }
             player_predicted_action_counts[str(player)] = {
                 action: int(((predictions == index) & selected).sum().item())
+                for index, action in enumerate(HOLDEM_CANONICAL_ACTIONS)
+            }
+            player_facing_bet_target_action_counts[str(player)] = {
+                action: int(((targets == index) & selected_facing_bet).sum().item())
+                for index, action in enumerate(HOLDEM_CANONICAL_ACTIONS)
+            }
+            player_facing_bet_predicted_action_counts[str(player)] = {
+                action: int(((predictions == index) & selected_facing_bet).sum().item())
                 for index, action in enumerate(HOLDEM_CANONICAL_ACTIONS)
             }
 
@@ -1028,8 +1049,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "overall_accuracy": overall_accuracy,
         "target_action_counts": target_action_counts,
         "predicted_action_counts": predicted_action_counts,
+        "facing_bet_target_action_counts": facing_bet_target_action_counts,
+        "facing_bet_predicted_action_counts": facing_bet_predicted_action_counts,
         "player_target_action_counts": player_target_action_counts,
         "player_predicted_action_counts": player_predicted_action_counts,
+        "player_facing_bet_target_action_counts": player_facing_bet_target_action_counts,
+        "player_facing_bet_predicted_action_counts": (
+            player_facing_bet_predicted_action_counts
+        ),
         "checkpoint": str(checkpoint),
         "seed": args.seed,
     }

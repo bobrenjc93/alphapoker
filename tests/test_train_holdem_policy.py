@@ -568,6 +568,9 @@ def test_train_holdem_policy_records_validation_metrics(tmp_path) -> None:
     assert metrics["init_kl_weight"] == 0.0
     assert metrics["facing_bet_weight"] == 1.0
     assert metrics["facing_bet_examples"] == 0
+    empty_action_counts = {action: 0 for action in HOLDEM_CANONICAL_ACTIONS}
+    assert metrics["facing_bet_target_action_counts"] == empty_action_counts
+    assert metrics["facing_bet_predicted_action_counts"] == empty_action_counts
     assert metrics["action_weight_overrides"] == {}
     assert metrics["player_action_weight_overrides"] == {}
     assert metrics["facing_bet_action_weight_overrides"] == {}
@@ -575,6 +578,8 @@ def test_train_holdem_policy_records_validation_metrics(tmp_path) -> None:
     assert metrics["player_facing_bet_action_weight_overrides"] == {}
     assert metrics["player_facing_bet_action_weighted_examples"] == 0
     assert metrics["player_target_action_counts"] is None
+    assert metrics["player_facing_bet_target_action_counts"] is None
+    assert metrics["player_facing_bet_predicted_action_counts"] is None
     assert metrics["soft_target_temperature"] is None
     assert metrics["soft_target_examples"] == 0
     assert metrics["action_value_target_examples"] == 0
@@ -583,6 +588,85 @@ def test_train_holdem_policy_records_validation_metrics(tmp_path) -> None:
     assert metrics["action_value_weighted_examples"] == 0
     assert metrics["player_action_value_weight_overrides"] == {}
     assert metrics["player_action_value_weighted_examples"] == 0
+
+
+def test_train_holdem_policy_records_facing_bet_action_counts(tmp_path) -> None:
+    examples_path = tmp_path / "examples.json"
+    feature_dim = HOLDEM_PLAYER_FEATURE_OFFSET + HOLDEM_PLAYER_FEATURE_DIM
+
+    def features_for_player(player: int) -> list[float]:
+        features = [0.0 for _ in range(feature_dim)]
+        features[HOLDEM_PLAYER_FEATURE_OFFSET + player] = 1.0
+        return features
+
+    examples = [
+        HoldemPolicyExample(
+            features=features_for_player(0),
+            action_index=HOLDEM_CANONICAL_ACTIONS.index("call"),
+            legal_mask=[False, False, True, True, False],
+        ),
+        HoldemPolicyExample(
+            features=features_for_player(0),
+            action_index=HOLDEM_CANONICAL_ACTIONS.index("fold"),
+            legal_mask=[False, False, True, True, True],
+        ),
+        HoldemPolicyExample(
+            features=features_for_player(1),
+            action_index=HOLDEM_CANONICAL_ACTIONS.index("call"),
+            legal_mask=[False, False, True, True, False],
+        ),
+        HoldemPolicyExample(
+            features=features_for_player(1),
+            action_index=HOLDEM_CANONICAL_ACTIONS.index("raise"),
+            legal_mask=[False, False, True, True, True],
+        ),
+        HoldemPolicyExample(
+            features=features_for_player(1),
+            action_index=HOLDEM_CANONICAL_ACTIONS.index("bet"),
+            legal_mask=[True, True, False, False, False],
+        ),
+    ]
+    write_policy_examples(examples_path, examples)
+
+    args = build_parser().parse_args(
+        [
+            "--examples-in",
+            str(examples_path),
+            "--epochs",
+            "2",
+            "--out",
+            str(tmp_path / "out"),
+        ]
+    )
+    metrics = run(args)
+
+    assert metrics["facing_bet_examples"] == 4
+    assert metrics["facing_bet_target_action_counts"] == {
+        "check": 0,
+        "bet": 0,
+        "call": 2,
+        "fold": 1,
+        "raise": 1,
+    }
+    assert sum(metrics["facing_bet_predicted_action_counts"].values()) == 4
+    assert metrics["player_facing_bet_target_action_counts"] == {
+        "0": {
+            "check": 0,
+            "bet": 0,
+            "call": 1,
+            "fold": 1,
+            "raise": 0,
+        },
+        "1": {
+            "check": 0,
+            "bet": 0,
+            "call": 1,
+            "fold": 0,
+            "raise": 1,
+        },
+    }
+    assert sum(metrics["player_facing_bet_predicted_action_counts"]["0"].values()) == 2
+    assert sum(metrics["player_facing_bet_predicted_action_counts"]["1"].values()) == 2
 
 
 def test_train_holdem_policy_accepts_soft_targets(tmp_path) -> None:
