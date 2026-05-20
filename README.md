@@ -159,8 +159,9 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Seat-specific Hold'em checkpoint evaluation that can assign different
   checkpoint policies to player 0 and player 1.
 - Cross-seat Hold'em neural checkpoint evaluation.
-- Hold'em match-evaluation action-count diagnostics by model/opponent role and
-  player seat, with optional progress reporting for long checkpoint evaluations.
+- Hold'em match-evaluation action-count and facing-bet response diagnostics by
+  model/opponent role and player seat, with optional progress reporting for
+  long checkpoint evaluations.
 - Fixed-limit Hold'em equity regression model and threshold-policy evaluation.
 - Both-seat training data for fixed-limit Hold'em equity regression.
 - Cacheable Hold'em equity-value training examples for longer runs.
@@ -248,6 +249,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T00:48:43-07:00 | `d65941a` | Checked player-1 hard-label weighting and full value-branch switching. | P1 call/fold/raise weights left the supervised p1 mix essentially unchanged; a 100% switch to the value-only branch failed exact/range/safe probes (`-1.785`, `-0.320`, `-1.0625`), so runtime branch switching is not a candidate. |
 | 2026-05-20T00:51:42-07:00 | `eb03b53` | Added direct action-value example weighting. | Training can now weight cached rollout-value examples globally or by current player; `tests/test_train_holdem_policy.py` passed (`30 passed`). |
 | 2026-05-20T01:12:46-07:00 | `113c325` | Tried value-weighted replay and p1-only value replay. | Direct p1 value weighting kept exact positive but flattened range and did not repair safe rollout; p1-only value replay failed cheap safe rollout badly at `-2.2625 +/- 0.8761`. |
+| 2026-05-20T01:20:57-07:00 | `88bfdc3` | Added facing-bet response diagnostics to Hold'em evaluation. | Evaluators now report action counts while a player is facing a bet/raise by role and seat; evaluator/model tests passed (`38 passed`). |
+| 2026-05-20T01:21:06-07:00 | `484a296` | Compared safe-rollout facing-bet behavior for current best and the value400 side checkpoint. | On the same h40 safe seed, current best was `-1.425 +/- 0.949` with model-facing call49/fold46/raise34; value400 improved to `-0.050 +/- 0.944` with call51/fold41/raise49 but player 1 remained weak (`-1.55`), so current best is unchanged. |
 
 Current fixed-limit Hold'em gate:
 
@@ -584,6 +587,12 @@ Current fixed-limit Hold'em gate:
   `+0.4010 +/- 0.0722` vs tight exact e8 over 2000 paired deals. In live play it
   raised at about the same rate as the opponent, suggesting the full-balanced
   model's extra aggression is part of its edge against this gate.
+- The facing-bet diagnostic rerun on the same cheap safe-rollout seed put the
+  current best at `-1.425 +/- 0.949` with model-facing call49/fold46/raise34.
+  The value400 side checkpoint was much closer overall (`-0.050 +/- 0.944`) and
+  raised more while facing bets (call51/fold41/raise49), but player 1 remained
+  weak at `-1.55`, so it remains a diagnostic side checkpoint rather than the
+  current best.
 
 ## Research Roadmap
 
