@@ -328,6 +328,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T12:56:37-07:00 | `ea05cfe` | Swept softer class weights for the 2k action-history distillation. | Power-0.75 reduced but did not remove over-raising and scored `+0.627 +/- 0.174` exact, `+0.065 +/- 0.110` range; sqrt-balanced matched raises better but scored only `+0.569 +/- 0.152` exact, `-0.035 +/- 0.091` range. |
 | 2026-05-20T13:17:00-07:00 | `d33bb32` | Added range-aware threshold sweeps for the teacher policy. | Tiny multi-gate pilot was too noisy for promotion: default thresholds led exact h10 at `+1.150 +/- 0.958`, `0.62/0.90/0.00` led range h10 at `+1.500 +/- 0.691`, and `0.70/0.95/-0.05` led safe s1 h4 at `+2.250 +/- 1.831`. |
 | 2026-05-20T13:28:53-07:00 | `6c84ee6` | Rechecked the `0.62/0.90/0.00` threshold retune. | Focused h20 exact/range comparison rejected the retune: default scored `+1.175 +/- 0.576` exact and `+0.425 +/- 0.284` range, while `0.62/0.90/0.00` scored `+1.125 +/- 0.512` exact and `-0.175 +/- 0.578` range. |
+| 2026-05-20T13:44:40-07:00 | `b54fb35` | Rechecked the 2k balanced range-feature distillation. | The checkpoint stayed positive but below current best on range h1000 (`+0.153 +/- 0.085`), and its safe-rollout h40 spike (`+1.7875 +/- 0.893`) failed h100 confirmation at `-0.670 +/- 0.460`; not a replacement. |
 
 Current fixed-limit Hold'em gate:
 
@@ -938,6 +939,11 @@ Current fixed-limit Hold'em gate:
   `+1.175 +/- 0.576`) but failed the range comparison (`-0.175 +/- 0.578` vs
   default `+0.425 +/- 0.284`). The default teacher thresholds remain the best
   supported range-aware pot-odds setting.
+- A larger check of the 2k balanced range-feature distillation also did not
+  beat the current best. Its range h1000 result was `+0.153 +/- 0.085`, below
+  the current best's `+0.286 +/- 0.084`. A cheap safe-rollout h40 smoke spiked
+  to `+1.7875 +/- 0.893`, but h100 confirmation failed at
+  `-0.670 +/- 0.460`, with model player 1 at `-1.42`.
 
 ## Research Roadmap
 
