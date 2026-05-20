@@ -91,6 +91,23 @@ def test_holdem_model_eval_parser_accepts_both_model_players() -> None:
     assert parse_model_players("both") == (0, 1)
 
 
+def test_holdem_model_eval_parser_accepts_player_checkpoints() -> None:
+    args = build_parser().parse_args(
+        [
+            "--checkpoint",
+            "fallback.pt",
+            "--player0-checkpoint",
+            "p0.pt",
+            "--player1-checkpoint",
+            "p1.pt",
+        ]
+    )
+
+    assert str(args.checkpoint) == "fallback.pt"
+    assert str(args.player0_checkpoint) == "p0.pt"
+    assert str(args.player1_checkpoint) == "p1.pt"
+
+
 def test_holdem_model_eval_parser_accepts_pot_odds_opponent() -> None:
     args = build_parser().parse_args(
         [
@@ -290,6 +307,8 @@ def test_holdem_model_eval_run_smoke(tmp_path) -> None:
             [
                 "--checkpoint",
                 str(policy_checkpoint),
+                "--player1-checkpoint",
+                str(blend_checkpoint),
                 "--blend-checkpoint",
                 str(blend_checkpoint),
                 "--blend-weight",
@@ -310,6 +329,8 @@ def test_holdem_model_eval_run_smoke(tmp_path) -> None:
     assert metrics["hands_per_model_player"] == 1
     assert metrics["jobs"] == 1
     assert metrics["shard_hands"] == [1]
+    assert metrics["player0_checkpoint"] == str(policy_checkpoint)
+    assert metrics["player1_checkpoint"] == str(blend_checkpoint)
     assert metrics["blend_checkpoint"] == str(blend_checkpoint)
     assert metrics["blend_weight"] == 0.25
     assert metrics["blend_after_opponent_aggressions"] == 1
@@ -341,6 +362,8 @@ def test_holdem_model_eval_run_paired_seats_smoke(tmp_path) -> None:
             [
                 "--checkpoint",
                 str(policy_checkpoint),
+                "--player1-checkpoint",
+                str(blend_checkpoint),
                 "--blend-checkpoint",
                 str(blend_checkpoint),
                 "--blend-after-opponent-aggressions",
@@ -365,6 +388,8 @@ def test_holdem_model_eval_run_paired_seats_smoke(tmp_path) -> None:
     assert metrics["paired_seats"]
     assert metrics["jobs"] == 2
     assert metrics["shard_hands"] == [1, 1]
+    assert metrics["player0_checkpoint"] == str(policy_checkpoint)
+    assert metrics["player1_checkpoint"] == str(blend_checkpoint)
     assert metrics["blend_after_opponent_aggressions"] == 1
     assert len(metrics["seat_metrics"]) == 2
     assert sum(metrics["model_action_counts"].values()) == sum(

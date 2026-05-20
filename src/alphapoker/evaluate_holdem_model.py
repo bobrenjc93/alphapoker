@@ -48,6 +48,13 @@ def normalize_model_players(value: int | str | tuple[int, ...]) -> tuple[int, ..
     return parse_model_players(str(value))
 
 
+def player_checkpoints_from_args(args: argparse.Namespace) -> tuple[Path, Path]:
+    return (
+        getattr(args, "player0_checkpoint", None) or args.checkpoint,
+        getattr(args, "player1_checkpoint", None) or args.checkpoint,
+    )
+
+
 def _weighted_mean(metrics: list[dict[str, Any]], key: str) -> float:
     total_hands = sum(int(item["hands"]) for item in metrics)
     return (
@@ -115,6 +122,9 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
         "blend_checkpoint",
         "blend_weight",
         "blend_after_opponent_aggressions",
+        "player0_checkpoint",
+        "player1_checkpoint",
+        "player_checkpoint",
         "fallback_policy",
         "min_strategy_weight",
         "bet_threshold",
@@ -267,6 +277,7 @@ def make_opponent_policy(
 def evaluate_model_shard(
     *,
     checkpoint: Path,
+    player_checkpoints: tuple[Path, Path],
     hands: int,
     seed: int,
     opponent_policy: str,
@@ -281,11 +292,15 @@ def evaluate_model_shard(
 ) -> dict[str, Any]:
     eval_seed = seed + shard_index * 1_000_003
     opponent_rng = random.Random(eval_seed + 1)
+    player_checkpoint = player_checkpoints[model_player]
     return {
         "checkpoint": str(checkpoint),
+        "player_checkpoint": str(player_checkpoint),
+        "player0_checkpoint": str(player_checkpoints[0]),
+        "player1_checkpoint": str(player_checkpoints[1]),
         **evaluate_policy_match(
             model_policy=model_policy_from_checkpoint(
-                checkpoint,
+                player_checkpoint,
                 feature_seed=eval_seed,
                 blend_checkpoint_path=blend_checkpoint,
                 blend_weight=blend_weight,
@@ -316,6 +331,7 @@ def evaluate_model_shard(
 def evaluate_model_paired_shard(
     *,
     checkpoint: Path,
+    player_checkpoints: tuple[Path, Path],
     hands: int,
     seed: int,
     opponent_policy: str,
@@ -330,7 +346,7 @@ def evaluate_model_paired_shard(
     eval_seed = seed + shard_index * 1_000_003
     model_policies = tuple(
         model_policy_from_checkpoint(
-            checkpoint,
+            player_checkpoints[model_player],
             feature_seed=eval_seed + model_player,
             blend_checkpoint_path=blend_checkpoint,
             blend_weight=blend_weight,
@@ -350,6 +366,8 @@ def evaluate_model_paired_shard(
     )
     return {
         "checkpoint": str(checkpoint),
+        "player0_checkpoint": str(player_checkpoints[0]),
+        "player1_checkpoint": str(player_checkpoints[1]),
         **evaluate_policy_match_paired_seats(
             model_policies=model_policies,
             opponent_policies=opponent_policies,
@@ -394,6 +412,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if blend_checkpoint is None:
             raise ValueError("--blend-after-opponent-aggressions requires --blend-checkpoint")
     model_players = normalize_model_players(args.model_player)
+    player_checkpoints = player_checkpoints_from_args(args)
     shard_hands = split_hands(args.hands, args.jobs)
     if args.paired_seats and model_players != (0, 1):
         raise ValueError("--paired-seats requires --model-player both")
@@ -401,6 +420,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         shard_kwargs = [
             {
                 "checkpoint": args.checkpoint,
+                "player_checkpoints": player_checkpoints,
                 "hands": shard_size,
                 "seed": args.seed,
                 "opponent_policy": args.opponent_policy,
@@ -447,6 +467,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     shard_kwargs = [
         {
             "checkpoint": args.checkpoint,
+            "player_checkpoints": player_checkpoints,
             "hands": shard_size,
             "seed": args.seed,
             "opponent_policy": args.opponent_policy,
@@ -498,6 +519,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path, required=True)
+    parser.add_argument("--player0-checkpoint", type=Path)
+    parser.add_argument("--player1-checkpoint", type=Path)
     parser.add_argument("--blend-checkpoint", type=Path)
     parser.add_argument("--blend-weight", type=float, default=0.5)
     parser.add_argument("--blend-after-opponent-aggressions", type=int)
