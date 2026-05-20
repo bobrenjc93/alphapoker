@@ -670,13 +670,25 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     facing_bet_mask = facing_bet_mask_from_masks(masks)
     init_kl_weight = float(getattr(args, "init_kl_weight", 0.0))
     init_kl_example_weighting = getattr(args, "init_kl_example_weighting", "example")
-    if init_kl_example_weighting not in ("example", "uniform"):
-        raise ValueError("--init-kl-example-weighting must be example or uniform")
+    if init_kl_example_weighting not in ("example", "state", "uniform"):
+        raise ValueError("--init-kl-example-weighting must be example, state, or uniform")
+    if init_kl_example_weighting == "example":
+        kl_example_weights = example_weights if use_example_weights else None
+    elif init_kl_example_weighting == "state":
+        kl_example_weights = (
+            facing_bet_weights
+            * action_value_example_weights
+            * player_action_value_weights
+        )
+    else:
+        kl_example_weights = None
     train_kl_example_weights = (
-        train_example_weights if init_kl_example_weighting == "example" else None
+        kl_example_weights[train_indices] if kl_example_weights is not None else None
     )
     validation_kl_example_weights = (
-        validation_example_weights if init_kl_example_weighting == "example" else None
+        kl_example_weights[validation_indices]
+        if kl_example_weights is not None and validation_indices
+        else None
     )
 
     torch.manual_seed(0)
@@ -1119,11 +1131,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--init-kl-weight", type=float, default=0.0)
     parser.add_argument(
         "--init-kl-example-weighting",
-        choices=("example", "uniform"),
+        choices=("example", "state", "uniform"),
         default="example",
         help=(
-            "Use example weights for initialized-policy KL anchoring, or keep the "
-            "KL term uniform while weighting supervised/value losses."
+            "Use all example weights, only state-level example weights, or no "
+            "example weights for initialized-policy KL anchoring."
         ),
     )
     parser.add_argument("--init-allow-input-expansion", action="store_true")
