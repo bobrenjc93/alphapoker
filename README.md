@@ -297,6 +297,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T06:31:59-07:00 | `f31e5b6` | Swept focused replay dose and runtime blends. | Runtime blends after two opponent aggressions were h40-safe positive overall (`+0.325`, `+0.475`, `+0.600`) but left p1 negative; x1 failed safe (`-0.625 +/- 0.673`) and x1.5 was near-flat with p1 still weak (`-0.0875 +/- 0.814`, p1 `-1.700`), so no exact/range extension. |
 | 2026-05-20T06:36:04-07:00 | `5d74a42` | Added same-seed expanded-current-best safe baseline. | The action-history-expanded current best failed the blend seed's h40 cheap-safe control at `-1.375 +/- 0.782` with both seats negative (`p0 -1.175`, `p1 -1.575`), confirming the robustness gap persists without the focused branch. |
 | 2026-05-20T06:49:03-07:00 | `dcc1246` | Tried broader player-1 after-one-aggression response replay. | 101 focused p1 response labels and an x1 mix repaired h40 safe to `+0.2375 +/- 0.692` with both seats non-negative and kept h100 range strong at `+0.920 +/- 0.345`, but exact h100 was only `+0.065 +/- 0.329` with player 0 negative, so this is a side checkpoint only. |
+| 2026-05-20T07:09:47-07:00 | `a8a72ed` | Probed after-one seat composites and player-0 response bias. | Static seat composites failed h40 safe (`-0.7125 +/- 0.626`, `-0.3250 +/- 0.769`); adding a player-0 response bias kept h100 exact/range positive (`+0.410 +/- 0.315`, `+0.515 +/- 0.286`) but h100 safe failed at `-0.480 +/- 0.506` because player 1 fell to `-2.560`. |
 
 Current fixed-limit Hold'em gate:
 
@@ -774,6 +775,16 @@ Current fixed-limit Hold'em gate:
   and kept the h100 `tight-range-pot-odds` probe strong at `+0.920 +/- 0.345`.
   The h100 tight exact gate was only `+0.065 +/- 0.329`, with player 0 negative
   at `-0.770`, so this is a side checkpoint rather than a current-best update.
+- Seat-specific composites did not turn that side checkpoint into a viable
+  runtime policy. Current best for player 0 plus the after-one checkpoint for
+  player 1 failed h40 cheap safe rollout at `-0.7125 +/- 0.6258`, while the
+  reverse composite also failed at `-0.3250 +/- 0.7689`. Adding a player-0-only
+  facing-bet bias (`raise=+0.5`, `fold=-0.5`) to the first composite made the
+  h40 safe smoke positive (`+0.3625 +/- 0.8070`) and kept h100 exact/range
+  probes positive (`+0.410 +/- 0.315` and `+0.515 +/- 0.286`), but the h100
+  safe confirmation failed at `-0.480 +/- 0.506`; player 0 was repaired
+  (`+1.600`) while player 1 fell to `-2.560`. The next repair needs player-1
+  safe behavior that transfers beyond the original h40 seed.
 
 ## Research Roadmap
 
