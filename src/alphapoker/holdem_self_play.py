@@ -40,6 +40,7 @@ HOLDEM_SELF_PLAY_POLICIES = (
     "balanced-turn-river-exact-pot-odds",
     "tight-range-pot-odds",
     "tight-range-default-safe-rollout-pot-odds",
+    "tight-fast-range-default-safe-rollout-pot-odds",
     "tight-range-rollout-pot-odds",
     "tight-range-safe-rollout-pot-odds",
     "hybrid-pot-odds",
@@ -65,6 +66,7 @@ def make_policy_action_value_fn(
         "tight-rollout-pot-odds",
         "tight-safe-rollout-pot-odds",
         "tight-range-default-safe-rollout-pot-odds",
+        "tight-fast-range-default-safe-rollout-pot-odds",
         "tight-range-rollout-pot-odds",
         "tight-range-safe-rollout-pot-odds",
     ):
@@ -103,10 +105,27 @@ def make_policy_action_value_fn(
     )
     range_default = name in (
         "tight-range-default-safe-rollout-pot-odds",
+        "tight-fast-range-default-safe-rollout-pot-odds",
         "tight-range-safe-rollout-pot-odds",
     )
+    fast_range_default = name == "tight-fast-range-default-safe-rollout-pot-odds"
+    range_default_sims = max(1, min(equity_sims, 2)) if fast_range_default else equity_sims
+    range_max_attempts = 4 if fast_range_default else 32
     policy_factory = range_baseline if range_rollout else baseline
-    default_factory = range_baseline if range_default else baseline
+
+    def default_range_baseline(policy_rng: random.Random):
+        return opponent_range_pot_odds_equity_policy(
+            policy_rng,
+            simulations=range_default_sims,
+            opponent_policy_factory=baseline,
+            bet_threshold=bet_threshold,
+            raise_threshold=raise_threshold,
+            call_margin=0.08,
+            max_attempts_per_sample=range_max_attempts,
+            cache_policy_matches=True,
+        )
+
+    default_factory = default_range_baseline if range_default else baseline
 
     def action_and_values(state):
         action_values = policy_rollout_action_values(
@@ -197,7 +216,14 @@ def make_policy(
             call_margin=0.08,
             cache_policy_matches=True,
         )
-    if name == "tight-range-default-safe-rollout-pot-odds":
+    if name in (
+        "tight-range-default-safe-rollout-pot-odds",
+        "tight-fast-range-default-safe-rollout-pot-odds",
+    ):
+        fast_range_default = name == "tight-fast-range-default-safe-rollout-pot-odds"
+        range_default_sims = max(1, min(equity_sims, 2)) if fast_range_default else equity_sims
+        range_max_attempts = 4 if fast_range_default else 32
+
         def tight_baseline(_: random.Random):
             return turn_river_exact_pot_odds_equity_policy(
                 simulations=equity_sims,
@@ -209,11 +235,12 @@ def make_policy(
         def range_baseline(policy_rng: random.Random):
             return opponent_range_pot_odds_equity_policy(
                 policy_rng,
-                simulations=equity_sims,
+                simulations=range_default_sims,
                 opponent_policy_factory=tight_baseline,
                 bet_threshold=0.62,
                 raise_threshold=0.84,
                 call_margin=0.08,
+                max_attempts_per_sample=range_max_attempts,
                 cache_policy_matches=True,
             )
 

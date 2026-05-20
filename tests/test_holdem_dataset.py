@@ -327,6 +327,21 @@ def test_generate_equity_policy_examples_from_tight_range_default_safe_rollout_e
     assert any(example.action_values is not None for example in examples)
 
 
+def test_generate_equity_policy_examples_from_tight_fast_range_default_safe_rollout_expert() -> None:
+    examples = generate_equity_policy_examples(
+        hands=1,
+        seed=33,
+        equity_sims=2,
+        rollout_sims=1,
+        expert_policy="tight-fast-range-default-safe-rollout-pot-odds",
+        opponent_policy="tight-range-pot-odds",
+        soft_target_temperature=1.0,
+    )
+
+    assert examples
+    assert any(example.action_values is not None for example in examples)
+
+
 def test_policy_example_record_filters_select_conditional_response_states() -> None:
     state = FixedLimitHoldemState.initial(
         (("As", "Qs"), ("Ah", "Ad")),
