@@ -329,6 +329,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T13:17:00-07:00 | `d33bb32` | Added range-aware threshold sweeps for the teacher policy. | Tiny multi-gate pilot was too noisy for promotion: default thresholds led exact h10 at `+1.150 +/- 0.958`, `0.62/0.90/0.00` led range h10 at `+1.500 +/- 0.691`, and `0.70/0.95/-0.05` led safe s1 h4 at `+2.250 +/- 1.831`. |
 | 2026-05-20T13:28:53-07:00 | `6c84ee6` | Rechecked the `0.62/0.90/0.00` threshold retune. | Focused h20 exact/range comparison rejected the retune: default scored `+1.175 +/- 0.576` exact and `+0.425 +/- 0.284` range, while `0.62/0.90/0.00` scored `+1.125 +/- 0.512` exact and `-0.175 +/- 0.578` range. |
 | 2026-05-20T13:44:40-07:00 | `b54fb35` | Rechecked the 2k balanced range-feature distillation. | The checkpoint stayed positive but below current best on range h1000 (`+0.153 +/- 0.085`), and its safe-rollout h40 spike (`+1.7875 +/- 0.893`) failed h100 confirmation at `-0.670 +/- 0.460`; not a replacement. |
+| 2026-05-20T13:49:37-07:00 | `442a76f` | Tried seat-specific composites with the 2k balanced checkpoint. | 2k for player 0 plus current best for player 1 was near-flat negative on safe h40 (`-0.200 +/- 0.744`); current best for player 0 plus 2k for player 1 failed harder (`-1.4375 +/- 0.600`). |
 
 Current fixed-limit Hold'em gate:
 
@@ -944,6 +945,10 @@ Current fixed-limit Hold'em gate:
   the current best's `+0.286 +/- 0.084`. A cheap safe-rollout h40 smoke spiked
   to `+1.7875 +/- 0.893`, but h100 confirmation failed at
   `-0.670 +/- 0.460`, with model player 1 at `-1.42`.
+- Seat-specific composites with the 2k balanced checkpoint also failed. Using
+  2k for player 0 and current best for player 1 gave `-0.200 +/- 0.744` on the
+  cheap safe h40 check because player 1 was still weak (`-1.35`). Using 2k for
+  player 1 was worse at `-1.4375 +/- 0.600`.
 
 ## Research Roadmap
 
