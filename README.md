@@ -124,6 +124,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Held-out Hold'em policy-imitation evaluation for cloned experts.
 - Optional balanced, sqrt-balanced, and custom-exponent action-class weighting
   for Hold'em policy distillation.
+- Optional facing-bet example weighting for Hold'em policy distillation, used
+  to emphasize call/fold response states without changing cached example files.
 - Hold'em policy-distillation checkpoint initialization, optional KL anchoring,
   rollout-margin control, and shard progress for long example-generation runs.
 - REINFORCE-style Hold'em policy-gradient training against fixed opponents,
@@ -205,6 +207,7 @@ broader context for range-aware and safe-rollout probes.
 | 2026-05-19T17:43:38-07:00 | `c890a0c` | Scaled safe-expert self-play DAgger to 300 hands with a stronger KL anchor. | Tight exact stayed positive on a small probe (`+0.4400 +/- 0.7888`), but range flattened to `+0.0150 +/- 0.4784` and safe rollout s1 stayed negative at `-0.3625 +/- 1.4758`. |
 | 2026-05-19T18:41:56-07:00 | `2a8bc90` | Mixed original range-teacher replay with safe-expert self-play labels. | A 200-hand base replay plus 100 safe-expert hands spiked tight exact to `+0.7000 +/- 0.5822`, but range failed at `-0.1100 +/- 0.4534` and safe rollout s1 failed at `-1.0875 +/- 1.3269`. |
 | 2026-05-19T19:04:07-07:00 | `81d7135` | Swept KL/class-weight replay variants from the mixed safe-expert replay set. | KL8 sqrt-balanced recovered small exact/range probes (`+0.9400 +/- 0.7225`, `+0.7050 +/- 0.3965`), but safe rollout s1 failed at `-1.5875 +/- 1.1674`; KL16 balanced was also exact/range positive but safe negative. |
+| 2026-05-19T19:28:35-07:00 | `a079098` | Upweighted facing-bet response states in the mixed replay set. | KL8 sqrt-facing3 preserved small exact/range probes (`+0.8750 +/- 0.5249`, `+0.5300 +/- 0.4541`) but still failed safe rollout s1 at `-1.0500 +/- 1.0175`; not a candidate. |
 
 Current fixed-limit Hold'em gate:
 
@@ -301,6 +304,12 @@ Current fixed-limit Hold'em gate:
   0.5737` and `+0.4600 +/- 0.3473`. Both still failed cheap safe rollout s1
   (`-1.5875 +/- 1.1674` and `-1.0125 +/- 1.4744`), so this is not a current
   best update.
+- Upweighting facing-bet examples by 3x in that same replay set preserved the
+  KL8 sqrt-balanced exact/range behavior (`+0.8750 +/- 0.5249` vs tight exact
+  e8 and `+0.5300 +/- 0.4541` vs `tight-range-pot-odds`), but the cheap
+  safe-rollout probe remained negative at `-1.0500 +/- 1.0175`. The KL16
+  balanced-facing3 variant was also negative on cheap safe rollout (`-1.3500
+  +/- 1.2750`). Response-state weighting alone is not enough.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
