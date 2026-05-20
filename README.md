@@ -138,6 +138,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   to emphasize call/fold response states without changing cached example files.
 - Optional facing-bet target-action weighting, including per-player overrides,
   for Hold'em policy distillation from cached response-state labels.
+- Training-time facing-bet response target/prediction diagnostics for Hold'em
+  policy distillation, reported globally and by player seat.
 - Optional Hold'em action-history policy features and first-layer input
   expansion for initializing wider feature checkpoints from older policies.
 - Hold'em policy-distillation checkpoint initialization, optional KL anchoring,
@@ -259,6 +261,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T01:47:31-07:00 | `da0b8d6` | Tried a hard value400 switch after opponent aggression. | Full switch from action-history-expanded current best to value400 after the first opponent bet/raise also failed h40 safe (`-0.625 +/- 1.000`), with both seats negative. |
 | 2026-05-20T01:52:49-07:00 | `401a12e` | Added facing-bet target-action training weights. | Training can now weight response-state target actions globally or by player; `tests/test_train_holdem_policy.py` passed (`32 passed`). |
 | 2026-05-20T02:04:24-07:00 | `332b2a2` | Tried player-1 facing-bet call/fold weighting. | P1 `call=4.0`, `fold=0.5` improved h40 safe to `+0.325 +/- 0.949` and h100 safe to `+0.235 +/- 0.572`, but h100 range failed at `-0.230 +/- 0.317`; adding p1 `raise=2.0` flattened h40 safe to `+0.0125 +/- 0.849`. Current best unchanged. |
+| 2026-05-20T02:07:36-07:00 | `e96c5fc` | Added training-time facing-bet response diagnostics. | Policy-distillation metrics now report target and predicted action counts restricted to facing-bet states, globally and by player; `tests/test_train_holdem_policy.py` passed (`33 passed`). |
 
 Current fixed-limit Hold'em gate:
 
@@ -631,6 +634,10 @@ Current fixed-limit Hold'em gate:
   negative on safe rollout (`-0.69`). Adding p1 `raise=2.0` reduced the h40
   safe result to `+0.0125 +/- 0.849`, so targeted response-action weighting
   needs finer response-state diagnostics before another scalar sweep.
+- The next tooling step adds those training-time response-state diagnostics:
+  `metrics.json` now reports target and predicted action counts only on
+  facing-bet states, both globally and split by player. This changes
+  observability, not the current best.
 
 ## Research Roadmap
 
