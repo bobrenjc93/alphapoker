@@ -271,10 +271,17 @@ def test_generate_equity_policy_examples_with_soft_rollout_targets() -> None:
     assert any(example.action_probs is not None for example in examples)
     for example in examples:
         assert example.action_probs is not None
+        assert example.action_values is not None
+        assert len(example.action_values) == len(example.legal_mask)
         assert sum(example.action_probs) == pytest.approx(1.0)
-        for probability, legal in zip(example.action_probs, example.legal_mask):
+        for probability, action_value, legal in zip(
+            example.action_probs,
+            example.action_values,
+            example.legal_mask,
+        ):
             if not legal:
                 assert probability == 0.0
+                assert action_value == 0.0
 
 
 def test_soft_action_probs_from_values_rejects_bad_temperature() -> None:
@@ -350,6 +357,7 @@ def test_policy_example_cache_round_trip(tmp_path) -> None:
             action_index=2,
             legal_mask=[True, False],
             action_probs=[0.25, 0.75],
+            action_values=[1.0, 0.0],
         )
     ]
 

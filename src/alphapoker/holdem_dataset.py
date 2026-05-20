@@ -95,6 +95,7 @@ class HoldemPolicyExample:
     action_index: int
     legal_mask: list[bool]
     action_probs: list[float] | None = None
+    action_values: list[float] | None = None
 
 
 @dataclass(frozen=True)
@@ -190,6 +191,8 @@ def write_policy_examples(path: Path, examples: list[HoldemPolicyExample]) -> No
         }
         if example.action_probs is not None:
             item["action_probs"] = example.action_probs
+        if example.action_values is not None:
+            item["action_values"] = example.action_values
         payload.append(item)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
 
@@ -204,6 +207,11 @@ def read_policy_examples(path: Path) -> list[HoldemPolicyExample]:
             action_probs=(
                 [float(value) for value in item["action_probs"]]
                 if item.get("action_probs") is not None
+                else None
+            ),
+            action_values=(
+                [float(value) for value in item["action_values"]]
+                if item.get("action_values") is not None
                 else None
             ),
         )
@@ -327,9 +335,14 @@ def generate_equity_policy_examples(
                     legal_mask,
                     soft_target_temperature,
                 )
+                dense_action_values = [
+                    float(action_values.get(action, 0.0))
+                    for action in HOLDEM_CANONICAL_ACTIONS
+                ]
             else:
                 expert_action = expert_action_policy(state) if use_expert else non_expert_policy(state)
                 legal_mask = holdem_legal_action_mask(state) if use_expert else None
+                dense_action_values = None
             if use_expert:
                 examples.append(
                     HoldemPolicyExample(
@@ -344,6 +357,7 @@ def generate_equity_policy_examples(
                         action_index=holdem_action_index(expert_action),
                         legal_mask=legal_mask,
                         action_probs=action_probs,
+                        action_values=dense_action_values,
                     )
                 )
             if use_expert and expert_behavior_policy is not None:

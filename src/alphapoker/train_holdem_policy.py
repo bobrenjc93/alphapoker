@@ -415,6 +415,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     targets = torch.tensor([example.action_index for example in examples], dtype=torch.long)
     masks = torch.tensor([example.legal_mask for example in examples], dtype=torch.bool)
     soft_target_examples = sum(example.action_probs is not None for example in examples)
+    action_value_target_examples = sum(example.action_values is not None for example in examples)
     soft_targets = None
     if soft_target_examples:
         soft_target_rows = []
@@ -428,6 +429,30 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 row = [float(value) for value in example.action_probs]
             soft_target_rows.append(row)
         soft_targets = torch.tensor(soft_target_rows, dtype=torch.float32)
+    action_value_targets = None
+    action_value_target_mask = None
+    if action_value_target_examples:
+        action_value_rows = []
+        action_value_mask_rows = []
+        for example in examples:
+            if example.action_values is None:
+                action_value_rows.append([0.0 for _ in HOLDEM_CANONICAL_ACTIONS])
+                action_value_mask_rows.append(False)
+            else:
+                if len(example.action_values) != len(HOLDEM_CANONICAL_ACTIONS):
+                    raise ValueError("action_values length does not match actions")
+                action_value_rows.append([float(value) for value in example.action_values])
+                action_value_mask_rows.append(True)
+        action_value_targets = torch.tensor(action_value_rows, dtype=torch.float32)
+        action_value_target_mask = torch.tensor(action_value_mask_rows, dtype=torch.bool)
+    action_value_loss_weight = float(getattr(args, "action_value_loss_weight", 0.0))
+    action_value_target_scale = float(getattr(args, "action_value_target_scale", 1.0))
+    if action_value_loss_weight < 0.0:
+        raise ValueError("--action-value-loss-weight must be non-negative")
+    if action_value_target_scale <= 0.0:
+        raise ValueError("--action-value-target-scale must be positive")
+    if action_value_loss_weight > 0.0 and action_value_targets is None:
+        raise ValueError("--action-value-loss-weight requires cached action_values")
     validation_fraction = getattr(args, "validation_fraction", 0.0)
     train_indices, validation_indices = _split_train_validation_indices(
         len(examples),
@@ -438,12 +463,30 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     train_targets = targets[train_indices]
     train_masks = masks[train_indices]
     train_soft_targets = soft_targets[train_indices] if soft_targets is not None else None
+    train_action_value_targets = (
+        action_value_targets[train_indices] if action_value_targets is not None else None
+    )
+    train_action_value_target_mask = (
+        action_value_target_mask[train_indices]
+        if action_value_target_mask is not None
+        else None
+    )
     validation_features = features[validation_indices] if validation_indices else None
     validation_targets = targets[validation_indices] if validation_indices else None
     validation_masks = masks[validation_indices] if validation_indices else None
     validation_soft_targets = (
         soft_targets[validation_indices]
         if soft_targets is not None and validation_indices
+        else None
+    )
+    validation_action_value_targets = (
+        action_value_targets[validation_indices]
+        if action_value_targets is not None and validation_indices
+        else None
+    )
+    validation_action_value_target_mask = (
+        action_value_target_mask[validation_indices]
+        if action_value_target_mask is not None and validation_indices
         else None
     )
     facing_bet_weight = float(getattr(args, "facing_bet_weight", 1.0))
@@ -524,6 +567,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         batch_targets,
         batch_masks,
         batch_soft_targets=None,
+        batch_action_value_targets=None,
+        batch_action_value_target_mask=None,
         batch_weights=None,
     ):
         logits = model(batch_features)
@@ -555,6 +600,36 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 loss = losses.sum() / class_normalizer.sum().clamp_min(1e-12)
             else:
                 loss = (losses * batch_weights).sum() / batch_weights.sum().clamp_min(1e-12)
+        if (
+            action_value_loss_weight > 0.0
+            and batch_action_value_targets is not None
+            and batch_action_value_target_mask is not None
+            and bool(batch_action_value_target_mask.any())
+        ):
+            legal_mask_float = batch_masks.float()
+            legal_counts = legal_mask_float.sum(dim=1).clamp_min(1.0)
+            logit_mean = (logits.masked_fill(~batch_masks, 0.0).sum(dim=1) / legal_counts).unsqueeze(1)
+            logit_advantages = (logits - logit_mean).masked_fill(~batch_masks, 0.0)
+            target_mean = (
+                (batch_action_value_targets * legal_mask_float).sum(dim=1) / legal_counts
+            ).unsqueeze(1)
+            target_advantages = (
+                (batch_action_value_targets - target_mean) / action_value_target_scale
+            ).masked_fill(~batch_masks, 0.0)
+            value_losses = (
+                ((logit_advantages - target_advantages).pow(2) * legal_mask_float).sum(dim=1)
+                / legal_counts
+            )
+            value_losses = value_losses[batch_action_value_target_mask]
+            if batch_weights is None:
+                action_value_loss = value_losses.mean()
+            else:
+                value_weights = batch_weights[batch_action_value_target_mask]
+                action_value_loss = (
+                    (value_losses * value_weights).sum()
+                    / value_weights.sum().clamp_min(1e-12)
+                )
+            loss = loss + action_value_loss_weight * action_value_loss
         if anchor_model is None:
             return loss
         with torch.no_grad():
@@ -590,6 +665,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             train_targets,
             train_masks,
             train_soft_targets,
+            train_action_value_targets,
+            train_action_value_target_mask,
             train_example_weights,
         )
         optimizer.zero_grad(set_to_none=True)
@@ -602,6 +679,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 train_targets,
                 train_masks,
                 train_soft_targets,
+                train_action_value_targets,
+                train_action_value_target_mask,
                 train_example_weights,
             )
             final_loss = float(train_loss.detach().cpu())
@@ -613,6 +692,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     validation_targets,
                     validation_masks,
                     validation_soft_targets,
+                    validation_action_value_targets,
+                    validation_action_value_target_mask,
                     validation_example_weights,
                 )
                 validation_loss_value = float(validation_loss.detach().cpu())
@@ -715,6 +796,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "soft_target_temperature": getattr(args, "soft_target_temperature", None),
         "soft_target_examples": int(soft_target_examples),
         "soft_target_action_mass": soft_target_action_mass,
+        "action_value_target_examples": int(action_value_target_examples),
+        "action_value_loss_weight": action_value_loss_weight,
+        "action_value_target_scale": action_value_target_scale,
         "jobs": jobs,
         "epochs": args.epochs,
         "lr": args.lr,
@@ -797,6 +881,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--feature-equity-checkpoint", type=Path)
     parser.add_argument("--action-history-features", action="store_true")
     parser.add_argument("--soft-target-temperature", type=float)
+    parser.add_argument("--action-value-loss-weight", type=float, default=0.0)
+    parser.add_argument("--action-value-target-scale", type=float, default=1.0)
     parser.add_argument("--behavior-checkpoint", type=Path)
     parser.add_argument("--init-checkpoint", type=Path)
     parser.add_argument("--init-kl-weight", type=float, default=0.0)
