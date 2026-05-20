@@ -63,6 +63,8 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
             "1",
             "--facing-bet-logit-bias",
             "call=0.5",
+            "--facing-bet-logit-bias-after-opponent-aggressions",
+            "2",
             "--player-facing-bet-logit-bias",
             "0:raise=-1.0",
             "--player-facing-bet-logit-bias-after-opponent-aggressions",
@@ -77,6 +79,7 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
     assert args.blend_weight == 0.25
     assert args.blend_after_opponent_aggressions == 1
     assert args.facing_bet_logit_bias == ["call=0.5"]
+    assert args.facing_bet_logit_bias_after_opponent_aggressions == 2
     assert args.player_facing_bet_logit_bias == ["0:raise=-1.0"]
     assert args.player_facing_bet_logit_bias_after_opponent_aggressions == 2
 
@@ -288,6 +291,28 @@ def test_model_policy_applies_facing_bet_logit_bias(tmp_path) -> None:
     )
 
     assert policy(raised_state) == "call"
+
+
+def test_model_policy_can_delay_facing_bet_logit_bias(tmp_path) -> None:
+    state = deal_fixed_limit_holdem()
+    raised_state = state.apply(RAISE)
+    policy_checkpoint = tmp_path / "policy.pt"
+    write_biased_policy_checkpoint(policy_checkpoint, "fold")
+
+    delayed_policy = model_policy_from_checkpoint(
+        policy_checkpoint,
+        facing_bet_logit_biases=action_logit_biases_from_specs(["call=20.0"]),
+        facing_bet_logit_bias_after_opponent_aggressions=2,
+    )
+    active_policy = model_policy_from_checkpoint(
+        policy_checkpoint,
+        facing_bet_logit_biases=action_logit_biases_from_specs(["call=20.0"]),
+        facing_bet_logit_bias_after_opponent_aggressions=1,
+    )
+
+    assert opponent_aggressions_before_current_decision(raised_state) == 1
+    assert delayed_policy(raised_state) == "fold"
+    assert active_policy(raised_state) == "call"
 
 
 def test_model_policy_applies_player_facing_bet_logit_bias(tmp_path) -> None:
