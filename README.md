@@ -300,6 +300,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T07:09:47-07:00 | `a8a72ed` | Probed after-one seat composites and player-0 response bias. | Static seat composites failed h40 safe (`-0.7125 +/- 0.626`, `-0.3250 +/- 0.769`); adding a player-0 response bias kept h100 exact/range positive (`+0.410 +/- 0.315`, `+0.515 +/- 0.286`) but h100 safe failed at `-0.480 +/- 0.506` because player 1 fell to `-2.560`. |
 | 2026-05-20T07:34:01-07:00 | `6c920e8` | Scaled after-one player-1 response replay to 300 hands. | 336 focused labels kept p1 response imitation close to target and made h40 safe strongly positive (`+1.3125 +/- 1.007`), while h100 exact/range stayed positive (`+0.380 +/- 0.263`, `+0.595 +/- 0.338`); h100 safe still failed at `-0.600 +/- 0.482` because player 1 fell to `-2.170`. |
 | 2026-05-20T08:05:58-07:00 | `6a1a5cf` | Tried balanced-safe after-one player-1 response replay. | 329 balanced-safe focused labels kept p1 cached response imitation close (`153/181/157` predicted vs `167/163/161` target) and made h40 safe weak-positive (`+0.275 +/- 0.711`), but exact h100 failed (`-0.755 +/- 0.412`), range was flat (`+0.005 +/- 0.323`), and h100 safe failed (`-0.310 +/- 0.556`). |
+| 2026-05-20T08:19:35-07:00 | `49b1c5d` | Probed runtime player-1 response bias on the h300 after-one checkpoint. | A moderate p1 `raise=+0.5`, `fold=-0.5` bias after one opponent aggression made h40 safe weak-positive (`+0.3375 +/- 0.895`) by flipping p1 positive, while a stronger raise bias flattened it (`+0.025 +/- 0.948`); h100 safe was only `+0.090 +/- 0.565` and still lost as player 1 (`-1.490`). |
 
 Current fixed-limit Hold'em gate:
 
@@ -806,6 +807,14 @@ Current fixed-limit Hold'em gate:
   seats negative.
   The next repair needs a better integration mechanism or a targeted player-1
   policy change, not just a looser safe-rollout label source.
+- Runtime player-1 response calibration on the tight h300 after-one checkpoint
+  repairs the small player-1 smoke point but does not transfer. A p1-only
+  `raise=+0.5`, `fold=-0.5` bias after one visible opponent aggression made
+  h40 safe weak-positive (`+0.3375 +/- 0.895`) by moving player 1 to `+1.500`,
+  but player 0 fell to `-0.825`; increasing the raise bias to `+1.0` flattened
+  the smoke result (`+0.025 +/- 0.948`). The h100 safe confirmation for the
+  moderate bias stayed only `+0.090 +/- 0.565` and still lost as player 1
+  (`-1.490`), so scalar p1 runtime bias is not the missing integration step.
 
 ## Research Roadmap
 
