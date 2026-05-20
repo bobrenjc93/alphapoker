@@ -222,6 +222,7 @@ broader context for range-aware and safe-rollout probes.
 | 2026-05-19T21:47:45-07:00 | `2e72c2c` | Tested action-history-compatible adaptive blends. | Expanded the current best to action-history inputs and blended toward the balanced-class side checkpoint after opponent aggression; 50% failed at `-2.5500 +/- 1.7593`, while 25% still failed at `-0.5875 +/- 1.3301`. |
 | 2026-05-19T21:52:00-07:00 | `b7de1aa` | Selected full-balanced safe replay by train loss. | Removing the validation split ran to epoch 200, but still collapsed raise/fold (`raise` target 440 vs predicted 297; `fold` target 390 vs predicted 533) and failed cheap safe rollout at `-0.8250 +/- 1.1044`; no exact/range extension. |
 | 2026-05-19T22:02:28-07:00 | `a7f6904` | Added explicit raise/fold loss shaping. | `raise=2.0`, `fold=0.5` moved the cheap safe probe positive (`+0.8125 +/- 1.8117`) but damaged tight exact (`-0.4150 +/- 0.7566`) and flattened range (`-0.0650 +/- 0.4600`); diagnostic only. |
+| 2026-05-19T22:15:43-07:00 | `562c955` | Swept milder and call-aware action shaping. | `raise=1.5`, `fold=0.75` failed safe rollout (`-1.7375 +/- 1.4825`); p1-focused heavy shaping also failed (`-0.8375 +/- 1.1339`); adding `call=1.5` kept exact/range near flat-positive but safe was too noisy (`+0.3000 +/- 2.0511`). |
 
 Current fixed-limit Hold'em gate:
 
@@ -377,6 +378,15 @@ Current fixed-limit Hold'em gate:
   probes regressed to `-0.4150 +/- 0.7566` and `-0.0650 +/- 0.4600`. This points
   toward milder weights or seat-specific targets rather than a global heavy
   raise bias.
+- Follow-up global action-weight sweeps did not produce a candidate. A milder
+  `raise=1.5`, `fold=0.75` setting barely moved the supervised mix and failed
+  cheap safe rollout (`-1.7375 +/- 1.4825`). Applying the heavy weights to the
+  player-1-focused replay also failed (`-0.8375 +/- 1.1339`). Adding
+  `call=1.5` to the heavy p0+p1 replay preserved small exact/range probes
+  better (`+0.0350 +/- 0.7608`, `+0.2250 +/- 0.4967`) and was noisy-positive
+  on cheap safe rollout (`+0.3000 +/- 2.0511`), but player 1 still rarely
+  raised in live play. Global action weights are useful diagnostics, not a
+  robust fix.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
