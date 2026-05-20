@@ -305,6 +305,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T08:19:35-07:00 | `49b1c5d` | Probed runtime player-1 response bias on the h300 after-one checkpoint. | A moderate p1 `raise=+0.5`, `fold=-0.5` bias after one opponent aggression made h40 safe weak-positive (`+0.3375 +/- 0.895`) by flipping p1 positive, while a stronger raise bias flattened it (`+0.025 +/- 0.948`); h100 safe was only `+0.090 +/- 0.565` and still lost as player 1 (`-1.490`). |
 | 2026-05-20T08:33:35-07:00 | `72da424` | Added player/state gates for checkpoint blending. | Evaluator blending can now apply only while facing a bet/raise and only for selected current-player seats; evaluator and Hold'em aggregation tests passed (`31 passed`). |
 | 2026-05-20T08:39:54-07:00 | `6613512` | Tried p1-only conditional response blending toward the h300 checkpoint. | Restricting the blend to player 1, facing-bet states, after one opponent aggression failed h40 safe: 50% scored `-0.600 +/- 0.627` (p0 `+0.100`, p1 `-1.300`), and 100% scored `-0.850 +/- 0.848` (p0 `+0.100`, p1 `-1.800`); current best unchanged. |
+| 2026-05-20T08:55:35-07:00 | `a4319fd` | Checked h300 same-seed seat composites. | On the response-blend seed, current best failed h40 safe at `-1.1375 +/- 0.741` (p0 `+0.100`, p1 `-2.375`), h300-both failed at `-0.6625 +/- 1.246`, current p0 plus h300 p1 was best but still negative at `-0.325 +/- 0.741`, and h300 p0 plus current p1 failed at `-1.475 +/- 0.978`. |
 
 Current fixed-limit Hold'em gate:
 
@@ -829,6 +830,13 @@ Current fixed-limit Hold'em gate:
   and the full blend scored `-0.850 +/- 0.848` (`+0.100`, `-1.800`). This
   rejects targeted runtime blending as the integration mechanism for the h300
   response checkpoint.
+- Same-seed h300 seat-composite controls show that the earlier h300 h40 safe
+  success is brittle across rollout seeds. On seed `79918`, current best failed
+  at `-1.1375 +/- 0.741` (`+0.100`, `-2.375` by model-player seat), h300-both
+  failed at `-0.6625 +/- 1.246` (`-0.575`, `-0.750`), current p0 plus h300 p1
+  was the least bad at `-0.325 +/- 0.741` (`+0.100`, `-0.750`), and h300 p0
+  plus current p1 failed at `-1.475 +/- 0.978` (`-0.575`, `-2.375`). The h300
+  response checkpoint is not a reusable seat-composite repair.
 
 ## Research Roadmap
 
