@@ -4,7 +4,11 @@ import pytest
 pytest.importorskip("treys")
 
 from alphapoker.holdem_dataset import HoldemPolicyExample, write_policy_examples  # noqa: E402
-from alphapoker.holdem_features import HOLDEM_CANONICAL_ACTIONS  # noqa: E402
+from alphapoker.holdem_features import (  # noqa: E402
+    HOLDEM_CANONICAL_ACTIONS,
+    HOLDEM_PLAYER_FEATURE_DIM,
+    HOLDEM_PLAYER_FEATURE_OFFSET,
+)
 from alphapoker.holdem_model import HoldemPolicyNet  # noqa: E402
 from alphapoker.train_holdem_policy import (  # noqa: E402
     _shard_hands,
@@ -16,6 +20,8 @@ from alphapoker.train_holdem_policy import (  # noqa: E402
     class_weights_from_targets,
     example_weights_from_masks,
     load_policy_checkpoint_state,
+    player_action_weight_overrides_from_specs,
+    player_action_weights_from_features_targets,
     run,
 )
 
@@ -53,6 +59,8 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "raise=2.0",
             "--action-weight",
             "fold=0.5",
+            "--player-action-weight",
+            "1:raise=3.0",
             "--facing-bet-weight",
             "3.0",
             "--jobs",
@@ -78,6 +86,7 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.class_weighting == "balanced"
     assert args.class_weight_exponent == 0.75
     assert args.action_weight == ["raise=2.0", "fold=0.5"]
+    assert args.player_action_weight == ["1:raise=3.0"]
     assert args.facing_bet_weight == 3.0
     assert args.jobs == 4
     assert args.progress
@@ -284,6 +293,38 @@ def test_action_weight_overrides_validate_specs() -> None:
         action_weight_overrides_from_specs(["raise=0.0"])
 
 
+def test_player_action_weight_overrides_adjust_selected_examples() -> None:
+    torch = pytest.importorskip("torch")
+    feature_dim = HOLDEM_PLAYER_FEATURE_OFFSET + HOLDEM_PLAYER_FEATURE_DIM
+    features = torch.zeros((3, feature_dim))
+    features[0, HOLDEM_PLAYER_FEATURE_OFFSET] = 1.0
+    features[1, HOLDEM_PLAYER_FEATURE_OFFSET + 1] = 1.0
+    features[2, HOLDEM_PLAYER_FEATURE_OFFSET + 1] = 1.0
+    targets = torch.tensor(
+        [
+            HOLDEM_CANONICAL_ACTIONS.index("raise"),
+            HOLDEM_CANONICAL_ACTIONS.index("raise"),
+            HOLDEM_CANONICAL_ACTIONS.index("call"),
+        ]
+    )
+
+    overrides = player_action_weight_overrides_from_specs(["1:raise=4.0"])
+    weights = player_action_weights_from_features_targets(features, targets, overrides)
+
+    assert weights.tolist() == [1.0, 4.0, 1.0]
+
+
+def test_player_action_weight_overrides_validate_specs() -> None:
+    with pytest.raises(ValueError, match="PLAYER:ACTION=WEIGHT"):
+        player_action_weight_overrides_from_specs(["1-raise=2.0"])
+    with pytest.raises(ValueError, match="0 or 1"):
+        player_action_weight_overrides_from_specs(["2:raise=2.0"])
+    with pytest.raises(ValueError, match="unknown"):
+        player_action_weight_overrides_from_specs(["1:jam=2.0"])
+    with pytest.raises(ValueError, match="positive"):
+        player_action_weight_overrides_from_specs(["1:raise=0.0"])
+
+
 def test_facing_bet_weights_upweight_call_fold_states() -> None:
     torch = pytest.importorskip("torch")
     masks = torch.tensor(
@@ -398,6 +439,9 @@ def test_train_holdem_policy_records_validation_metrics(tmp_path) -> None:
     assert metrics["init_kl_weight"] == 0.0
     assert metrics["facing_bet_weight"] == 1.0
     assert metrics["facing_bet_examples"] == 0
+    assert metrics["action_weight_overrides"] == {}
+    assert metrics["player_action_weight_overrides"] == {}
+    assert metrics["player_target_action_counts"] is None
 
 
 def test_init_kl_weight_requires_init_checkpoint(tmp_path) -> None:

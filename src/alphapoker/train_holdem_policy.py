@@ -19,7 +19,11 @@ from alphapoker.holdem_dataset import (
 )
 from alphapoker.holdem_dataset import read_policy_examples, write_policy_examples
 from alphapoker.holdem_equity_feature import equity_estimator_from_checkpoint
-from alphapoker.holdem_features import HOLDEM_CANONICAL_ACTIONS
+from alphapoker.holdem_features import (
+    HOLDEM_CANONICAL_ACTIONS,
+    HOLDEM_PLAYER_FEATURE_DIM,
+    HOLDEM_PLAYER_FEATURE_OFFSET,
+)
 from alphapoker.train import write_json
 
 CLASS_WEIGHTING_MODES = ("none", "balanced", "sqrt-balanced")
@@ -55,6 +59,63 @@ def apply_action_weight_overrides(class_weights, overrides: dict[str, float]):
     for action, weight in overrides.items():
         weights[HOLDEM_CANONICAL_ACTIONS.index(action)] *= weight
     return weights / weights.mean()
+
+
+def player_action_weight_overrides_from_specs(
+    specs: list[str] | None,
+) -> dict[tuple[int, str], float]:
+    overrides: dict[tuple[int, str], float] = {}
+    for spec in specs or []:
+        if ":" not in spec or "=" not in spec:
+            raise ValueError("player action weight must use PLAYER:ACTION=WEIGHT")
+        player_text, rest = spec.split(":", 1)
+        action, value_text = rest.split("=", 1)
+        try:
+            player = int(player_text)
+        except ValueError as error:
+            raise ValueError(f"invalid player for action weight: {player_text}") from error
+        if player not in (0, 1):
+            raise ValueError("player action weight player must be 0 or 1")
+        if action not in HOLDEM_CANONICAL_ACTIONS:
+            raise ValueError(f"unknown Hold'em action for player weight: {action}")
+        try:
+            value = float(value_text)
+        except ValueError as error:
+            raise ValueError(
+                f"invalid weight for player {player} action {action}: {value_text}"
+            ) from error
+        if value <= 0.0:
+            raise ValueError("player action weight must be positive")
+        overrides[(player, action)] = value
+    return overrides
+
+
+def player_indices_from_features(features):
+    if features.shape[1] < HOLDEM_PLAYER_FEATURE_OFFSET + HOLDEM_PLAYER_FEATURE_DIM:
+        raise ValueError("player action weights require full Hold'em state features")
+    return features[
+        :,
+        HOLDEM_PLAYER_FEATURE_OFFSET : HOLDEM_PLAYER_FEATURE_OFFSET
+        + HOLDEM_PLAYER_FEATURE_DIM,
+    ].argmax(dim=1)
+
+
+def player_action_weights_from_features_targets(
+    features,
+    targets,
+    overrides: dict[tuple[int, str], float],
+):
+    import torch
+
+    weights = torch.ones(targets.shape[0], dtype=torch.float32, device=targets.device)
+    if not overrides:
+        return weights
+    players = player_indices_from_features(features)
+    for (player, action), value in overrides.items():
+        action_index = HOLDEM_CANONICAL_ACTIONS.index(action)
+        selected = (players == player) & (targets == action_index)
+        weights = torch.where(selected, torch.full_like(weights, value), weights)
+    return weights
 
 
 def class_weight_exponent_for_mode(mode: str, exponent: float | None = None) -> float | None:
@@ -360,8 +421,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     validation_targets = targets[validation_indices] if validation_indices else None
     validation_masks = masks[validation_indices] if validation_indices else None
     facing_bet_weight = float(getattr(args, "facing_bet_weight", 1.0))
-    example_weights = example_weights_from_masks(masks, facing_bet_weight)
-    use_example_weights = facing_bet_weight != 1.0
+    player_action_weight_overrides = player_action_weight_overrides_from_specs(
+        getattr(args, "player_action_weight", None)
+    )
+    facing_bet_weights = example_weights_from_masks(masks, facing_bet_weight)
+    player_action_weights = player_action_weights_from_features_targets(
+        features,
+        targets,
+        player_action_weight_overrides,
+    )
+    example_weights = facing_bet_weights * player_action_weights
+    use_example_weights = facing_bet_weight != 1.0 or bool(player_action_weight_overrides)
     train_example_weights = example_weights[train_indices] if use_example_weights else None
     validation_example_weights = (
         example_weights[validation_indices]
@@ -522,6 +592,22 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         action: int((predictions == index).sum().item())
         for index, action in enumerate(HOLDEM_CANONICAL_ACTIONS)
     }
+    player_target_action_counts = None
+    player_predicted_action_counts = None
+    if features.shape[1] >= HOLDEM_PLAYER_FEATURE_OFFSET + HOLDEM_PLAYER_FEATURE_DIM:
+        players = player_indices_from_features(features)
+        player_target_action_counts = {}
+        player_predicted_action_counts = {}
+        for player in (0, 1):
+            selected = players == player
+            player_target_action_counts[str(player)] = {
+                action: int(((targets == index) & selected).sum().item())
+                for index, action in enumerate(HOLDEM_CANONICAL_ACTIONS)
+            }
+            player_predicted_action_counts[str(player)] = {
+                action: int(((predictions == index) & selected).sum().item())
+                for index, action in enumerate(HOLDEM_CANONICAL_ACTIONS)
+            }
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -571,6 +657,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "class_weight_exponent": resolved_class_weight_exponent,
         "action_weight_overrides": action_weight_overrides,
         "effective_class_weights": effective_class_weights,
+        "player_action_weight_overrides": {
+            f"{player}:{action}": weight
+            for (player, action), weight in player_action_weight_overrides.items()
+        },
+        "player_action_weighted_examples": int(
+            (player_action_weights != 1.0).sum().item()
+        )
+        if player_action_weight_overrides
+        else 0,
         "facing_bet_weight": facing_bet_weight,
         "facing_bet_examples": int(facing_bet_mask.sum().item()),
         "facing_bet_train_examples": int(facing_bet_mask[train_indices].sum().item()),
@@ -595,6 +690,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "overall_accuracy": overall_accuracy,
         "target_action_counts": target_action_counts,
         "predicted_action_counts": predicted_action_counts,
+        "player_target_action_counts": player_target_action_counts,
+        "player_predicted_action_counts": player_predicted_action_counts,
         "checkpoint": str(checkpoint),
         "seed": args.seed,
     }
@@ -647,6 +744,16 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         metavar="ACTION=WEIGHT",
         help="Multiply one action's loss weight, for example --action-weight raise=2.0.",
+    )
+    parser.add_argument(
+        "--player-action-weight",
+        action="append",
+        default=[],
+        metavar="PLAYER:ACTION=WEIGHT",
+        help=(
+            "Multiply examples for one current-player/action target, "
+            "for example --player-action-weight 1:raise=2.0."
+        ),
     )
     parser.add_argument("--facing-bet-weight", type=float, default=1.0)
     parser.add_argument("--validation-fraction", type=float, default=0.0)
