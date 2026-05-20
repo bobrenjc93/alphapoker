@@ -168,8 +168,10 @@ commit that first recorded the metric.
 
 ![Hold'em exact-gate EV over time](docs/holdem_exact_gate_progress.svg)
 
-The graph plots the comparable tight exact gate over real commit time. The table
-below keeps the broader context for range-aware and safe-rollout probes.
+The graph plots the comparable tight exact gate over real commit time. Small
+one-off exact spikes and failed robustness probes stay in the table rather than
+the line so the visual tracks durable gate progress. The table below keeps the
+broader context for range-aware and safe-rollout probes.
 
 | Recorded at | Commit | Milestone | Main measured gate |
 | --- | --- | --- | --- |
@@ -202,6 +204,7 @@ below keeps the broader context for range-aware and safe-rollout probes.
 | 2026-05-19T17:21:09-07:00 | `6dd614a` | Tried an aggression-triggered switch to the safe-expert side checkpoint. | Exact/range stayed positive on larger probes (`+0.1780 +/- 0.4707`, `+0.2240 +/- 0.3381`), but safe rollout s1 failed at `-1.5550 +/- 0.8788`; not a candidate. |
 | 2026-05-19T17:43:38-07:00 | `c890a0c` | Scaled safe-expert self-play DAgger to 300 hands with a stronger KL anchor. | Tight exact stayed positive on a small probe (`+0.4400 +/- 0.7888`), but range flattened to `+0.0150 +/- 0.4784` and safe rollout s1 stayed negative at `-0.3625 +/- 1.4758`. |
 | 2026-05-19T18:41:56-07:00 | `2a8bc90` | Mixed original range-teacher replay with safe-expert self-play labels. | A 200-hand base replay plus 100 safe-expert hands spiked tight exact to `+0.7000 +/- 0.5822`, but range failed at `-0.1100 +/- 0.4534` and safe rollout s1 failed at `-1.0875 +/- 1.3269`. |
+| 2026-05-19T19:04:07-07:00 | `81d7135` | Swept KL/class-weight replay variants from the mixed safe-expert replay set. | KL8 sqrt-balanced recovered small exact/range probes (`+0.9400 +/- 0.7225`, `+0.7050 +/- 0.3965`), but safe rollout s1 failed at `-1.5875 +/- 1.1674`; KL16 balanced was also exact/range positive but safe negative. |
 
 Current fixed-limit Hold'em gate:
 
@@ -291,6 +294,13 @@ Current fixed-limit Hold'em gate:
   paired deals), but lost the range gate (`-0.1100 +/- 0.4534`) and still failed
   cheap safe rollout (`-1.0875 +/- 1.3269`). The base replay idea remains
   plausible, but this ratio and scale underfit the range-aware opponent.
+- Reusing that mixed replay dataset with stronger anchors recovered the small
+  exact and range probes. The KL8 sqrt-balanced variant reached `+0.9400 +/-
+  0.7225` vs tight exact e8 and `+0.7050 +/- 0.3965` vs
+  `tight-range-pot-odds`, while the KL16 balanced variant reached `+0.6800 +/-
+  0.5737` and `+0.4600 +/- 0.3473`. Both still failed cheap safe rollout s1
+  (`-1.5875 +/- 1.1674` and `-1.0125 +/- 1.4744`), so this is not a current
+  best update.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
