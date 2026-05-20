@@ -186,6 +186,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Tunable equity thresholds for learned Hold'em value-policy evaluation.
 - Seat-aware Hold'em model evaluation and threshold-sweep tooling.
 - Cross-seat threshold sweeps for Hold'em equity-value policies.
+- Range-aware Hold'em pot-odds threshold sweeps with separate candidate and
+  opponent equity/rollout settings.
 
 Current exact-evaluation bests:
 
@@ -324,6 +326,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T10:25:14-07:00 | `308e775` | Tried runtime p1 response calibration on the fast range-default gate. | Current best with p1 `raise=+0.5`, `fold=-0.5` after one opponent aggression failed h40 fast-range-default at `-1.800 +/- 0.696`; player 1 regressed to `-3.150`, so simple local calibration is rejected. |
 | 2026-05-20T12:38:42-07:00 | `0280223` | Tried 2k range-feature distillation with action-history features. | Exact e8 h500 smoke was strong at `+0.733 +/- 0.174`, but range e4 h500 failed at `-0.026 +/- 0.109`; training also overpredicted raises (`966` predicted vs `302` target), so this is not a current-best replacement. |
 | 2026-05-20T12:56:37-07:00 | `ea05cfe` | Swept softer class weights for the 2k action-history distillation. | Power-0.75 reduced but did not remove over-raising and scored `+0.627 +/- 0.174` exact, `+0.065 +/- 0.110` range; sqrt-balanced matched raises better but scored only `+0.569 +/- 0.152` exact, `-0.035 +/- 0.091` range. |
+| 2026-05-20T13:17:00-07:00 | `d33bb32` | Added range-aware threshold sweeps for the teacher policy. | Tiny multi-gate pilot was too noisy for promotion: default thresholds led exact h10 at `+1.150 +/- 0.958`, `0.62/0.90/0.00` led range h10 at `+1.500 +/- 0.691`, and `0.70/0.95/-0.05` led safe s1 h4 at `+2.250 +/- 1.831`. |
 
 Current fixed-limit Hold'em gate:
 
@@ -923,6 +926,13 @@ Current fixed-limit Hold'em gate:
   `+0.065 +/- 0.110`. A `sqrt-balanced` retry matched the cached raise count
   better (`246` predicted vs `302` target), but range failed at
   `-0.035 +/- 0.091`.
+- The pot-odds threshold sweeper now covers `tight-range-pot-odds` and can set
+  candidate and opponent equity/rollout settings separately. A tiny range-aware
+  multi-gate pilot found conflicting best settings across gates: the default
+  `0.62/0.84/0.08` was best on exact h10, `0.62/0.90/0.00` was best on range
+  h10, and `0.70/0.95/-0.05` was best on a very small safe-rollout h4 check.
+  The result is diagnostic only; `0.62/0.90/0.00` is the clearest follow-up for
+  a larger exact/range threshold confirmation.
 
 ## Research Roadmap
 
