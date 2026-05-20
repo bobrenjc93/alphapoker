@@ -124,6 +124,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   Hold'em policy distillation.
 - Optional dense rollout action-value targets with auxiliary advantage-matching
   loss for Hold'em policy distillation.
+- Optional action-value example weighting, including per-player weighting, for
+  Hold'em policy distillation from cached rollout-value labels.
 - Cacheable Hold'em policy-imitation training examples for larger expert runs.
 - Held-out Hold'em policy-imitation evaluation for cloned experts.
 - Optional balanced, sqrt-balanced, and custom-exponent action-class weighting
@@ -244,6 +246,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-19T23:49:00-07:00 | `7ad0461` | Tried value-aware soft safe-rollout targets. | A 40-hand value-target replay preserved 200 action-value examples, but the best KL2 train-selected sweep still predicted only `5` player-1 raises vs `11` target, so live gate extension was skipped. |
 | 2026-05-20T00:32:12-07:00 | `ecdae88` | Increased action-value pressure and mixed value replay. | Strong value-only training repaired the cheap safe smoke test but broke exact/range; 2x value mixed replay kept small exact/range probes positive and narrowed cheap safe to `-0.335 +/- 0.481` over 100 paired deals, still not a confirmed repair. |
 | 2026-05-20T00:48:43-07:00 | `d65941a` | Checked player-1 hard-label weighting and full value-branch switching. | P1 call/fold/raise weights left the supervised p1 mix essentially unchanged; a 100% switch to the value-only branch failed exact/range/safe probes (`-1.785`, `-0.320`, `-1.0625`), so runtime branch switching is not a candidate. |
+| 2026-05-20T00:51:42-07:00 | `eb03b53` | Added direct action-value example weighting. | Training can now weight cached rollout-value examples globally or by current player; `tests/test_train_holdem_policy.py` passed (`30 passed`). |
+| 2026-05-20T01:12:46-07:00 | `113c325` | Tried value-weighted replay and p1-only value replay. | Direct p1 value weighting kept exact positive but flattened range and did not repair safe rollout; p1-only value replay failed cheap safe rollout badly at `-2.2625 +/- 0.8761`. |
 
 Current fixed-limit Hold'em gate:
 
@@ -484,6 +488,16 @@ Current fixed-limit Hold'em gate:
   `-1.7850` vs tight exact e8, `-0.3200` vs `tight-range-pot-odds` e4, and
   `-1.0625` vs cheap safe rollout. The value branch needs training-time
   integration, not a runtime swap.
+- Direct value-example weighting also did not produce a candidate. Replacing
+  duplicated value rows with `--action-value-example-weight 2` and
+  `--player-action-value-weight 1=2` kept tight exact positive (`+0.3750 +/-
+  0.3763`) but flattened range (`+0.0900 +/- 0.3587`) and still failed cheap
+  safe rollout (`-0.3625 +/- 0.7698`). A targeted player-1-only value cache
+  produced 240 p1 rollout-value examples, but mixing it with the 774-example
+  base replay damaged exact (`+0.0300 +/- 0.3610`) and failed cheap safe rollout
+  badly (`-2.2625 +/- 0.8761`). The failure mode is not just insufficient p1
+  value weight; the branch is under-calling or over-folding response states in
+  live play.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
