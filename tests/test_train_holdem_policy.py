@@ -42,6 +42,8 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "--feature-equity-mode",
             "sampled",
             "--action-history-features",
+            "--soft-target-temperature",
+            "0.75",
             "--init-checkpoint",
             "policy.pt",
             "--init-kl-weight",
@@ -80,6 +82,7 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.feature_equity_sims == 3
     assert args.feature_equity_mode == "sampled"
     assert args.action_history_features
+    assert args.soft_target_temperature == 0.75
     assert str(args.init_checkpoint) == "policy.pt"
     assert args.init_kl_weight == 0.5
     assert args.init_allow_input_expansion
@@ -442,6 +445,38 @@ def test_train_holdem_policy_records_validation_metrics(tmp_path) -> None:
     assert metrics["action_weight_overrides"] == {}
     assert metrics["player_action_weight_overrides"] == {}
     assert metrics["player_target_action_counts"] is None
+    assert metrics["soft_target_temperature"] is None
+    assert metrics["soft_target_examples"] == 0
+
+
+def test_train_holdem_policy_accepts_soft_targets(tmp_path) -> None:
+    examples_path = tmp_path / "examples.json"
+    examples = [
+        HoldemPolicyExample(
+            features=[float(index % 2), 1.0],
+            action_index=index % 2,
+            legal_mask=[True, True, False, False, False],
+            action_probs=[0.25, 0.75, 0.0, 0.0, 0.0],
+        )
+        for index in range(6)
+    ]
+    write_policy_examples(examples_path, examples)
+
+    args = build_parser().parse_args(
+        [
+            "--examples-in",
+            str(examples_path),
+            "--epochs",
+            "2",
+            "--out",
+            str(tmp_path / "out"),
+        ]
+    )
+    metrics = run(args)
+
+    assert metrics["soft_target_examples"] == 6
+    assert metrics["soft_target_action_mass"]["check"] == pytest.approx(1.5)
+    assert metrics["soft_target_action_mass"]["bet"] == pytest.approx(4.5)
 
 
 def test_init_kl_weight_requires_init_checkpoint(tmp_path) -> None:

@@ -14,6 +14,7 @@ from alphapoker.holdem_dataset import (  # noqa: E402
     encode_policy_example_features,
     read_policy_examples,
     read_equity_value_examples,
+    soft_action_probs_from_values,
     write_policy_examples,
     write_equity_value_examples,
 )
@@ -255,6 +256,32 @@ def test_generate_equity_policy_examples_from_tuned_rollout_expert() -> None:
     assert examples
 
 
+def test_generate_equity_policy_examples_with_soft_rollout_targets() -> None:
+    examples = generate_equity_policy_examples(
+        hands=1,
+        seed=21,
+        equity_sims=2,
+        rollout_sims=1,
+        expert_policy="tight-safe-rollout-pot-odds",
+        opponent_policy="tight-safe-rollout-pot-odds",
+        soft_target_temperature=1.0,
+    )
+
+    assert examples
+    assert any(example.action_probs is not None for example in examples)
+    for example in examples:
+        assert example.action_probs is not None
+        assert sum(example.action_probs) == pytest.approx(1.0)
+        for probability, legal in zip(example.action_probs, example.legal_mask):
+            if not legal:
+                assert probability == 0.0
+
+
+def test_soft_action_probs_from_values_rejects_bad_temperature() -> None:
+    with pytest.raises(ValueError, match="positive"):
+        soft_action_probs_from_values({"check": 0.0}, [True, False, False, False, False], 0.0)
+
+
 def test_generate_equity_policy_examples_with_behavior_policy() -> None:
     examples = generate_equity_policy_examples(
         hands=2,
@@ -317,7 +344,14 @@ def test_equity_value_example_cache_round_trip(tmp_path) -> None:
 
 def test_policy_example_cache_round_trip(tmp_path) -> None:
     path = tmp_path / "policy_examples.json"
-    examples = [HoldemPolicyExample(features=[0.0, 1.0], action_index=2, legal_mask=[True, False])]
+    examples = [
+        HoldemPolicyExample(
+            features=[0.0, 1.0],
+            action_index=2,
+            legal_mask=[True, False],
+            action_probs=[0.25, 0.75],
+        )
+    ]
 
     write_policy_examples(path, examples)
 

@@ -251,6 +251,7 @@ def generate_policy_examples_shard(
     feature_equity_checkpoint: Path | None,
     behavior_checkpoint: Path | None,
     action_history_features: bool,
+    soft_target_temperature: float | None,
 ):
     feature_equity_fn = None
     if feature_equity_checkpoint is not None:
@@ -276,6 +277,7 @@ def generate_policy_examples_shard(
         feature_equity_fn=feature_equity_fn,
         expert_behavior_policy=behavior_policy,
         action_history_features=action_history_features,
+        soft_target_temperature=soft_target_temperature,
     )
 
 
@@ -294,6 +296,7 @@ def generate_policy_training_examples(
     feature_equity_checkpoint: Path | None,
     behavior_checkpoint: Path | None,
     action_history_features: bool,
+    soft_target_temperature: float | None,
     jobs: int,
     progress: bool = False,
 ):
@@ -315,6 +318,7 @@ def generate_policy_training_examples(
             feature_equity_checkpoint=feature_equity_checkpoint,
             behavior_checkpoint=behavior_checkpoint,
             action_history_features=action_history_features,
+            soft_target_temperature=soft_target_temperature,
         )
         if progress:
             print(
@@ -346,6 +350,7 @@ def generate_policy_training_examples(
                 feature_equity_checkpoint=feature_equity_checkpoint,
                 behavior_checkpoint=behavior_checkpoint,
                 action_history_features=action_history_features,
+                soft_target_temperature=soft_target_temperature,
             ): index
             for index, shard_size in enumerate(shard_hands)
         }
@@ -400,6 +405,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             feature_equity_checkpoint=args.feature_equity_checkpoint,
             behavior_checkpoint=args.behavior_checkpoint,
             action_history_features=bool(getattr(args, "action_history_features", False)),
+            soft_target_temperature=getattr(args, "soft_target_temperature", None),
             jobs=jobs,
             progress=bool(getattr(args, "progress", False)),
         )
@@ -408,6 +414,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     features = torch.tensor([example.features for example in examples], dtype=torch.float32)
     targets = torch.tensor([example.action_index for example in examples], dtype=torch.long)
     masks = torch.tensor([example.legal_mask for example in examples], dtype=torch.bool)
+    soft_target_examples = sum(example.action_probs is not None for example in examples)
+    soft_targets = None
+    if soft_target_examples:
+        soft_target_rows = []
+        for example in examples:
+            if example.action_probs is None:
+                row = [0.0 for _ in HOLDEM_CANONICAL_ACTIONS]
+                row[example.action_index] = 1.0
+            else:
+                if len(example.action_probs) != len(HOLDEM_CANONICAL_ACTIONS):
+                    raise ValueError("soft target action_probs length does not match actions")
+                row = [float(value) for value in example.action_probs]
+            soft_target_rows.append(row)
+        soft_targets = torch.tensor(soft_target_rows, dtype=torch.float32)
     validation_fraction = getattr(args, "validation_fraction", 0.0)
     train_indices, validation_indices = _split_train_validation_indices(
         len(examples),
@@ -417,9 +437,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     train_features = features[train_indices]
     train_targets = targets[train_indices]
     train_masks = masks[train_indices]
+    train_soft_targets = soft_targets[train_indices] if soft_targets is not None else None
     validation_features = features[validation_indices] if validation_indices else None
     validation_targets = targets[validation_indices] if validation_indices else None
     validation_masks = masks[validation_indices] if validation_indices else None
+    validation_soft_targets = (
+        soft_targets[validation_indices]
+        if soft_targets is not None and validation_indices
+        else None
+    )
     facing_bet_weight = float(getattr(args, "facing_bet_weight", 1.0))
     player_action_weight_overrides = player_action_weight_overrides_from_specs(
         getattr(args, "player_action_weight", None)
@@ -493,12 +519,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         }
     )
 
-    def loss_for(batch_features, batch_targets, batch_masks, batch_weights=None):
+    def loss_for(
+        batch_features,
+        batch_targets,
+        batch_masks,
+        batch_soft_targets=None,
+        batch_weights=None,
+    ):
         logits = model(batch_features)
         masked_logits = logits.masked_fill(~batch_masks, -1e9)
-        if batch_weights is None:
+        if batch_soft_targets is None and batch_weights is None:
             loss = F.cross_entropy(masked_logits, batch_targets, weight=class_weights)
-        else:
+        elif batch_soft_targets is None:
             losses = F.cross_entropy(
                 masked_logits,
                 batch_targets,
@@ -506,6 +538,23 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 reduction="none",
             )
             loss = (losses * batch_weights).sum() / batch_weights.sum().clamp_min(1e-12)
+        else:
+            log_probs = F.log_softmax(masked_logits, dim=1)
+            if class_weights is None:
+                weighted_targets = batch_soft_targets
+                class_normalizer = torch.ones(
+                    batch_soft_targets.shape[0],
+                    dtype=torch.float32,
+                    device=batch_soft_targets.device,
+                )
+            else:
+                weighted_targets = batch_soft_targets * class_weights
+                class_normalizer = weighted_targets.sum(dim=1).clamp_min(1e-12)
+            losses = -(weighted_targets * log_probs).sum(dim=1)
+            if batch_weights is None:
+                loss = losses.sum() / class_normalizer.sum().clamp_min(1e-12)
+            else:
+                loss = (losses * batch_weights).sum() / batch_weights.sum().clamp_min(1e-12)
         if anchor_model is None:
             return loss
         with torch.no_grad():
@@ -536,7 +585,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     best_train_loss = float("inf")
     best_validation_loss: float | None = None
     for epoch in range(args.epochs):
-        loss = loss_for(train_features, train_targets, train_masks, train_example_weights)
+        loss = loss_for(
+            train_features,
+            train_targets,
+            train_masks,
+            train_soft_targets,
+            train_example_weights,
+        )
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()
@@ -546,6 +601,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 train_features,
                 train_targets,
                 train_masks,
+                train_soft_targets,
                 train_example_weights,
             )
             final_loss = float(train_loss.detach().cpu())
@@ -556,6 +612,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     validation_features,
                     validation_targets,
                     validation_masks,
+                    validation_soft_targets,
                     validation_example_weights,
                 )
                 validation_loss_value = float(validation_loss.detach().cpu())
@@ -592,6 +649,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         action: int((predictions == index).sum().item())
         for index, action in enumerate(HOLDEM_CANONICAL_ACTIONS)
     }
+    soft_target_action_mass = None
+    if soft_targets is not None:
+        soft_target_action_mass = {
+            action: float(soft_targets[:, index].sum().item())
+            for index, action in enumerate(HOLDEM_CANONICAL_ACTIONS)
+        }
     player_target_action_counts = None
     player_predicted_action_counts = None
     if features.shape[1] >= HOLDEM_PLAYER_FEATURE_OFFSET + HOLDEM_PLAYER_FEATURE_DIM:
@@ -649,6 +712,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             else None
         ),
         "action_history_features": bool(getattr(args, "action_history_features", False)),
+        "soft_target_temperature": getattr(args, "soft_target_temperature", None),
+        "soft_target_examples": int(soft_target_examples),
+        "soft_target_action_mass": soft_target_action_mass,
         "jobs": jobs,
         "epochs": args.epochs,
         "lr": args.lr,
@@ -730,6 +796,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--feature-equity-checkpoint", type=Path)
     parser.add_argument("--action-history-features", action="store_true")
+    parser.add_argument("--soft-target-temperature", type=float)
     parser.add_argument("--behavior-checkpoint", type=Path)
     parser.add_argument("--init-checkpoint", type=Path)
     parser.add_argument("--init-kl-weight", type=float, default=0.0)

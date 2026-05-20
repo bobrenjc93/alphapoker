@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import random
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,12 +21,13 @@ from alphapoker.holdem import (
 )
 from alphapoker.holdem_equity_feature import HoldemEquityEstimator
 from alphapoker.holdem_features import (
+    HOLDEM_CANONICAL_ACTIONS,
     encode_holdem_action_history_features,
     encode_holdem_state,
     holdem_action_index,
     holdem_legal_action_mask,
 )
-from alphapoker.holdem_self_play import make_policy
+from alphapoker.holdem_self_play import make_policy, make_policy_action_value_fn
 
 HOLDEM_EXPERT_POLICIES = (
     "equity",
@@ -92,6 +94,7 @@ class HoldemPolicyExample:
     features: list[float]
     action_index: int
     legal_mask: list[bool]
+    action_probs: list[float] | None = None
 
 
 @dataclass(frozen=True)
@@ -178,14 +181,16 @@ def encode_policy_example_features(
 
 def write_policy_examples(path: Path, examples: list[HoldemPolicyExample]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = [
-        {
+    payload = []
+    for example in examples:
+        item = {
             "features": example.features,
             "action_index": example.action_index,
             "legal_mask": example.legal_mask,
         }
-        for example in examples
-    ]
+        if example.action_probs is not None:
+            item["action_probs"] = example.action_probs
+        payload.append(item)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
 
 
@@ -196,6 +201,11 @@ def read_policy_examples(path: Path) -> list[HoldemPolicyExample]:
             features=[float(value) for value in item["features"]],
             action_index=int(item["action_index"]),
             legal_mask=[bool(value) for value in item["legal_mask"]],
+            action_probs=(
+                [float(value) for value in item["action_probs"]]
+                if item.get("action_probs") is not None
+                else None
+            ),
         )
         for item in payload
     ]
@@ -218,6 +228,31 @@ def read_equity_value_examples(path: Path) -> list[HoldemEquityExample]:
     ]
 
 
+def soft_action_probs_from_values(
+    action_values: dict[str, float],
+    legal_mask: list[bool],
+    temperature: float,
+) -> list[float]:
+    if temperature <= 0.0:
+        raise ValueError("soft target temperature must be positive")
+    legal_indices = [
+        index
+        for index, legal in enumerate(legal_mask)
+        if legal and HOLDEM_CANONICAL_ACTIONS[index] in action_values
+    ]
+    if not legal_indices:
+        raise ValueError("soft target values require at least one legal action")
+    max_value = max(action_values[HOLDEM_CANONICAL_ACTIONS[index]] for index in legal_indices)
+    weights = [0.0 for _ in HOLDEM_CANONICAL_ACTIONS]
+    total = 0.0
+    for index in legal_indices:
+        action = HOLDEM_CANONICAL_ACTIONS[index]
+        weight = math.exp((action_values[action] - max_value) / temperature)
+        weights[index] = weight
+        total += weight
+    return [weight / total for weight in weights]
+
+
 def generate_equity_policy_examples(
     *,
     hands: int,
@@ -233,6 +268,7 @@ def generate_equity_policy_examples(
     feature_equity_fn: HoldemEquityEstimator | None = None,
     expert_behavior_policy: HoldemPolicy | None = None,
     action_history_features: bool = False,
+    soft_target_temperature: float | None = None,
 ) -> list[HoldemPolicyExample]:
     if feature_equity_mode not in HOLDEM_FEATURE_EQUITY_MODES:
         raise ValueError(f"Unknown feature equity mode: {feature_equity_mode}")
@@ -252,6 +288,19 @@ def generate_equity_policy_examples(
         rollout_sims,
         rollout_margin,
     )
+    expert_action_value_fn = None
+    if soft_target_temperature is not None:
+        if soft_target_temperature <= 0.0:
+            raise ValueError("soft target temperature must be positive")
+        expert_action_value_fn = make_policy_action_value_fn(
+            expert_policy,
+            policy_rng,
+            equity_sims,
+            rollout_sims,
+            rollout_margin,
+        )
+        if expert_action_value_fn is None:
+            raise ValueError(f"soft targets are not available for expert policy {expert_policy}")
 
     if opponent_policy not in HOLDEM_DATASET_OPPONENT_POLICIES:
         raise ValueError(f"Unknown opponent policy: {opponent_policy}")
@@ -269,7 +318,18 @@ def generate_equity_policy_examples(
         while not state.is_terminal():
             player = state.current_player()
             use_expert = expert_player is None or player == expert_player
-            expert_action = expert_action_policy(state) if use_expert else non_expert_policy(state)
+            action_probs = None
+            if use_expert and expert_action_value_fn is not None:
+                expert_action, action_values = expert_action_value_fn(state)
+                legal_mask = holdem_legal_action_mask(state)
+                action_probs = soft_action_probs_from_values(
+                    action_values,
+                    legal_mask,
+                    soft_target_temperature,
+                )
+            else:
+                expert_action = expert_action_policy(state) if use_expert else non_expert_policy(state)
+                legal_mask = holdem_legal_action_mask(state) if use_expert else None
             if use_expert:
                 examples.append(
                     HoldemPolicyExample(
@@ -282,7 +342,8 @@ def generate_equity_policy_examples(
                             action_history_features=action_history_features,
                         ),
                         action_index=holdem_action_index(expert_action),
-                        legal_mask=holdem_legal_action_mask(state),
+                        legal_mask=legal_mask,
+                        action_probs=action_probs,
                     )
                 )
             if use_expert and expert_behavior_policy is not None:

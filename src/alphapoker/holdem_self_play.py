@@ -19,6 +19,7 @@ from alphapoker.holdem import (
     play_fixed_limit_holdem_hand,
     pot_odds_equity_policy,
     pot_odds_rollout_policy,
+    policy_rollout_action_values,
     policy_rollout_policy,
     random_holdem_policy,
     river_exact_pot_odds_equity_policy,
@@ -48,6 +49,56 @@ HOLDEM_SELF_PLAY_POLICIES = (
     "tight-safe-rollout-pot-odds",
     "balanced-safe-rollout-pot-odds",
 )
+
+
+def make_policy_action_value_fn(
+    name: str,
+    rng: random.Random,
+    equity_sims: int,
+    rollout_sims: int | None = None,
+    rollout_margin: float = 1.0,
+):
+    if name in ("tight-rollout-pot-odds", "tight-safe-rollout-pot-odds"):
+        bet_threshold = 0.62
+        raise_threshold = 0.84
+    elif name in ("balanced-rollout-pot-odds", "balanced-safe-rollout-pot-odds"):
+        bet_threshold = 0.58
+        raise_threshold = 0.82
+    else:
+        return None
+
+    def baseline(_: random.Random):
+        return turn_river_exact_pot_odds_equity_policy(
+            simulations=equity_sims,
+            bet_threshold=bet_threshold,
+            raise_threshold=raise_threshold,
+            call_margin=0.08,
+        )
+
+    simulations = rollout_sims if rollout_sims is not None else equity_sims
+    safe_default = "safe-rollout" in name
+
+    def action_and_values(state):
+        action_values = policy_rollout_action_values(
+            state,
+            rng,
+            simulations=simulations,
+            continuation_policy_factory=baseline,
+            opponent_policy_factory=baseline,
+        )
+        legal_actions = state.legal_actions()
+        best_action = max(legal_actions, key=lambda action: action_values[action])
+        if not safe_default:
+            return best_action, action_values
+        default_policy = baseline(random.Random(rng.randrange(2**63)))
+        default_action = default_policy(state)
+        if default_action not in legal_actions:
+            return best_action, action_values
+        if action_values[best_action] >= action_values[default_action] + rollout_margin:
+            return best_action, action_values
+        return default_action, action_values
+
+    return action_and_values
 
 
 def make_policy(
