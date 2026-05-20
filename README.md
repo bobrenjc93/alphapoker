@@ -309,6 +309,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T09:06:55-07:00 | `2b149a4` | Retrained the h300 replay mix with validation selection. | A 10% validation split selected epoch 31 and under-raised p1 cached responses (`86` predicted raises vs `161` target); h40 safe was only `+0.025 +/- 0.862` and h100 safe failed at `-0.260 +/- 0.485` with player 1 still negative (`-1.130`). |
 | 2026-05-20T09:12:18-07:00 | `71293fb` | Upweighted h300 player-1 action-value examples. | `--player-action-value-weight 1=3.0` kept cached p1 raises near target (`147` predicted vs `161` target), but live h40 safe failed at `-0.3875 +/- 0.805`; both seats were negative and facing-bet raises dropped to `26`. |
 | 2026-05-20T09:18:15-07:00 | `113914d` | Combined current p0, h300 p1, and p1 response bias. | Current best for player 0 plus h300 for player 1 with p1 `raise=+0.5`, `fold=-0.5` after one opponent aggression still failed h40 safe at `-0.3125 +/- 0.887`; player 1 stayed negative at `-0.725` despite `18` facing-bet raises. |
+| 2026-05-20T09:29:02-07:00 | `3c3e072` | Collected h300-behavior player-1 response replay. | A 100-hand h300-behavior cache added 133 focused labels (`call/fold/raise = 56/26/51`), and the 1,643-example mix kept p1 cached raises close (`195` predicted vs `212` target), but h40 safe failed at `-0.975 +/- 1.020` with player 1 at `-2.100`. |
 
 Current fixed-limit Hold'em gate:
 
@@ -860,6 +861,14 @@ Current fixed-limit Hold'em gate:
   `79918` at `-0.3125 +/- 0.887`. Player 0 stayed at `+0.100`, but player 1
   remained negative at `-0.725` even with `18` facing-bet raises, so the p1
   policy needs better decisions, not just more aggression.
+- On-policy h300 behavior replay did not fix those decisions. A 100-hand cache
+  collected from the h300 checkpoint itself produced 133 after-one p1 response
+  labels with a looser target mix (`call/fold/raise = 56/26/51`). Mixing those
+  with the original base and h300 response cache kept p1 cached raises close to
+  target (`195` predicted vs `212` target), but live h40 safe failed at `-0.975
+  +/- 1.020`; player 0 was only `+0.150` and player 1 regressed to `-2.100`.
+  Better behavior-state coverage alone is not enough with the current safe
+  rollout labels.
 
 ## Research Roadmap
 
