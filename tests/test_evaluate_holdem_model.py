@@ -21,7 +21,12 @@ from alphapoker.holdem_features import HOLDEM_CANONICAL_ACTIONS, HOLDEM_FEATURE_
 from alphapoker.holdem_model import HoldemEquityNet, HoldemPolicyNet  # noqa: E402
 
 
-def write_biased_policy_checkpoint(path, action: str, *, input_dim: int = HOLDEM_FEATURE_DIM) -> None:
+def write_biased_policy_checkpoint(
+    path,
+    action: str,
+    *,
+    input_dim: int = HOLDEM_FEATURE_DIM,
+) -> None:
     model = HoldemPolicyNet(input_dim=input_dim)
     for parameter in model.parameters():
         parameter.data.zero_()
@@ -72,6 +77,18 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
             "0:raise=-1.0",
             "--player-facing-bet-logit-bias-after-opponent-aggressions",
             "2",
+            "--model-rollout-sims",
+            "1",
+            "--model-rollout-margin",
+            "0.5",
+            "--model-rollout-opponent-policy",
+            "tight-range-pot-odds",
+            "--model-rollout-opponent-equity-sims",
+            "2",
+            "--model-rollout-opponent-rollout-sims",
+            "1",
+            "--model-rollout-opponent-rollout-margin",
+            "1.5",
             "--model-player",
             "1",
         ]
@@ -87,6 +104,12 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
     assert args.facing_bet_logit_bias_after_opponent_aggressions == 2
     assert args.player_facing_bet_logit_bias == ["0:raise=-1.0"]
     assert args.player_facing_bet_logit_bias_after_opponent_aggressions == 2
+    assert args.model_rollout_sims == 1
+    assert args.model_rollout_margin == 0.5
+    assert args.model_rollout_opponent_policy == "tight-range-pot-odds"
+    assert args.model_rollout_opponent_equity_sims == 2
+    assert args.model_rollout_opponent_rollout_sims == 1
+    assert args.model_rollout_opponent_rollout_margin == 1.5
 
 
 def test_holdem_model_eval_parser_accepts_both_model_players() -> None:
@@ -232,6 +255,23 @@ def test_model_policy_loads_tight_range_feature_mode(tmp_path) -> None:
 
     state = deal_fixed_limit_holdem()
     action = model_policy_from_checkpoint(policy_checkpoint)(state)
+
+    assert action in state.legal_actions()
+
+
+def test_model_policy_can_wrap_with_rollouts(tmp_path) -> None:
+    policy_checkpoint = tmp_path / "policy.pt"
+    write_biased_policy_checkpoint(policy_checkpoint, "call")
+    policy = model_policy_from_checkpoint(
+        policy_checkpoint,
+        model_rollout_sims=1,
+        model_rollout_margin=0.0,
+        model_rollout_opponent_policy="tight-turn-river-exact-pot-odds",
+        model_rollout_opponent_equity_sims=1,
+    )
+
+    state = deal_fixed_limit_holdem(__import__("random").Random(21))
+    action = policy(state)
 
     assert action in state.legal_actions()
 

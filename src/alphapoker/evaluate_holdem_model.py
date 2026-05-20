@@ -13,7 +13,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
-from alphapoker.holdem import FixedLimitHoldemState, HoldemPolicy
+from alphapoker.holdem import FixedLimitHoldemState, HoldemPolicy, policy_rollout_action_values
 from alphapoker.holdem_evaluation import (
     ACTION_COUNT_KEYS,
     add_action_counts,
@@ -246,6 +246,12 @@ def model_policy_from_checkpoint(
     facing_bet_logit_bias_after_opponent_aggressions: int | None = None,
     player_facing_bet_logit_biases: dict[tuple[int, str], float] | None = None,
     player_facing_bet_logit_bias_after_opponent_aggressions: int | None = None,
+    model_rollout_sims: int | None = None,
+    model_rollout_margin: float = 0.0,
+    model_rollout_opponent_policy: str | None = None,
+    model_rollout_opponent_equity_sims: int = 8,
+    model_rollout_opponent_rollout_sims: int | None = None,
+    model_rollout_opponent_rollout_margin: float = 1.0,
 ) -> HoldemPolicy:
     import torch
 
@@ -276,6 +282,10 @@ def model_policy_from_checkpoint(
             raise ValueError(
                 "player_facing_bet_logit_bias_after_opponent_aggressions must be positive"
             )
+    if model_rollout_sims is not None and model_rollout_sims <= 0:
+        raise ValueError("model_rollout_sims must be positive")
+    if model_rollout_opponent_equity_sims <= 0:
+        raise ValueError("model_rollout_opponent_equity_sims must be positive")
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     feature_encoder = policy_feature_encoder_from_checkpoint_data(
         checkpoint,
@@ -295,7 +305,7 @@ def model_policy_from_checkpoint(
     facing_bet_logit_biases = facing_bet_logit_biases or {}
     player_facing_bet_logit_biases = player_facing_bet_logit_biases or {}
 
-    def select_action(state: FixedLimitHoldemState) -> str:
+    def select_model_action(state: FixedLimitHoldemState) -> str:
         features = torch.tensor([feature_encoder.encode(state)], dtype=torch.float32)
         mask = torch.tensor(holdem_legal_action_mask(state), dtype=torch.bool)
         facing_bet = bool(
@@ -358,7 +368,38 @@ def model_policy_from_checkpoint(
             action_index = int(logits.argmax().item())
         return HOLDEM_CANONICAL_ACTIONS[action_index]
 
-    return select_action
+    if model_rollout_sims is None:
+        return select_model_action
+
+    rollout_rng = random.Random(feature_seed + 90_000_019)
+    rollout_opponent_policy = (
+        model_rollout_opponent_policy or "tight-turn-river-exact-pot-odds"
+    )
+
+    def rollout_select_action(state: FixedLimitHoldemState) -> str:
+        action_values = policy_rollout_action_values(
+            state,
+            rollout_rng,
+            simulations=model_rollout_sims,
+            continuation_policy_factory=lambda _: select_model_action,
+            opponent_policy_factory=lambda rng: make_policy(
+                rollout_opponent_policy,
+                rng,
+                model_rollout_opponent_equity_sims,
+                model_rollout_opponent_rollout_sims,
+                model_rollout_opponent_rollout_margin,
+            ),
+        )
+        legal_actions = state.legal_actions()
+        best_action = max(legal_actions, key=lambda action: action_values[action])
+        default_action = select_model_action(state)
+        if default_action not in legal_actions:
+            return best_action
+        if action_values[best_action] >= action_values[default_action] + model_rollout_margin:
+            return best_action
+        return default_action
+
+    return rollout_select_action
 
 
 def make_opponent_policy(
@@ -390,6 +431,12 @@ def evaluate_model_shard(
     facing_bet_logit_bias_after_opponent_aggressions: int | None,
     player_facing_bet_logit_biases: dict[tuple[int, str], float],
     player_facing_bet_logit_bias_after_opponent_aggressions: int | None,
+    model_rollout_sims: int | None,
+    model_rollout_margin: float,
+    model_rollout_opponent_policy: str | None,
+    model_rollout_opponent_equity_sims: int,
+    model_rollout_opponent_rollout_sims: int | None,
+    model_rollout_opponent_rollout_margin: float,
     model_player: int,
     shard_index: int,
 ) -> dict[str, Any]:
@@ -417,6 +464,14 @@ def evaluate_model_shard(
                 player_facing_bet_logit_biases=player_facing_bet_logit_biases,
                 player_facing_bet_logit_bias_after_opponent_aggressions=(
                     player_facing_bet_logit_bias_after_opponent_aggressions
+                ),
+                model_rollout_sims=model_rollout_sims,
+                model_rollout_margin=model_rollout_margin,
+                model_rollout_opponent_policy=model_rollout_opponent_policy,
+                model_rollout_opponent_equity_sims=model_rollout_opponent_equity_sims,
+                model_rollout_opponent_rollout_sims=model_rollout_opponent_rollout_sims,
+                model_rollout_opponent_rollout_margin=(
+                    model_rollout_opponent_rollout_margin
                 ),
             ),
             opponent_policy=make_opponent_policy(
@@ -449,6 +504,20 @@ def evaluate_model_shard(
         "player_facing_bet_logit_bias_after_opponent_aggressions": (
             player_facing_bet_logit_bias_after_opponent_aggressions
         ),
+        "model_rollout_sims": model_rollout_sims,
+        "model_rollout_margin": model_rollout_margin if model_rollout_sims is not None else None,
+        "model_rollout_opponent_policy": (
+            model_rollout_opponent_policy if model_rollout_sims is not None else None
+        ),
+        "model_rollout_opponent_equity_sims": (
+            model_rollout_opponent_equity_sims if model_rollout_sims is not None else None
+        ),
+        "model_rollout_opponent_rollout_sims": (
+            model_rollout_opponent_rollout_sims if model_rollout_sims is not None else None
+        ),
+        "model_rollout_opponent_rollout_margin": (
+            model_rollout_opponent_rollout_margin if model_rollout_sims is not None else None
+        ),
         "shard_index": shard_index,
     }
 
@@ -472,6 +541,12 @@ def evaluate_model_paired_shard(
     facing_bet_logit_bias_after_opponent_aggressions: int | None,
     player_facing_bet_logit_biases: dict[tuple[int, str], float],
     player_facing_bet_logit_bias_after_opponent_aggressions: int | None,
+    model_rollout_sims: int | None,
+    model_rollout_margin: float,
+    model_rollout_opponent_policy: str | None,
+    model_rollout_opponent_equity_sims: int,
+    model_rollout_opponent_rollout_sims: int | None,
+    model_rollout_opponent_rollout_margin: float,
     shard_index: int,
 ) -> dict[str, Any]:
     eval_seed = seed + shard_index * 1_000_003
@@ -491,6 +566,14 @@ def evaluate_model_paired_shard(
             player_facing_bet_logit_biases=player_facing_bet_logit_biases,
             player_facing_bet_logit_bias_after_opponent_aggressions=(
                 player_facing_bet_logit_bias_after_opponent_aggressions
+            ),
+            model_rollout_sims=model_rollout_sims,
+            model_rollout_margin=model_rollout_margin,
+            model_rollout_opponent_policy=model_rollout_opponent_policy,
+            model_rollout_opponent_equity_sims=model_rollout_opponent_equity_sims,
+            model_rollout_opponent_rollout_sims=model_rollout_opponent_rollout_sims,
+            model_rollout_opponent_rollout_margin=(
+                model_rollout_opponent_rollout_margin
             ),
         )
         for model_player in (0, 1)
@@ -533,6 +616,20 @@ def evaluate_model_paired_shard(
         ),
         "player_facing_bet_logit_bias_after_opponent_aggressions": (
             player_facing_bet_logit_bias_after_opponent_aggressions
+        ),
+        "model_rollout_sims": model_rollout_sims,
+        "model_rollout_margin": model_rollout_margin if model_rollout_sims is not None else None,
+        "model_rollout_opponent_policy": (
+            model_rollout_opponent_policy if model_rollout_sims is not None else None
+        ),
+        "model_rollout_opponent_equity_sims": (
+            model_rollout_opponent_equity_sims if model_rollout_sims is not None else None
+        ),
+        "model_rollout_opponent_rollout_sims": (
+            model_rollout_opponent_rollout_sims if model_rollout_sims is not None else None
+        ),
+        "model_rollout_opponent_rollout_margin": (
+            model_rollout_opponent_rollout_margin if model_rollout_sims is not None else None
         ),
         "shard_index": shard_index,
     }
@@ -603,6 +700,35 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError(
             "--player-facing-bet-logit-bias-after-opponent-aggressions must be positive"
         )
+    model_rollout_sims = getattr(args, "model_rollout_sims", None)
+    if model_rollout_sims is not None and model_rollout_sims <= 0:
+        raise ValueError("--model-rollout-sims must be positive")
+    model_rollout_margin = float(getattr(args, "model_rollout_margin", 0.0))
+    model_rollout_opponent_policy = (
+        getattr(args, "model_rollout_opponent_policy", None) or args.opponent_policy
+    )
+    model_rollout_opponent_equity_sims = (
+        args.equity_sims
+        if getattr(args, "model_rollout_opponent_equity_sims", None) is None
+        else args.model_rollout_opponent_equity_sims
+    )
+    if model_rollout_opponent_equity_sims <= 0:
+        raise ValueError("--model-rollout-opponent-equity-sims must be positive")
+    model_rollout_opponent_rollout_sims = (
+        args.rollout_sims
+        if getattr(args, "model_rollout_opponent_rollout_sims", None) is None
+        else args.model_rollout_opponent_rollout_sims
+    )
+    model_rollout_opponent_rollout_margin_arg = getattr(
+        args,
+        "model_rollout_opponent_rollout_margin",
+        None,
+    )
+    model_rollout_opponent_rollout_margin = (
+        rollout_margin
+        if model_rollout_opponent_rollout_margin_arg is None
+        else float(model_rollout_opponent_rollout_margin_arg)
+    )
     model_players = normalize_model_players(args.model_player)
     player_checkpoints = player_checkpoints_from_args(args)
     shard_hands = split_hands(args.hands, args.jobs)
@@ -631,6 +757,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "player_facing_bet_logit_biases": player_facing_bet_logit_biases,
                 "player_facing_bet_logit_bias_after_opponent_aggressions": (
                     player_bias_after_opponent_aggressions
+                ),
+                "model_rollout_sims": model_rollout_sims,
+                "model_rollout_margin": model_rollout_margin,
+                "model_rollout_opponent_policy": model_rollout_opponent_policy,
+                "model_rollout_opponent_equity_sims": model_rollout_opponent_equity_sims,
+                "model_rollout_opponent_rollout_sims": (
+                    model_rollout_opponent_rollout_sims
+                ),
+                "model_rollout_opponent_rollout_margin": (
+                    model_rollout_opponent_rollout_margin
                 ),
                 "shard_index": shard_index,
             }
@@ -688,6 +824,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "player_facing_bet_logit_biases": player_facing_bet_logit_biases,
             "player_facing_bet_logit_bias_after_opponent_aggressions": (
                 player_bias_after_opponent_aggressions
+            ),
+            "model_rollout_sims": model_rollout_sims,
+            "model_rollout_margin": model_rollout_margin,
+            "model_rollout_opponent_policy": model_rollout_opponent_policy,
+            "model_rollout_opponent_equity_sims": model_rollout_opponent_equity_sims,
+            "model_rollout_opponent_rollout_sims": model_rollout_opponent_rollout_sims,
+            "model_rollout_opponent_rollout_margin": (
+                model_rollout_opponent_rollout_margin
             ),
             "model_player": model_player,
             "shard_index": shard_index,
@@ -788,6 +932,29 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--equity-sims", type=int, default=8)
     parser.add_argument("--rollout-sims", type=int)
     parser.add_argument("--rollout-margin", type=float, default=1.0)
+    parser.add_argument(
+        "--model-rollout-sims",
+        type=int,
+        help="Wrap the neural policy in one-step belief rollouts with this many sims/action.",
+    )
+    parser.add_argument(
+        "--model-rollout-margin",
+        type=float,
+        default=0.0,
+        help="Require this action-value improvement over the neural default action.",
+    )
+    parser.add_argument(
+        "--model-rollout-opponent-policy",
+        choices=HOLDEM_SELF_PLAY_POLICIES,
+        help="Opponent model used inside neural policy rollouts; defaults to eval opponent.",
+    )
+    parser.add_argument("--model-rollout-opponent-equity-sims", type=int)
+    parser.add_argument("--model-rollout-opponent-rollout-sims", type=int)
+    parser.add_argument(
+        "--model-rollout-opponent-rollout-margin",
+        type=float,
+        help="Rollout margin for the opponent policy used inside neural policy rollouts.",
+    )
     parser.add_argument("--model-player", type=parse_model_players, default=(0,))
     parser.add_argument("--jobs", type=int, default=1)
     parser.add_argument("--paired-seats", action="store_true")
