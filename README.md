@@ -122,6 +122,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Supervised fixed-limit Hold'em policy distillation from rollout-search experts.
 - Optional soft action-probability targets from rollout action values for
   Hold'em policy distillation.
+- Optional dense rollout action-value targets with auxiliary advantage-matching
+  loss for Hold'em policy distillation.
 - Cacheable Hold'em policy-imitation training examples for larger expert runs.
 - Held-out Hold'em policy-imitation evaluation for cloned experts.
 - Optional balanced, sqrt-balanced, and custom-exponent action-class weighting
@@ -237,6 +239,8 @@ broader context for range-aware and safe-rollout probes.
 | 2026-05-19T23:31:23-07:00 | `4b1d806` | Added symmetric p0 soft safe-rollout replay. | The 774-example base replay plus p0/p1 soft labels still failed cheap safe rollout at `-0.4250 +/- 0.6793`; both-seat soft replay over-corrected p0 raises. |
 | 2026-05-19T23:35:10-07:00 | `56db2ee` | Added seat-specific checkpoint evaluation. | Tooling can now evaluate different neural checkpoints for player 0 and player 1; `tests/test_evaluate_holdem_model.py` passed (`19 passed`). |
 | 2026-05-19T23:38:10-07:00 | `0e012e4` | Tried a current-best plus p1-soft seat composite. | Current best for player 0 plus p1-soft for player 1 failed cheap safe rollout at `-1.7625 +/- 0.9729`; no exact/range extension. |
+| 2026-05-19T23:42:25-07:00 | `27af624` | Added dense rollout action-value targets. | Cached Hold'em examples can now store per-action rollout values, and training can add an auxiliary legal-action advantage-matching loss; dataset/training tests passed (`55 passed`). |
+| 2026-05-19T23:49:00-07:00 | `7ad0461` | Tried value-aware soft safe-rollout targets. | A 40-hand value-target replay preserved 200 action-value examples, but the best KL2 train-selected sweep still predicted only `5` player-1 raises vs `11` target, so live gate extension was skipped. |
 
 Current fixed-limit Hold'em gate:
 
@@ -451,6 +455,14 @@ Current fixed-limit Hold'em gate:
   plus the compatible p1-soft checkpoint for player 1, failed cheap safe rollout
   at `-1.7625 +/- 0.9729` over 40 paired deals. The p1-soft branch was not a
   drop-in second-seat repair.
+- Dense rollout action-value targets are now cached alongside the soft
+  probabilities, and training can add a small auxiliary advantage-matching loss
+  over legal actions. The first 40-hand value-target replay was useful as a
+  diagnostic but not as a candidate: the cached set had 200 action-value
+  examples, while the best KL2 train-selected sweeps predicted only `5`
+  player-1 raises vs `11` target, even with extra player-1 call/raise weighting.
+  Because the supervised seat mix still missed the known failure mode, no live
+  exact/range/safe rollout extension was run.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
