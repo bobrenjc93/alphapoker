@@ -322,6 +322,29 @@ def test_holdem_self_play_tight_range_safe_rollout_policy_smoke() -> None:
     assert metrics["player0_policy"] == "tight-range-safe-rollout-pot-odds"
 
 
+def test_holdem_self_play_tight_range_default_safe_rollout_policy_smoke() -> None:
+    args = build_parser().parse_args(
+        [
+            "--hands",
+            "1",
+            "--seed",
+            "24",
+            "--player0-policy",
+            "tight-range-default-safe-rollout-pot-odds",
+            "--player1-policy",
+            "tight-turn-river-exact-pot-odds",
+            "--equity-sims",
+            "2",
+            "--rollout-sims",
+            "1",
+        ]
+    )
+    metrics = run(args)
+
+    assert metrics["hands"] == 1
+    assert metrics["player0_policy"] == "tight-range-default-safe-rollout-pot-odds"
+
+
 def test_holdem_self_play_balanced_rollout_pot_odds_policy_smoke() -> None:
     args = build_parser().parse_args(
         [

@@ -39,6 +39,7 @@ HOLDEM_SELF_PLAY_POLICIES = (
     "tight-turn-river-exact-pot-odds",
     "balanced-turn-river-exact-pot-odds",
     "tight-range-pot-odds",
+    "tight-range-default-safe-rollout-pot-odds",
     "tight-range-rollout-pot-odds",
     "tight-range-safe-rollout-pot-odds",
     "hybrid-pot-odds",
@@ -63,6 +64,7 @@ def make_policy_action_value_fn(
     if name in (
         "tight-rollout-pot-odds",
         "tight-safe-rollout-pot-odds",
+        "tight-range-default-safe-rollout-pot-odds",
         "tight-range-rollout-pot-odds",
         "tight-range-safe-rollout-pot-odds",
     ):
@@ -95,7 +97,16 @@ def make_policy_action_value_fn(
 
     simulations = rollout_sims if rollout_sims is not None else equity_sims
     safe_default = "safe-rollout" in name
-    policy_factory = range_baseline if "range" in name else baseline
+    range_rollout = name in (
+        "tight-range-rollout-pot-odds",
+        "tight-range-safe-rollout-pot-odds",
+    )
+    range_default = name in (
+        "tight-range-default-safe-rollout-pot-odds",
+        "tight-range-safe-rollout-pot-odds",
+    )
+    policy_factory = range_baseline if range_rollout else baseline
+    default_factory = range_baseline if range_default else baseline
 
     def action_and_values(state):
         action_values = policy_rollout_action_values(
@@ -109,7 +120,7 @@ def make_policy_action_value_fn(
         best_action = max(legal_actions, key=lambda action: action_values[action])
         if not safe_default:
             return best_action, action_values
-        default_policy = policy_factory(random.Random(rng.randrange(2**63)))
+        default_policy = default_factory(random.Random(rng.randrange(2**63)))
         default_action = default_policy(state)
         if default_action not in legal_actions:
             return best_action, action_values
@@ -185,6 +196,34 @@ def make_policy(
             raise_threshold=0.84,
             call_margin=0.08,
             cache_policy_matches=True,
+        )
+    if name == "tight-range-default-safe-rollout-pot-odds":
+        def tight_baseline(_: random.Random):
+            return turn_river_exact_pot_odds_equity_policy(
+                simulations=equity_sims,
+                bet_threshold=0.62,
+                raise_threshold=0.84,
+                call_margin=0.08,
+            )
+
+        def range_baseline(policy_rng: random.Random):
+            return opponent_range_pot_odds_equity_policy(
+                policy_rng,
+                simulations=equity_sims,
+                opponent_policy_factory=tight_baseline,
+                bet_threshold=0.62,
+                raise_threshold=0.84,
+                call_margin=0.08,
+                cache_policy_matches=True,
+            )
+
+        return policy_rollout_policy(
+            rng,
+            simulations=rollout_sims if rollout_sims is not None else equity_sims,
+            continuation_policy_factory=tight_baseline,
+            opponent_policy_factory=tight_baseline,
+            default_policy_factory=range_baseline,
+            improvement_margin=rollout_margin,
         )
     if name in ("tight-range-rollout-pot-odds", "tight-range-safe-rollout-pot-odds"):
         def tight_baseline(_: random.Random):
