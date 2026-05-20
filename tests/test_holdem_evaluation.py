@@ -3,7 +3,7 @@ import pytest
 
 pytest.importorskip("treys")
 
-from alphapoker.holdem import CALL, CHECK, FOLD  # noqa: E402
+from alphapoker.holdem import BET, CALL, CHECK, FOLD  # noqa: E402
 from alphapoker.holdem_evaluation import aggregate_policy_match_shards  # noqa: E402
 from alphapoker.holdem_evaluation import evaluate_policy_match  # noqa: E402
 from alphapoker.holdem_evaluation import evaluate_policy_match_paired_seats  # noqa: E402
@@ -22,6 +22,11 @@ def passive_policy(state):
 def folding_policy(state):
     legal = state.legal_actions()
     return FOLD if FOLD in legal else CHECK
+
+
+def betting_policy(state):
+    legal = state.legal_actions()
+    return BET if BET in legal else CALL
 
 
 def test_policies_for_model_player_rejects_bad_seat() -> None:
@@ -62,6 +67,21 @@ def test_evaluate_policy_match_reports_action_counts_by_role() -> None:
     assert metrics["model_action_counts"] == metrics["p0_action_counts"]
 
 
+def test_evaluate_policy_match_reports_facing_bet_action_counts() -> None:
+    metrics = evaluate_policy_match(
+        model_policy=betting_policy,
+        opponent_policy=folding_policy,
+        hands=5,
+        seed=3,
+        model_player=0,
+    )
+
+    assert metrics["model_facing_bet_action_counts"][CALL] > 0
+    assert metrics["opponent_facing_bet_action_counts"][FOLD] > 0
+    assert metrics["p0_facing_bet_action_counts"][CALL] > 0
+    assert metrics["p1_facing_bet_action_counts"][FOLD] > 0
+
+
 def test_evaluate_policy_match_paired_seats_reports_pair_stats() -> None:
     metrics = evaluate_policy_match_paired_seats(
         model_policies=(passive_policy, passive_policy),
@@ -80,6 +100,14 @@ def test_evaluate_policy_match_paired_seats_reports_pair_stats() -> None:
     )
     assert action_total(metrics["opponent_action_counts"]) == sum(
         action_total(seat["opponent_action_counts"]) for seat in metrics["seat_metrics"]
+    )
+    assert action_total(metrics["model_facing_bet_action_counts"]) == sum(
+        action_total(seat["model_facing_bet_action_counts"])
+        for seat in metrics["seat_metrics"]
+    )
+    assert action_total(metrics["opponent_facing_bet_action_counts"]) == sum(
+        action_total(seat["opponent_facing_bet_action_counts"])
+        for seat in metrics["seat_metrics"]
     )
 
 
