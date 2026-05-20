@@ -1,0 +1,114 @@
+{
+  "action_history_features": true,
+  "action_weight_overrides": {},
+  "behavior_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+  "best_epoch": 288,
+  "best_loss": 0.5803117156028748,
+  "best_train_loss": 0.5803117156028748,
+  "best_validation_loss": null,
+  "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_soft_safe_p0_replay_h60_kl2_balanced_facing3_temp075_p0call25_p0raise6_p0fold05_feat4_trainselect/holdem_policy.pt",
+  "class_weight_exponent": 1.0,
+  "class_weighting": "balanced",
+  "effective_class_weights": {
+    "bet": 1.5995407104492188,
+    "call": 0.6972357034683228,
+    "check": 1.3596094846725464,
+    "fold": 0.7997703552246094,
+    "raise": 0.5438438057899475
+  },
+  "epochs": 300,
+  "equity_sims": 4,
+  "examples": 160,
+  "examples_out": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_soft_safe_p0_replay_h60_kl2_balanced_facing3_temp075_p0call25_p0raise6_p0fold05_feat4_trainselect/soft_examples.json",
+  "expert_player": 0,
+  "expert_policy": "tight-safe-rollout-pot-odds",
+  "facing_bet_examples": 123,
+  "facing_bet_train_examples": 123,
+  "facing_bet_validation_examples": 0,
+  "facing_bet_weight": 3.0,
+  "feature_equity_checkpoint": null,
+  "feature_equity_mode": "tight-range",
+  "feature_equity_sims": 4,
+  "final_loss": 0.5803232192993164,
+  "final_train_loss": 0.5803232192993164,
+  "final_validation_loss": null,
+  "hands": 60,
+  "init_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+  "init_input_dim": 141,
+  "init_input_expanded": true,
+  "init_kl_weight": 2.0,
+  "jobs": 4,
+  "lr": 0.003,
+  "opponent_policy": "tight-safe-rollout-pot-odds",
+  "overall_accuracy": 0.7124999761581421,
+  "player_action_weight_overrides": {
+    "0:call": 2.5,
+    "0:fold": 0.5,
+    "0:raise": 6.0
+  },
+  "player_action_weighted_examples": 123,
+  "player_predicted_action_counts": {
+    "0": {
+      "bet": 24,
+      "call": 42,
+      "check": 13,
+      "fold": 43,
+      "raise": 38
+    },
+    "1": {
+      "bet": 0,
+      "call": 0,
+      "check": 0,
+      "fold": 0,
+      "raise": 0
+    }
+  },
+  "player_target_action_counts": {
+    "0": {
+      "bet": 17,
+      "call": 39,
+      "check": 20,
+      "fold": 34,
+      "raise": 50
+    },
+    "1": {
+      "bet": 0,
+      "call": 0,
+      "check": 0,
+      "fold": 0,
+      "raise": 0
+    }
+  },
+  "predicted_action_counts": {
+    "bet": 24,
+    "call": 42,
+    "check": 13,
+    "fold": 43,
+    "raise": 38
+  },
+  "rollout_margin": 1.0,
+  "rollout_sims": 1,
+  "seed": 79799,
+  "selection_metric": "train_loss",
+  "soft_target_action_mass": {
+    "bet": 17.169950485229492,
+    "call": 38.73332214355469,
+    "check": 19.83005142211914,
+    "fold": 31.876651763916016,
+    "raise": 52.3900260925293
+  },
+  "soft_target_examples": 160,
+  "soft_target_temperature": 0.75,
+  "target_action_counts": {
+    "bet": 17,
+    "call": 39,
+    "check": 20,
+    "fold": 34,
+    "raise": 50
+  },
+  "train_accuracy": 0.7124999761581421,
+  "train_examples": 160,
+  "validation_accuracy": null,
+  "validation_examples": 0,
+  "validation_fraction": 0.0
+}
