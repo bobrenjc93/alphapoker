@@ -202,8 +202,9 @@ commit that first recorded the metric.
 
 ![Hold'em capability over time](docs/holdem_exact_gate_progress.svg)
 
-The graph is a best-so-far capability curve over real commit time. The y-axis
-uses the comparable tight exact gate, measured as fixed-limit chips/hand against
+The line graph is the compact, AlphaGo-style view of the table: a best-so-far
+capability curve over real commit time. The y-axis uses the comparable tight
+exact gate, measured as fixed-limit chips/hand against
 `tight-turn-river-exact-pot-odds` e8. The initial zero segment marks the period
 before that Hold'em gate existed; failed robustness probes stay in the table
 rather than lowering the line because they did not replace the current best.
