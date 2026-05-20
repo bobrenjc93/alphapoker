@@ -200,6 +200,7 @@ below keeps the broader context for range-aware and safe-rollout probes.
 | 2026-05-19T16:41:33-07:00 | `abf88ee` | Labeled current-best self-play with the safe-rollout expert. | Safe rollout s1 improved to `+0.3650 +/- 0.8909` over 100 paired deals and range stayed positive at `+0.1460 +/- 0.3804`, but exact was flat at `+0.0460 +/- 0.4930`; side checkpoint only. |
 | 2026-05-19T16:59:21-07:00 | `7dcbf30` | Tried static blends toward the safe-expert side checkpoint. | A 25% blend looked strong on small exact/range probes (`+1.0200 +/- 0.8197`, `+0.4200 +/- 0.5221`) but failed safe rollout s1 at `-2.5875 +/- 1.4214`; not a candidate. |
 | 2026-05-19T17:21:09-07:00 | `6dd614a` | Tried an aggression-triggered switch to the safe-expert side checkpoint. | Exact/range stayed positive on larger probes (`+0.1780 +/- 0.4707`, `+0.2240 +/- 0.3381`), but safe rollout s1 failed at `-1.5550 +/- 0.8788`; not a candidate. |
+| 2026-05-19T17:43:38-07:00 | `c890a0c` | Scaled safe-expert self-play DAgger to 300 hands with a stronger KL anchor. | Tight exact stayed positive on a small probe (`+0.4400 +/- 0.7888`), but range flattened to `+0.0150 +/- 0.4784` and safe rollout s1 stayed negative at `-0.3625 +/- 1.4758`. |
 
 Current fixed-limit Hold'em gate:
 
@@ -276,6 +277,13 @@ Current fixed-limit Hold'em gate:
   (`+0.1780 +/- 0.4707` and `+0.2240 +/- 0.3381`, both over 250 paired deals).
   The safe-expert branch still needs training-time integration rather than
   runtime interpolation.
+- Scaling the safe-expert self-play DAgger pass to 300 hands with a stronger
+  KL anchor (`init_kl_weight=8.0`) kept the small tight exact smoke test
+  positive (`+0.4400 +/- 0.7888` over 100 paired deals), but flattened the
+  `tight-range-pot-odds` gate (`+0.0150 +/- 0.4784` over 100 paired deals) and
+  still missed the cheap safe-rollout gate (`-0.3625 +/- 1.4758` over 40 paired
+  deals). More safe-expert labels alone are not enough without replaying the
+  original range-strength behavior.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
