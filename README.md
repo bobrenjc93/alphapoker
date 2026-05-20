@@ -285,6 +285,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T04:33:08-07:00 | `70661e9` | Probed global plus player-specific calibration gated after two opponent aggressions. | Small exact/range/safe h100 probes were all positive (`+0.560 +/- 0.460`, `+0.570 +/- 0.227`, `+0.175 +/- 0.599`), but safe remains weak and noisy, so current best is unchanged. |
 | 2026-05-20T04:44:16-07:00 | `5b704e2` | Confirmed gated global calibration on a larger safe-rollout probe. | The h200 cheap-safe result stayed only weak-positive (`+0.1125 +/- 0.4484`; model-player seats `+0.0000`, `+0.2250`), so it is still diagnostic rather than a current-best update. |
 | 2026-05-20T05:18:58-07:00 | `4bb850d` | Checked gated global calibration on larger exact and range protective gates. | Range e4 h1000 stayed positive (`+0.3115 +/- 0.0943`), but exact e8 h1000 was only `+0.2125 +/- 0.1265`, far below the current best; the runtime branch is rejected. |
+| 2026-05-20T05:26:32-07:00 | `ad3612d` | Delayed global calibration until after three opponent aggressions. | Small exact/range h100 probes stayed positive (`+0.480 +/- 0.461`, `+0.610 +/- 0.222`), but safe h100 failed (`-0.530 +/- 0.585`; model-player seats `-1.250`, `+0.190`), so the delay lost the rollout repair. |
 
 Current fixed-limit Hold'em gate:
 
@@ -715,7 +716,10 @@ Current fixed-limit Hold'em gate:
   remained diagnostic. Larger protective gates then rejected it as a current-best
   replacement: range e4 h1000 stayed positive at `+0.3115 +/- 0.0943`, but exact
   e8 h1000 was only `+0.2125 +/- 0.1265`, well below the current-best exact
-  result.
+  result. Delaying the global bias further until after three opponent
+  aggressions preserved small exact/range probes (`+0.480 +/- 0.461`, `+0.610
+  +/- 0.222`) but lost the safe repair (`-0.530 +/- 0.585` over 100 paired
+  deals), so delayed runtime calibration is not the repair path.
 
 ## Research Roadmap
 
