@@ -126,6 +126,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   for Hold'em policy distillation.
 - Optional per-action loss-weight overrides for Hold'em policy distillation,
   useful when frequency balancing still confuses specific actions.
+- Optional player-action example weighting plus per-player target/prediction
+  diagnostics for Hold'em policy distillation.
 - Optional facing-bet example weighting for Hold'em policy distillation, used
   to emphasize call/fold response states without changing cached example files.
 - Optional Hold'em action-history policy features and first-layer input
@@ -223,6 +225,7 @@ broader context for range-aware and safe-rollout probes.
 | 2026-05-19T21:52:00-07:00 | `b7de1aa` | Selected full-balanced safe replay by train loss. | Removing the validation split ran to epoch 200, but still collapsed raise/fold (`raise` target 440 vs predicted 297; `fold` target 390 vs predicted 533) and failed cheap safe rollout at `-0.8250 +/- 1.1044`; no exact/range extension. |
 | 2026-05-19T22:02:28-07:00 | `a7f6904` | Added explicit raise/fold loss shaping. | `raise=2.0`, `fold=0.5` moved the cheap safe probe positive (`+0.8125 +/- 1.8117`) but damaged tight exact (`-0.4150 +/- 0.7566`) and flattened range (`-0.0650 +/- 0.4600`); diagnostic only. |
 | 2026-05-19T22:15:43-07:00 | `562c955` | Swept milder and call-aware action shaping. | `raise=1.5`, `fold=0.75` failed safe rollout (`-1.7375 +/- 1.4825`); p1-focused heavy shaping also failed (`-0.8375 +/- 1.1339`); adding `call=1.5` kept exact/range near flat-positive but safe was too noisy (`+0.3000 +/- 2.0511`). |
+| 2026-05-19T22:29:07-07:00 | `4191fc5` | Tried player-action weighting for player-1 responses. | KL8 p1 call/raise upweighting still failed cheap safe rollout (`-1.0250 +/- 1.4232`); KL2 moved p1 raises but stayed negative (`-0.4000 +/- 1.5183`), and a more call-heavy KL2 variant failed at `-1.4500 +/- 1.7017`. |
 
 Current fixed-limit Hold'em gate:
 
@@ -387,6 +390,14 @@ Current fixed-limit Hold'em gate:
   on cheap safe rollout (`+0.3000 +/- 2.0511`), but player 1 still rarely
   raised in live play. Global action weights are useful diagnostics, not a
   robust fix.
+- Player-action weighting exposed the seat-specific failure more clearly but
+  still did not repair it. KL8 p1 call/raise upweighting left p1 raises too low
+  and failed cheap safe rollout (`-1.0250 +/- 1.4232`). Dropping to KL2 moved p1
+  raises above target, but p1 calls collapsed and safe rollout stayed negative
+  (`-0.4000 +/- 1.5183`). A more call-heavy KL2 setting balanced supervised p1
+  calls/raises better, then failed live safe rollout at `-1.4500 +/- 1.7017`.
+  The next useful direction is likely richer expert targets or value/margin
+  labels, not more scalar hard-label weighting.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
