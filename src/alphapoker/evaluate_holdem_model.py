@@ -360,8 +360,10 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
         "blend_players",
         "facing_bet_logit_biases",
         "facing_bet_logit_bias_after_opponent_aggressions",
+        "facing_bet_logit_bias_min_raise_prob",
         "player_facing_bet_logit_biases",
         "player_facing_bet_logit_bias_after_opponent_aggressions",
+        "player_facing_bet_logit_bias_min_raise_prob",
         "player0_checkpoint",
         "player1_checkpoint",
         "player_checkpoint",
@@ -435,8 +437,10 @@ def model_policy_from_checkpoint(
     blend_players: tuple[int, ...] | None = None,
     facing_bet_logit_biases: dict[str, float] | None = None,
     facing_bet_logit_bias_after_opponent_aggressions: int | None = None,
+    facing_bet_logit_bias_min_raise_prob: float | None = None,
     player_facing_bet_logit_biases: dict[tuple[int, str], float] | None = None,
     player_facing_bet_logit_bias_after_opponent_aggressions: int | None = None,
+    player_facing_bet_logit_bias_min_raise_prob: float | None = None,
     model_rollout_sims: int | None = None,
     model_rollout_margin: float = 0.0,
     model_rollout_opponent_policy: str | None = None,
@@ -469,10 +473,18 @@ def model_policy_from_checkpoint(
             raise ValueError(
                 "facing_bet_logit_bias_after_opponent_aggressions must be positive"
             )
+    if facing_bet_logit_bias_min_raise_prob is not None:
+        if not 0.0 <= facing_bet_logit_bias_min_raise_prob <= 1.0:
+            raise ValueError("facing_bet_logit_bias_min_raise_prob must be in [0, 1]")
     if player_facing_bet_logit_bias_after_opponent_aggressions is not None:
         if player_facing_bet_logit_bias_after_opponent_aggressions < 1:
             raise ValueError(
                 "player_facing_bet_logit_bias_after_opponent_aggressions must be positive"
+            )
+    if player_facing_bet_logit_bias_min_raise_prob is not None:
+        if not 0.0 <= player_facing_bet_logit_bias_min_raise_prob <= 1.0:
+            raise ValueError(
+                "player_facing_bet_logit_bias_min_raise_prob must be in [0, 1]"
             )
     if model_rollout_sims is not None and model_rollout_sims <= 0:
         raise ValueError("model_rollout_sims must be positive")
@@ -531,6 +543,18 @@ def model_policy_from_checkpoint(
                 )
             if facing_bet:
                 visible_opponent_aggressions: int | None = None
+                pre_bias_raise_prob = None
+                if (
+                    facing_bet_logit_bias_min_raise_prob is not None
+                    or player_facing_bet_logit_bias_min_raise_prob is not None
+                ):
+                    masked_pre_bias_logits = logits.masked_fill(~mask, -1e9)
+                    pre_bias_probs = torch.softmax(masked_pre_bias_logits, dim=0)
+                    pre_bias_raise_prob = float(
+                        pre_bias_probs[HOLDEM_CANONICAL_ACTIONS.index("raise")]
+                        .detach()
+                        .cpu()
+                    )
                 apply_global_biases = True
                 if facing_bet_logit_bias_after_opponent_aggressions is not None:
                     visible_opponent_aggressions = (
@@ -539,6 +563,14 @@ def model_policy_from_checkpoint(
                     apply_global_biases = (
                         visible_opponent_aggressions
                         >= facing_bet_logit_bias_after_opponent_aggressions
+                    )
+                if (
+                    apply_global_biases
+                    and facing_bet_logit_bias_min_raise_prob is not None
+                ):
+                    apply_global_biases = (
+                        pre_bias_raise_prob is not None
+                        and pre_bias_raise_prob >= facing_bet_logit_bias_min_raise_prob
                     )
                 if apply_global_biases:
                     for action, bias in facing_bet_logit_biases.items():
@@ -555,6 +587,15 @@ def model_policy_from_checkpoint(
                     apply_player_biases = (
                         visible_opponent_aggressions
                         >= player_facing_bet_logit_bias_after_opponent_aggressions
+                    )
+                if (
+                    apply_player_biases
+                    and player_facing_bet_logit_bias_min_raise_prob is not None
+                ):
+                    apply_player_biases = (
+                        pre_bias_raise_prob is not None
+                        and pre_bias_raise_prob
+                        >= player_facing_bet_logit_bias_min_raise_prob
                     )
                 if apply_player_biases:
                     for (player, action), bias in player_facing_bet_logit_biases.items():
@@ -632,8 +673,10 @@ def evaluate_model_shard(
     blend_players: tuple[int, ...] | None,
     facing_bet_logit_biases: dict[str, float],
     facing_bet_logit_bias_after_opponent_aggressions: int | None,
+    facing_bet_logit_bias_min_raise_prob: float | None,
     player_facing_bet_logit_biases: dict[tuple[int, str], float],
     player_facing_bet_logit_bias_after_opponent_aggressions: int | None,
+    player_facing_bet_logit_bias_min_raise_prob: float | None,
     model_rollout_sims: int | None,
     model_rollout_margin: float,
     model_rollout_opponent_policy: str | None,
@@ -668,9 +711,15 @@ def evaluate_model_shard(
                 facing_bet_logit_bias_after_opponent_aggressions=(
                     facing_bet_logit_bias_after_opponent_aggressions
                 ),
+                facing_bet_logit_bias_min_raise_prob=(
+                    facing_bet_logit_bias_min_raise_prob
+                ),
                 player_facing_bet_logit_biases=player_facing_bet_logit_biases,
                 player_facing_bet_logit_bias_after_opponent_aggressions=(
                     player_facing_bet_logit_bias_after_opponent_aggressions
+                ),
+                player_facing_bet_logit_bias_min_raise_prob=(
+                    player_facing_bet_logit_bias_min_raise_prob
                 ),
                 model_rollout_sims=model_rollout_sims,
                 model_rollout_margin=model_rollout_margin,
@@ -706,11 +755,15 @@ def evaluate_model_shard(
         "facing_bet_logit_bias_after_opponent_aggressions": (
             facing_bet_logit_bias_after_opponent_aggressions
         ),
+        "facing_bet_logit_bias_min_raise_prob": facing_bet_logit_bias_min_raise_prob,
         "player_facing_bet_logit_biases": serialize_player_action_biases(
             player_facing_bet_logit_biases
         ),
         "player_facing_bet_logit_bias_after_opponent_aggressions": (
             player_facing_bet_logit_bias_after_opponent_aggressions
+        ),
+        "player_facing_bet_logit_bias_min_raise_prob": (
+            player_facing_bet_logit_bias_min_raise_prob
         ),
         "model_rollout_sims": model_rollout_sims,
         "model_rollout_margin": model_rollout_margin if model_rollout_sims is not None else None,
@@ -750,8 +803,10 @@ def evaluate_model_paired_shard(
     blend_players: tuple[int, ...] | None,
     facing_bet_logit_biases: dict[str, float],
     facing_bet_logit_bias_after_opponent_aggressions: int | None,
+    facing_bet_logit_bias_min_raise_prob: float | None,
     player_facing_bet_logit_biases: dict[tuple[int, str], float],
     player_facing_bet_logit_bias_after_opponent_aggressions: int | None,
+    player_facing_bet_logit_bias_min_raise_prob: float | None,
     model_rollout_sims: int | None,
     model_rollout_margin: float,
     model_rollout_opponent_policy: str | None,
@@ -778,9 +833,13 @@ def evaluate_model_paired_shard(
             facing_bet_logit_bias_after_opponent_aggressions=(
                 facing_bet_logit_bias_after_opponent_aggressions
             ),
+            facing_bet_logit_bias_min_raise_prob=facing_bet_logit_bias_min_raise_prob,
             player_facing_bet_logit_biases=player_facing_bet_logit_biases,
             player_facing_bet_logit_bias_after_opponent_aggressions=(
                 player_facing_bet_logit_bias_after_opponent_aggressions
+            ),
+            player_facing_bet_logit_bias_min_raise_prob=(
+                player_facing_bet_logit_bias_min_raise_prob
             ),
             model_rollout_sims=model_rollout_sims,
             model_rollout_margin=model_rollout_margin,
@@ -827,11 +886,15 @@ def evaluate_model_paired_shard(
         "facing_bet_logit_bias_after_opponent_aggressions": (
             facing_bet_logit_bias_after_opponent_aggressions
         ),
+        "facing_bet_logit_bias_min_raise_prob": facing_bet_logit_bias_min_raise_prob,
         "player_facing_bet_logit_biases": serialize_player_action_biases(
             player_facing_bet_logit_biases
         ),
         "player_facing_bet_logit_bias_after_opponent_aggressions": (
             player_facing_bet_logit_bias_after_opponent_aggressions
+        ),
+        "player_facing_bet_logit_bias_min_raise_prob": (
+            player_facing_bet_logit_bias_min_raise_prob
         ),
         "model_rollout_sims": model_rollout_sims,
         "model_rollout_margin": model_rollout_margin if model_rollout_sims is not None else None,
@@ -904,6 +967,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError(
             "--facing-bet-logit-bias-after-opponent-aggressions must be positive"
         )
+    facing_bet_logit_bias_min_raise_prob = getattr(
+        args,
+        "facing_bet_logit_bias_min_raise_prob",
+        None,
+    )
+    if (
+        facing_bet_logit_bias_min_raise_prob is not None
+        and not 0.0 <= facing_bet_logit_bias_min_raise_prob <= 1.0
+    ):
+        raise ValueError("--facing-bet-logit-bias-min-raise-prob must be in [0, 1]")
     player_facing_bet_logit_biases = player_action_logit_biases_from_specs(
         getattr(args, "player_facing_bet_logit_bias", None)
     )
@@ -918,6 +991,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     ):
         raise ValueError(
             "--player-facing-bet-logit-bias-after-opponent-aggressions must be positive"
+        )
+    player_facing_bet_logit_bias_min_raise_prob = getattr(
+        args,
+        "player_facing_bet_logit_bias_min_raise_prob",
+        None,
+    )
+    if (
+        player_facing_bet_logit_bias_min_raise_prob is not None
+        and not 0.0 <= player_facing_bet_logit_bias_min_raise_prob <= 1.0
+    ):
+        raise ValueError(
+            "--player-facing-bet-logit-bias-min-raise-prob must be in [0, 1]"
         )
     model_rollout_sims = getattr(args, "model_rollout_sims", None)
     if model_rollout_sims is not None and model_rollout_sims <= 0:
@@ -976,9 +1061,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "facing_bet_logit_bias_after_opponent_aggressions": (
                     facing_bet_logit_bias_after_opponent_aggressions
                 ),
+                "facing_bet_logit_bias_min_raise_prob": (
+                    facing_bet_logit_bias_min_raise_prob
+                ),
                 "player_facing_bet_logit_biases": player_facing_bet_logit_biases,
                 "player_facing_bet_logit_bias_after_opponent_aggressions": (
                     player_bias_after_opponent_aggressions
+                ),
+                "player_facing_bet_logit_bias_min_raise_prob": (
+                    player_facing_bet_logit_bias_min_raise_prob
                 ),
                 "model_rollout_sims": model_rollout_sims,
                 "model_rollout_margin": model_rollout_margin,
@@ -1053,9 +1144,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "facing_bet_logit_bias_after_opponent_aggressions": (
                 facing_bet_logit_bias_after_opponent_aggressions
             ),
+            "facing_bet_logit_bias_min_raise_prob": (
+                facing_bet_logit_bias_min_raise_prob
+            ),
             "player_facing_bet_logit_biases": player_facing_bet_logit_biases,
             "player_facing_bet_logit_bias_after_opponent_aggressions": (
                 player_bias_after_opponent_aggressions
+            ),
+            "player_facing_bet_logit_bias_min_raise_prob": (
+                player_facing_bet_logit_bias_min_raise_prob
             ),
             "model_rollout_sims": model_rollout_sims,
             "model_rollout_margin": model_rollout_margin,
@@ -1152,6 +1249,14 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--facing-bet-logit-bias-min-raise-prob",
+        type=float,
+        help=(
+            "Apply global facing-bet logit biases only when the pre-bias model "
+            "raise probability is at least this value."
+        ),
+    )
+    parser.add_argument(
         "--player-facing-bet-logit-bias",
         action="append",
         default=[],
@@ -1167,6 +1272,14 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Apply player-specific facing-bet logit biases only after at least "
             "this many visible opponent bets or raises."
+        ),
+    )
+    parser.add_argument(
+        "--player-facing-bet-logit-bias-min-raise-prob",
+        type=float,
+        help=(
+            "Apply player-specific facing-bet logit biases only when the "
+            "pre-bias model raise probability is at least this value."
         ),
     )
     parser.add_argument("--hands", type=int, default=1000)
