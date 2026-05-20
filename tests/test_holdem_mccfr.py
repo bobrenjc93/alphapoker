@@ -84,6 +84,19 @@ def test_holdem_mccfr_trainer_smoke_and_checkpoint(tmp_path) -> None:
     assert loaded.average_strategy().keys() == trainer.average_strategy().keys()
 
 
+def test_holdem_external_mccfr_averages_only_updating_player() -> None:
+    trainer = HoldemAbstractionCFRTrainer(seed=21, max_bets_per_round=1, traversal="external")
+    trainer._external_cfr(trainer._deal_state(), updating_player=0)
+
+    updated_player_labels = {
+        key.split(":", maxsplit=1)[0]
+        for key, infoset in trainer.infosets.items()
+        if infoset.strategy_update_count > 0
+    }
+
+    assert updated_player_labels == {"p0"}
+
+
 def test_holdem_mccfr_policy_selects_legal_action() -> None:
     trainer = HoldemAbstractionCFRTrainer(seed=4, max_bets_per_round=4, traversal="external")
     trainer.train(2)

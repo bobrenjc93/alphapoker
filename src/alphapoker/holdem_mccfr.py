@@ -383,24 +383,38 @@ class HoldemAbstractionCFRTrainer:
 
         return node_utility
 
-    def _external_cfr(self, state: FixedLimitHoldemState, updating_player: int) -> float:
+    def _external_cfr(
+        self,
+        state: FixedLimitHoldemState,
+        updating_player: int,
+        updating_reach: float = 1.0,
+    ) -> float:
         if state.is_terminal():
             return state.utility(updating_player)
 
         player = state.current_player()
         infoset = self._infoset_for_state(state)
         strategy = infoset.current_strategy()
-        average_weight = float(self.iterations + 1) if self.linear_averaging else 1.0
-        infoset.accumulate_strategy(1.0, strategy, weight=average_weight)
 
         if player != updating_player:
             sampled_action = self._sample_action(infoset.actions, strategy)
-            return self._external_cfr(state.apply(sampled_action), updating_player)
+            return self._external_cfr(
+                state.apply(sampled_action),
+                updating_player,
+                updating_reach,
+            )
 
-        action_utilities = [
-            self._external_cfr(state.apply(action), updating_player)
-            for action in infoset.actions
-        ]
+        average_weight = float(self.iterations + 1) if self.linear_averaging else 1.0
+        infoset.accumulate_strategy(updating_reach, strategy, weight=average_weight)
+        action_utilities = []
+        for action, probability in zip(infoset.actions, strategy):
+            action_utilities.append(
+                self._external_cfr(
+                    state.apply(action),
+                    updating_player,
+                    updating_reach * probability,
+                )
+            )
         node_utility = sum(
             probability * action_utility
             for probability, action_utility in zip(strategy, action_utilities)
