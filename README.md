@@ -353,6 +353,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T15:49:41-07:00 | `b578227` | Fixed external-sampling Hold'em MCCFR averaging. | Average-policy updates now touch only the traversed player's infosets with own reach probability; focused MCCFR tests passed (`24 passed`). A corrected 5k equity-abstraction hybrid with tight-exact fallback was weak-positive at `+0.174 +/- 0.131` over 500 paired deals (`min_strategy_weight=25`), still below the neural current best. |
 | 2026-05-20T15:59:09-07:00 | `7dc75b6` | Scaled corrected Hold'em MCCFR to 20k iterations. | Best exact h500 fallback hybrid was `+0.184 +/- 0.143` at `min_strategy_weight=50`; player 0 was strong (`+0.608`) but player 1 was negative (`-0.240`), so scaling did not produce a candidate. |
 | 2026-05-20T16:06:39-07:00 | `dad765f` | Added reach-support gating for Hold'em MCCFR fallback. | Evaluators can now gate fallback by accumulated average-strategy mass as well as raw update count; focused tests passed (`26 passed`). The 5k reach-support sweep failed the tight exact h500 gate, with best threshold `10000` at `-0.035 +/- 0.145`. |
+| 2026-05-20T16:15:30-07:00 | `2cbb728` | Tried cap-2 corrected Hold'em MCCFR abstraction. | Tight exact h500 improved to `+0.273 +/- 0.134` and cheap safe s1 h100 spiked to `+1.135 +/- 0.384`, but range e4 h500 failed at `-0.167 +/- 0.143`; diagnostic only. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1009,6 +1010,13 @@ Current fixed-limit Hold'em gate:
   `0,10,100,1000,10000` was negative at every threshold; the best was
   `-0.035 +/- 0.145`, still over-raising heavily (`327` model raises vs `151`
   opponent raises).
+- Reducing the corrected MCCFR abstraction to two bets per round made the cheap
+  safe-rollout smoke look much better without beating the main gates. The 5k
+  cap-2 run's best fallback threshold was `min_strategy_weight=25`, scoring
+  `+0.273 +/- 0.134` on tight exact h500 and `+1.135 +/- 0.384` on cheap safe
+  s1 h100 with both seats positive. The same threshold failed the range gate at
+  `-0.167 +/- 0.143` over 500 paired deals and still over-raised
+  (`337` model raises vs `108` opponent raises), so this remains diagnostic.
 
 ## Research Roadmap
 
