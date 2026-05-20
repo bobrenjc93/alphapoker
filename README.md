@@ -180,12 +180,13 @@ in chips/hand with paired seats and standard errors. The timestamp column below
 uses real ISO-8601 git commit times from `git log --date=iso-strict` for the
 commit that first recorded the metric.
 
-![Hold'em exact-gate EV over time](docs/holdem_exact_gate_progress.svg)
+![Hold'em capability over time](docs/holdem_exact_gate_progress.svg)
 
-The graph plots the comparable tight exact gate over real commit time. Small
-one-off exact spikes and failed robustness probes stay in the table rather than
-the line so the visual tracks durable gate progress. The table below keeps the
-broader context for range-aware and safe-rollout probes.
+The graph is a best-so-far capability curve over real commit time. The y-axis
+uses the comparable tight exact gate, measured as fixed-limit chips/hand against
+`tight-turn-river-exact-pot-odds` e8. The initial zero segment marks the period
+before that Hold'em gate existed; failed robustness probes stay in the table
+rather than lowering the line because they did not replace the current best.
 
 | Recorded at | Commit | Milestone | Main measured gate |
 | --- | --- | --- | --- |
