@@ -668,11 +668,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         else None
     )
     facing_bet_mask = facing_bet_mask_from_masks(masks)
+    init_kl_weight = float(getattr(args, "init_kl_weight", 0.0))
+    init_kl_example_weighting = getattr(args, "init_kl_example_weighting", "example")
+    if init_kl_example_weighting not in ("example", "uniform"):
+        raise ValueError("--init-kl-example-weighting must be example or uniform")
+    train_kl_example_weights = (
+        train_example_weights if init_kl_example_weighting == "example" else None
+    )
+    validation_kl_example_weights = (
+        validation_example_weights if init_kl_example_weighting == "example" else None
+    )
 
     torch.manual_seed(0)
     model = HoldemPolicyNet(input_dim=features.shape[1])
     init_checkpoint = getattr(args, "init_checkpoint", None)
-    init_kl_weight = float(getattr(args, "init_kl_weight", 0.0))
     init_allow_input_expansion = bool(getattr(args, "init_allow_input_expansion", False))
     init_input_dim = None
     init_input_expanded = False
@@ -728,6 +737,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         batch_action_value_targets=None,
         batch_action_value_target_mask=None,
         batch_weights=None,
+        batch_kl_weights=None,
     ):
         logits = model(batch_features)
         masked_logits = logits.masked_fill(~batch_masks, -1e9)
@@ -793,7 +803,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         with torch.no_grad():
             anchor_logits = anchor_model(batch_features).masked_fill(~batch_masks, -1e9)
             anchor_probs = F.softmax(anchor_logits, dim=1)
-        if batch_weights is None:
+        if batch_kl_weights is None:
             policy_kl = F.kl_div(
                 F.log_softmax(masked_logits, dim=1),
                 anchor_probs,
@@ -806,7 +816,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 reduction="none",
             ).sum(dim=1)
             policy_kl = (
-                (kl_losses * batch_weights).sum() / batch_weights.sum().clamp_min(1e-12)
+                (kl_losses * batch_kl_weights).sum()
+                / batch_kl_weights.sum().clamp_min(1e-12)
             )
         return loss + init_kl_weight * policy_kl
 
@@ -826,6 +837,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             train_action_value_targets,
             train_action_value_target_mask,
             train_example_weights,
+            train_kl_example_weights,
         )
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
@@ -840,6 +852,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 train_action_value_targets,
                 train_action_value_target_mask,
                 train_example_weights,
+                train_kl_example_weights,
             )
             final_loss = float(train_loss.detach().cpu())
             validation_loss_value = None
@@ -853,6 +866,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     validation_action_value_targets,
                     validation_action_value_target_mask,
                     validation_example_weights,
+                    validation_kl_example_weights,
                 )
                 validation_loss_value = float(validation_loss.detach().cpu())
                 final_validation_loss = validation_loss_value
@@ -988,6 +1002,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "epochs": args.epochs,
         "lr": args.lr,
         "init_kl_weight": init_kl_weight,
+        "init_kl_example_weighting": init_kl_example_weighting,
         "class_weighting": class_weighting,
         "class_weight_exponent": resolved_class_weight_exponent,
         "action_weight_overrides": action_weight_overrides,
@@ -1102,6 +1117,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--behavior-checkpoint", type=Path)
     parser.add_argument("--init-checkpoint", type=Path)
     parser.add_argument("--init-kl-weight", type=float, default=0.0)
+    parser.add_argument(
+        "--init-kl-example-weighting",
+        choices=("example", "uniform"),
+        default="example",
+        help=(
+            "Use example weights for initialized-policy KL anchoring, or keep the "
+            "KL term uniform while weighting supervised/value losses."
+        ),
+    )
     parser.add_argument("--init-allow-input-expansion", action="store_true")
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--lr", type=float, default=3e-3)

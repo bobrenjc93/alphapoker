@@ -59,6 +59,8 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "policy.pt",
             "--init-kl-weight",
             "0.5",
+            "--init-kl-example-weighting",
+            "uniform",
             "--init-allow-input-expansion",
             "--examples-in",
             "examples.json",
@@ -105,6 +107,7 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.action_value_example_weight == 4.0
     assert str(args.init_checkpoint) == "policy.pt"
     assert args.init_kl_weight == 0.5
+    assert args.init_kl_example_weighting == "uniform"
     assert args.init_allow_input_expansion
     assert args.class_weighting == "balanced"
     assert args.class_weight_exponent == 0.75
@@ -566,6 +569,7 @@ def test_train_holdem_policy_records_validation_metrics(tmp_path) -> None:
     assert metrics["validation_accuracy"] is not None
     assert metrics["rollout_margin"] == 1.0
     assert metrics["init_kl_weight"] == 0.0
+    assert metrics["init_kl_example_weighting"] == "example"
     assert metrics["facing_bet_weight"] == 1.0
     assert metrics["facing_bet_examples"] == 0
     empty_action_counts = {action: 0 for action in HOLDEM_CANONICAL_ACTIONS}
