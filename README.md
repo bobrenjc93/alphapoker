@@ -254,6 +254,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T01:32:11-07:00 | `5eea34f` | Tried a seat-specific value400/current-best composite. | Value400 for player 0 plus current best for player 1 was positive on h40 safe (`+0.450 +/- 0.831`) and range h100 (`+0.405 +/- 0.313`), but safe h100 stayed negative (`-0.220 +/- 0.538`) and exact h100 was only `+0.240 +/- 0.468`; current best is unchanged. |
 | 2026-05-20T01:37:19-07:00 | `0f279e8` | Tried value400 logit blends from the action-history-expanded current best. | 25% after aggression, 50% after aggression, and static 25% blends all failed the h40 safe probe (`-1.125 +/- 0.962`, `-1.350 +/- 0.868`, `-1.0125 +/- 0.941`); not extended. |
 | 2026-05-20T01:43:24-07:00 | `e4913ae` | Evaluated value400 class/player weighting variants. | Full-balanced value400 was less bad on h40 safe (`-0.5625 +/- 0.930`) but player 1 failed badly (`-1.775`); p1 call/fold and call/raise/fold weighting variants also failed (`-0.9125 +/- 0.999`, `-1.075 +/- 1.140`). |
+| 2026-05-20T01:47:31-07:00 | `da0b8d6` | Tried a hard value400 switch after opponent aggression. | Full switch from action-history-expanded current best to value400 after the first opponent bet/raise also failed h40 safe (`-0.625 +/- 1.000`), with both seats negative. |
 
 Current fixed-limit Hold'em gate:
 
@@ -613,6 +614,11 @@ Current fixed-limit Hold'em gate:
   (`+0.650`) but failed overall at `-0.5625 +/- 0.930` because player 1 fell to
   `-1.775`. P1 call/fold and call/raise/fold weighting variants were also
   negative (`-0.9125 +/- 0.999` and `-1.075 +/- 1.140`).
+- A hard switch from the action-history-expanded current best to the value400
+  checkpoint after the first opponent bet/raise was also not enough: the h40
+  safe probe was `-0.625 +/- 1.000`, with player 0 at `-0.475` and player 1 at
+  `-0.775`. Runtime value400 integration is now consistently weaker than
+  training-time repair.
 
 ## Research Roadmap
 
