@@ -136,6 +136,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   diagnostics for Hold'em policy distillation.
 - Optional facing-bet example weighting for Hold'em policy distillation, used
   to emphasize call/fold response states without changing cached example files.
+- Optional facing-bet target-action weighting, including per-player overrides,
+  for Hold'em policy distillation from cached response-state labels.
 - Optional Hold'em action-history policy features and first-layer input
   expansion for initializing wider feature checkpoints from older policies.
 - Hold'em policy-distillation checkpoint initialization, optional KL anchoring,
@@ -255,6 +257,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T01:37:19-07:00 | `0f279e8` | Tried value400 logit blends from the action-history-expanded current best. | 25% after aggression, 50% after aggression, and static 25% blends all failed the h40 safe probe (`-1.125 +/- 0.962`, `-1.350 +/- 0.868`, `-1.0125 +/- 0.941`); not extended. |
 | 2026-05-20T01:43:24-07:00 | `e4913ae` | Evaluated value400 class/player weighting variants. | Full-balanced value400 was less bad on h40 safe (`-0.5625 +/- 0.930`) but player 1 failed badly (`-1.775`); p1 call/fold and call/raise/fold weighting variants also failed (`-0.9125 +/- 0.999`, `-1.075 +/- 1.140`). |
 | 2026-05-20T01:47:31-07:00 | `da0b8d6` | Tried a hard value400 switch after opponent aggression. | Full switch from action-history-expanded current best to value400 after the first opponent bet/raise also failed h40 safe (`-0.625 +/- 1.000`), with both seats negative. |
+| 2026-05-20T01:52:49-07:00 | `401a12e` | Added facing-bet target-action training weights. | Training can now weight response-state target actions globally or by player; `tests/test_train_holdem_policy.py` passed (`32 passed`). |
+| 2026-05-20T02:04:24-07:00 | `332b2a2` | Tried player-1 facing-bet call/fold weighting. | P1 `call=4.0`, `fold=0.5` improved h40 safe to `+0.325 +/- 0.949` and h100 safe to `+0.235 +/- 0.572`, but h100 range failed at `-0.230 +/- 0.317`; adding p1 `raise=2.0` flattened h40 safe to `+0.0125 +/- 0.849`. Current best unchanged. |
 
 Current fixed-limit Hold'em gate:
 
@@ -619,6 +623,14 @@ Current fixed-limit Hold'em gate:
   safe probe was `-0.625 +/- 1.000`, with player 0 at `-0.475` and player 1 at
   `-0.775`. Runtime value400 integration is now consistently weaker than
   training-time repair.
+- Targeted player-1 facing-bet target-action weighting produced another
+  diagnostic branch, not a candidate. P1 `call=4.0`, `fold=0.5` improved the
+  cheap safe probe to `+0.325 +/- 0.949` over 40 paired deals and a 100-paired
+  safe confirmation to `+0.235 +/- 0.572`, but the 100-paired
+  `tight-range-pot-odds` gate failed at `-0.230 +/- 0.317` and player 1 stayed
+  negative on safe rollout (`-0.69`). Adding p1 `raise=2.0` reduced the h40
+  safe result to `+0.0125 +/- 0.849`, so targeted response-action weighting
+  needs finer response-state diagnostics before another scalar sweep.
 
 ## Research Roadmap
 
