@@ -322,6 +322,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T10:15:59-07:00 | `78ff000` | Collected fast range-default player-1 response labels. | A 40-hand behavior cache from the current best produced 46 after-one facing-bet labels with target `call/fold/raise = 18/8/20`, less fold-heavy than the older cheap-safe h100 cache (`34/27/40`). |
 | 2026-05-20T10:18:59-07:00 | `c1a9806` | Tried replaying the fast range-default response labels. | Adding the 46-label cache to the 1,174-example base replay matched cached p1 responses reasonably (`65/95/48` predicted vs `77/85/46` target), but h40 fast-range-default failed worse at `-1.625 +/- 0.714`; no exact/range extension. |
 | 2026-05-20T10:25:14-07:00 | `308e775` | Tried runtime p1 response calibration on the fast range-default gate. | Current best with p1 `raise=+0.5`, `fold=-0.5` after one opponent aggression failed h40 fast-range-default at `-1.800 +/- 0.696`; player 1 regressed to `-3.150`, so simple local calibration is rejected. |
+| 2026-05-20T12:38:42-07:00 | `0280223` | Tried 2k range-feature distillation with action-history features. | Exact e8 h500 smoke was strong at `+0.733 +/- 0.174`, but range e4 h500 failed at `-0.026 +/- 0.109`; training also overpredicted raises (`966` predicted vs `302` target), so this is not a current-best replacement. |
 
 Current fixed-limit Hold'em gate:
 
@@ -910,6 +911,11 @@ Current fixed-limit Hold'em gate:
   p1 `raise=+0.5`, `fold=-0.5` after one opponent aggression increased p1
   facing-bet raises but worsened h40 to `-1.800 +/- 0.696`, with player 1 at
   `-3.150`. The gap is not a simple local logit-bias issue.
+- A fresh 2k range-feature distillation with action-history inputs separated
+  the exact and range gates: exact e8 h500 rose to `+0.733 +/- 0.174`, but range
+  e4 h500 was flat-negative at `-0.026 +/- 0.109`. The training diagnostics
+  showed the same core issue as other rejected aggressive branches, with `966`
+  predicted raises against only `302` target raises.
 
 ## Research Roadmap
 
