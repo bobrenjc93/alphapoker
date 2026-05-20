@@ -4,6 +4,7 @@ import pytest
 pytest.importorskip("treys")
 
 from alphapoker.holdem_dataset import HoldemPolicyExample, write_policy_examples  # noqa: E402
+from alphapoker.holdem_model import HoldemPolicyNet  # noqa: E402
 from alphapoker.train_holdem_policy import (  # noqa: E402
     _shard_hands,
     _split_train_validation_indices,
@@ -11,6 +12,7 @@ from alphapoker.train_holdem_policy import (  # noqa: E402
     class_weight_exponent_for_mode,
     class_weights_from_targets,
     example_weights_from_masks,
+    load_policy_checkpoint_state,
     run,
 )
 
@@ -30,10 +32,12 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "3",
             "--feature-equity-mode",
             "sampled",
+            "--action-history-features",
             "--init-checkpoint",
             "policy.pt",
             "--init-kl-weight",
             "0.5",
+            "--init-allow-input-expansion",
             "--examples-in",
             "examples.json",
             "--examples-out",
@@ -60,8 +64,10 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.rollout_margin == 1.5
     assert args.feature_equity_sims == 3
     assert args.feature_equity_mode == "sampled"
+    assert args.action_history_features
     assert str(args.init_checkpoint) == "policy.pt"
     assert args.init_kl_weight == 0.5
+    assert args.init_allow_input_expansion
     assert args.class_weighting == "balanced"
     assert args.class_weight_exponent == 0.75
     assert args.facing_bet_weight == 3.0
@@ -269,6 +275,30 @@ def test_facing_bet_weight_must_be_positive() -> None:
 
     with pytest.raises(ValueError, match="must be positive"):
         example_weights_from_masks(masks, 0.0)
+
+
+def test_policy_checkpoint_input_expansion_preserves_old_columns() -> None:
+    torch = pytest.importorskip("torch")
+    source_model = HoldemPolicyNet(input_dim=1)
+    target_model = HoldemPolicyNet(input_dim=2)
+    for parameter in source_model.parameters():
+        parameter.data.fill_(0.5)
+
+    init_input_dim, expanded = load_policy_checkpoint_state(
+        target_model,
+        {
+            "model_state_dict": source_model.state_dict(),
+            "input_dim": 1,
+        },
+        target_input_dim=2,
+        allow_input_expansion=True,
+    )
+
+    first_layer = target_model.state_dict()["net.0.weight"]
+    assert init_input_dim == 1
+    assert expanded
+    assert torch.allclose(first_layer[:, :1], torch.full_like(first_layer[:, :1], 0.5))
+    assert torch.allclose(first_layer[:, 1:], torch.zeros_like(first_layer[:, 1:]))
 
 
 def test_train_holdem_policy_parser_accepts_tight_range_feature() -> None:

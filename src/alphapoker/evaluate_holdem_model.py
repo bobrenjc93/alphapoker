@@ -149,6 +149,7 @@ def checkpoint_feature_metadata(checkpoint: dict[str, Any]) -> dict[str, Any]:
         "feature_equity_sims": checkpoint.get("feature_equity_sims"),
         "feature_equity_mode": checkpoint.get("feature_equity_mode", "random"),
         "feature_equity_checkpoint": checkpoint.get("feature_equity_checkpoint"),
+        "action_history_features": bool(checkpoint.get("action_history_features", False)),
     }
 
 

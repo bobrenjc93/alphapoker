@@ -75,6 +75,40 @@ def example_weights_from_masks(masks, facing_bet_weight: float):
     )
 
 
+def load_policy_checkpoint_state(
+    model,
+    checkpoint_data: dict[str, Any],
+    *,
+    target_input_dim: int,
+    allow_input_expansion: bool = False,
+) -> tuple[int, bool]:
+    state_dict = copy.deepcopy(checkpoint_data["model_state_dict"])
+    first_layer_key = "net.0.weight"
+    init_input_dim = int(
+        checkpoint_data.get("input_dim", state_dict[first_layer_key].shape[1])
+    )
+    if init_input_dim == target_input_dim:
+        model.load_state_dict(state_dict)
+        return init_input_dim, False
+    if init_input_dim > target_input_dim or not allow_input_expansion:
+        raise ValueError(
+            "init checkpoint input_dim does not match generated feature dimension: "
+            f"{init_input_dim} != {target_input_dim}"
+        )
+    first_layer_weight = state_dict[first_layer_key]
+    if first_layer_weight.shape[1] != init_input_dim:
+        raise ValueError(
+            "init checkpoint first layer width does not match checkpoint input_dim: "
+            f"{first_layer_weight.shape[1]} != {init_input_dim}"
+        )
+    expanded_weight = model.state_dict()[first_layer_key].clone()
+    expanded_weight.zero_()
+    expanded_weight[:, : first_layer_weight.shape[1]] = first_layer_weight
+    state_dict[first_layer_key] = expanded_weight
+    model.load_state_dict(state_dict)
+    return init_input_dim, True
+
+
 def _shard_hands(hands: int, jobs: int) -> list[int]:
     if jobs < 1:
         raise ValueError("jobs must be positive")
@@ -123,6 +157,7 @@ def generate_policy_examples_shard(
     feature_equity_mode: str,
     feature_equity_checkpoint: Path | None,
     behavior_checkpoint: Path | None,
+    action_history_features: bool,
 ):
     feature_equity_fn = None
     if feature_equity_checkpoint is not None:
@@ -147,6 +182,7 @@ def generate_policy_examples_shard(
         feature_equity_mode=feature_equity_mode,
         feature_equity_fn=feature_equity_fn,
         expert_behavior_policy=behavior_policy,
+        action_history_features=action_history_features,
     )
 
 
@@ -164,6 +200,7 @@ def generate_policy_training_examples(
     feature_equity_mode: str,
     feature_equity_checkpoint: Path | None,
     behavior_checkpoint: Path | None,
+    action_history_features: bool,
     jobs: int,
     progress: bool = False,
 ):
@@ -184,6 +221,7 @@ def generate_policy_training_examples(
             feature_equity_mode=feature_equity_mode,
             feature_equity_checkpoint=feature_equity_checkpoint,
             behavior_checkpoint=behavior_checkpoint,
+            action_history_features=action_history_features,
         )
         if progress:
             print(
@@ -214,6 +252,7 @@ def generate_policy_training_examples(
                 feature_equity_mode=feature_equity_mode,
                 feature_equity_checkpoint=feature_equity_checkpoint,
                 behavior_checkpoint=behavior_checkpoint,
+                action_history_features=action_history_features,
             ): index
             for index, shard_size in enumerate(shard_hands)
         }
@@ -267,6 +306,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             feature_equity_mode=args.feature_equity_mode,
             feature_equity_checkpoint=args.feature_equity_checkpoint,
             behavior_checkpoint=args.behavior_checkpoint,
+            action_history_features=bool(getattr(args, "action_history_features", False)),
             jobs=jobs,
             progress=bool(getattr(args, "progress", False)),
         )
@@ -304,19 +344,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     model = HoldemPolicyNet(input_dim=features.shape[1])
     init_checkpoint = getattr(args, "init_checkpoint", None)
     init_kl_weight = float(getattr(args, "init_kl_weight", 0.0))
+    init_allow_input_expansion = bool(getattr(args, "init_allow_input_expansion", False))
+    init_input_dim = None
+    init_input_expanded = False
     if init_kl_weight < 0.0:
         raise ValueError("--init-kl-weight must be non-negative")
     if init_kl_weight > 0.0 and init_checkpoint is None:
         raise ValueError("--init-kl-weight requires --init-checkpoint")
     if init_checkpoint is not None:
         init_data = torch.load(init_checkpoint, map_location="cpu", weights_only=False)
-        init_input_dim = init_data.get("input_dim")
-        if init_input_dim is not None and int(init_input_dim) != features.shape[1]:
-            raise ValueError(
-                "init checkpoint input_dim does not match generated feature dimension: "
-                f"{init_input_dim} != {features.shape[1]}"
-            )
-        model.load_state_dict(init_data["model_state_dict"])
+        init_input_dim, init_input_expanded = load_policy_checkpoint_state(
+            model,
+            init_data,
+            target_input_dim=features.shape[1],
+            allow_input_expansion=init_allow_input_expansion,
+        )
     anchor_model = None
     if init_kl_weight > 0.0:
         anchor_model = copy.deepcopy(model)
@@ -454,6 +496,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 if args.feature_equity_checkpoint is not None
                 else None
             ),
+            "action_history_features": bool(getattr(args, "action_history_features", False)),
         },
         checkpoint,
     )
@@ -475,6 +518,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             if args.feature_equity_checkpoint is not None
             else None
         ),
+        "action_history_features": bool(getattr(args, "action_history_features", False)),
         "jobs": jobs,
         "epochs": args.epochs,
         "lr": args.lr,
@@ -512,6 +556,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         metrics["behavior_checkpoint"] = str(args.behavior_checkpoint)
     if init_checkpoint is not None:
         metrics["init_checkpoint"] = str(init_checkpoint)
+        metrics["init_input_dim"] = init_input_dim
+        metrics["init_input_expanded"] = init_input_expanded
     if examples_in is not None:
         metrics["examples_in"] = str(examples_in)
     if examples_out is not None:
@@ -540,9 +586,11 @@ def build_parser() -> argparse.ArgumentParser:
         default="random",
     )
     parser.add_argument("--feature-equity-checkpoint", type=Path)
+    parser.add_argument("--action-history-features", action="store_true")
     parser.add_argument("--behavior-checkpoint", type=Path)
     parser.add_argument("--init-checkpoint", type=Path)
     parser.add_argument("--init-kl-weight", type=float, default=0.0)
+    parser.add_argument("--init-allow-input-expansion", action="store_true")
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--lr", type=float, default=3e-3)
     parser.add_argument("--class-weighting", choices=CLASS_WEIGHTING_MODES, default="none")

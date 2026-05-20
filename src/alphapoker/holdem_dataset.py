@@ -20,6 +20,7 @@ from alphapoker.holdem import (
 )
 from alphapoker.holdem_equity_feature import HoldemEquityEstimator
 from alphapoker.holdem_features import (
+    encode_holdem_action_history_features,
     encode_holdem_state,
     holdem_action_index,
     holdem_legal_action_mask,
@@ -118,6 +119,7 @@ def encode_policy_example_features(
     feature_equity_mode: str = "random",
     feature_rng: random.Random | None = None,
     feature_equity_fn: HoldemEquityEstimator | None = None,
+    action_history_features: bool = False,
 ) -> list[float]:
     if feature_equity_mode not in HOLDEM_FEATURE_EQUITY_MODES:
         raise ValueError(f"Unknown feature equity mode: {feature_equity_mode}")
@@ -128,8 +130,12 @@ def encode_policy_example_features(
     features = encode_holdem_state(state)
     if feature_equity_fn is not None:
         features.append(float(feature_equity_fn(state)))
+        if action_history_features:
+            features.extend(encode_holdem_action_history_features(state))
         return features
     if feature_equity_sims is None:
+        if action_history_features:
+            features.extend(encode_holdem_action_history_features(state))
         return features
     if feature_rng is None:
         feature_rng = random.Random()
@@ -165,6 +171,8 @@ def encode_policy_example_features(
     else:
         raise AssertionError(f"Unhandled feature equity mode: {feature_equity_mode}")
     features.append(equity)
+    if action_history_features:
+        features.extend(encode_holdem_action_history_features(state))
     return features
 
 
@@ -224,6 +232,7 @@ def generate_equity_policy_examples(
     feature_equity_mode: str = "random",
     feature_equity_fn: HoldemEquityEstimator | None = None,
     expert_behavior_policy: HoldemPolicy | None = None,
+    action_history_features: bool = False,
 ) -> list[HoldemPolicyExample]:
     if feature_equity_mode not in HOLDEM_FEATURE_EQUITY_MODES:
         raise ValueError(f"Unknown feature equity mode: {feature_equity_mode}")
@@ -270,6 +279,7 @@ def generate_equity_policy_examples(
                             feature_equity_mode=feature_equity_mode,
                             feature_rng=feature_rng,
                             feature_equity_fn=feature_equity_fn,
+                            action_history_features=action_history_features,
                         ),
                         action_index=holdem_action_index(expert_action),
                         legal_mask=holdem_legal_action_mask(state),

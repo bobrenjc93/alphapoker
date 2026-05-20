@@ -5,7 +5,7 @@ import pytest
 
 pytest.importorskip("treys")
 
-from alphapoker.holdem import FixedLimitHoldemState, deal_fixed_limit_holdem  # noqa: E402
+from alphapoker.holdem import RAISE, FixedLimitHoldemState, deal_fixed_limit_holdem  # noqa: E402
 from alphapoker.holdem_dataset import (  # noqa: E402
     HoldemEquityExample,
     HoldemPolicyExample,
@@ -19,9 +19,11 @@ from alphapoker.holdem_dataset import (  # noqa: E402
 )
 from alphapoker.holdem_features import (  # noqa: E402
     HOLDEM_BASE_FEATURE_DIM,
+    HOLDEM_ACTION_HISTORY_FEATURE_DIM,
     HOLDEM_FEATURE_DIM,
     HOLDEM_HAND_STRENGTH_FEATURE_DIM,
     adapt_holdem_features,
+    encode_holdem_action_history_features,
     encode_holdem_state,
     holdem_legal_action_mask,
 )
@@ -96,6 +98,21 @@ def test_holdem_policy_features_can_include_learned_equity_estimate() -> None:
 
     assert len(features) == HOLDEM_FEATURE_DIM + 1
     assert features[-1] == 0.42
+
+
+def test_holdem_policy_features_can_include_action_history() -> None:
+    state = FixedLimitHoldemState.initial(
+        (("As", "Qs"), ("Ah", "Ad")),
+        ("2s", "7s", "9s", "Kd", "3c"),
+    ).apply(RAISE)
+
+    history_features = encode_holdem_action_history_features(state)
+    features = encode_policy_example_features(state, action_history_features=True)
+
+    assert len(history_features) == HOLDEM_ACTION_HISTORY_FEATURE_DIM
+    assert history_features == [0.0, 1.0 / 16.0, 0.0, 1.0 / 4.0, 1.0]
+    assert len(features) == HOLDEM_FEATURE_DIM + HOLDEM_ACTION_HISTORY_FEATURE_DIM
+    assert features[-HOLDEM_ACTION_HISTORY_FEATURE_DIM:] == history_features
 
 
 def test_holdem_policy_features_reject_two_equity_feature_modes() -> None:

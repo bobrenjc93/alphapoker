@@ -33,6 +33,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "random" if feature_equity_sims is not None else None,
     )
     feature_equity_checkpoint = checkpoint.get("feature_equity_checkpoint")
+    action_history_features = bool(checkpoint.get("action_history_features", False))
     if feature_equity_sims is not None and feature_equity_checkpoint is not None:
         raise ValueError("Policy checkpoint cannot set both equity feature modes")
     feature_equity_fn = None
@@ -53,6 +54,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         feature_equity_sims=feature_equity_sims,
         feature_equity_mode=feature_equity_mode or "random",
         feature_equity_fn=feature_equity_fn,
+        action_history_features=action_history_features,
     )
     input_dim = int(checkpoint["input_dim"])
     features = torch.tensor(
@@ -92,6 +94,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "feature_equity_sims": feature_equity_sims,
         "feature_equity_mode": feature_equity_mode,
         "feature_equity_checkpoint": feature_equity_checkpoint,
+        "action_history_features": action_history_features,
         "loss": float(loss.cpu()),
         "accuracy": accuracy,
         "target_action_counts": target_action_counts,

@@ -15,6 +15,7 @@ from alphapoker.leduc import RAISE
 HOLDEM_CANONICAL_ACTIONS = (CHECK, BET, CALL, FOLD, RAISE)
 HOLDEM_BASE_FEATURE_DIM = 117
 HOLDEM_HAND_STRENGTH_FEATURE_DIM = 11
+HOLDEM_ACTION_HISTORY_FEATURE_DIM = 5
 HOLDEM_FEATURE_DIM = 140
 
 
@@ -75,6 +76,49 @@ def holdem_made_hand_features(state: FixedLimitHoldemState, player: int) -> list
     rank_class_one_hot = [0.0 for _ in range(9)]
     rank_class_one_hot[result.rank_class - 1] = 1.0
     return [rank_strength, score_strength, *rank_class_one_hot]
+
+
+def iter_holdem_history_actions(state: FixedLimitHoldemState):
+    for street, history in enumerate(state.histories):
+        actor = 0 if street == 0 else 1
+        for action in history:
+            yield street, actor, action
+            actor = 1 - actor
+
+
+def encode_holdem_action_history_features(state: FixedLimitHoldemState) -> list[float]:
+    player = state.current_player()
+    own_aggressions = 0
+    opponent_aggressions = 0
+    own_street_aggressions = 0
+    opponent_street_aggressions = 0
+    last_actor = None
+    last_action = None
+    for street, actor, action in iter_holdem_history_actions(state):
+        if action in (BET, RAISE):
+            if actor == player:
+                own_aggressions += 1
+                if street == state.street:
+                    own_street_aggressions += 1
+            else:
+                opponent_aggressions += 1
+                if street == state.street:
+                    opponent_street_aggressions += 1
+        last_actor = actor
+        last_action = action
+
+    max_total_aggressions = max(1, state.max_bets_per_round * 4)
+    max_street_aggressions = max(1, state.max_bets_per_round)
+    last_opponent_aggression = (
+        last_actor == 1 - player and last_action in (BET, RAISE)
+    )
+    return [
+        own_aggressions / max_total_aggressions,
+        opponent_aggressions / max_total_aggressions,
+        own_street_aggressions / max_street_aggressions,
+        opponent_street_aggressions / max_street_aggressions,
+        1.0 if last_opponent_aggression else 0.0,
+    ]
 
 
 def adapt_holdem_features(features: list[float], input_dim: int) -> list[float]:
