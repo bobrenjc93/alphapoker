@@ -333,6 +333,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T13:44:40-07:00 | `b54fb35` | Rechecked the 2k balanced range-feature distillation. | The checkpoint stayed positive but below current best on range h1000 (`+0.153 +/- 0.085`), and its safe-rollout h40 spike (`+1.7875 +/- 0.893`) failed h100 confirmation at `-0.670 +/- 0.460`; not a replacement. |
 | 2026-05-20T13:49:37-07:00 | `442a76f` | Tried seat-specific composites with the 2k balanced checkpoint. | 2k for player 0 plus current best for player 1 was near-flat negative on safe h40 (`-0.200 +/- 0.744`); current best for player 0 plus 2k for player 1 failed harder (`-1.4375 +/- 0.600`). |
 | 2026-05-20T14:05:23-07:00 | `30f358b` | Tried evaluator-side neural one-step rollout search. | A cheap safe-rollout smoke with one rollout sim/action and an exact-policy inner opponent failed at `-1.1875 +/- 1.8778` over 8 paired deals; player 0 was the weak seat (`-3.500 +/- 2.712`). |
+| 2026-05-20T14:09:57-07:00 | `292c792` | Compared neural rollout search to the same-seed control. | The current-best control was also negative but better at `-0.4375 +/- 1.2763`; raising the rollout override margin to 1.0 worsened to `-2.8125 +/- 2.8362`, so this search wrapper is rejected for now. |
 
 Current fixed-limit Hold'em gate:
 
@@ -364,7 +365,9 @@ Current fixed-limit Hold'em gate:
 - Wrapping the same checkpoint in evaluator-side one-step rollout search did
   not repair that cheap safe-rollout gap in the first complete smoke test:
   `-1.1875 +/- 1.8778` over 8 paired deals with one rollout sim/action and a
-  tight exact inner opponent.
+  tight exact inner opponent. On the same seed, the unwrapped checkpoint scored
+  `-0.4375 +/- 1.2763`; increasing the rollout override margin to 1.0 worsened
+  the result to `-2.8125 +/- 2.8362`.
 - A small DAgger-style counterexample fine-tune on 200 player-0 and 200
   player-1 hands against that safe-rollout opponent repaired the rollout probe
   to `+0.2250 +/- 0.4165`, but it damaged the main tight exact gate to
