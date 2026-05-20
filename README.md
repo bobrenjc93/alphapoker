@@ -232,6 +232,7 @@ broader context for range-aware and safe-rollout probes.
 | 2026-05-19T23:08:24-07:00 | `145dea5` | Targeted soft safe-rollout labels at player 1. | KL2 train selection improved p1 raise imitation and made the cheap safe probe noisy-positive (`+0.5750 +/- 1.0963`), but exact and range gates failed (`-0.4000 +/- 0.3654`, `-0.3050 +/- 0.1972`). |
 | 2026-05-19T23:19:47-07:00 | `99690c8` | Made the p1 soft branch blend-compatible with the current best. | A 50% aggression-triggered blend stayed near flat on exact/range/safe (`-0.0500 +/- 0.3281`, `+0.0750 +/- 0.3311`, `+0.0375 +/- 0.6366`); no current-best update. |
 | 2026-05-19T23:23:50-07:00 | `53aa6b7` | Mixed base replay with p1 soft safe-rollout labels. | The 774-example base replay plus 155 p1-soft labels matched p1 raises, but cheap safe rollout still failed at `-0.2625 +/- 0.5495`; p0 regressed while p1 improved. |
+| 2026-05-19T23:31:23-07:00 | `4b1d806` | Added symmetric p0 soft safe-rollout replay. | The 774-example base replay plus p0/p1 soft labels still failed cheap safe rollout at `-0.4250 +/- 0.6793`; both-seat soft replay over-corrected p0 raises. |
 
 Current fixed-limit Hold'em gate:
 
@@ -434,6 +435,12 @@ Current fixed-limit Hold'em gate:
   0.5495` over 40 paired deals. The seat split flipped: player 1 improved to
   `+0.8250`, while player 0 regressed to `-1.3500`. The next fix needs to
   balance both safe seats while preserving the base range replay.
+- Adding a symmetric p0 soft safe-rollout cache did not repair that imbalance.
+  The p0-only cache had useful p0 raise signal (`38` predicted vs `50` target),
+  but the base+p0+p1 soft mix over-corrected player 0 in the combined training
+  set (`112` predicted raises vs `79` target) and still failed cheap safe
+  rollout at `-0.4250 +/- 0.6793` over 40 paired deals. Both seats need
+  value-aware calibration, not just mirrored scalar weighting.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
