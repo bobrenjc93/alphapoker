@@ -124,6 +124,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Held-out Hold'em policy-imitation evaluation for cloned experts.
 - Optional balanced, sqrt-balanced, and custom-exponent action-class weighting
   for Hold'em policy distillation.
+- Optional per-action loss-weight overrides for Hold'em policy distillation,
+  useful when frequency balancing still confuses specific actions.
 - Optional facing-bet example weighting for Hold'em policy distillation, used
   to emphasize call/fold response states without changing cached example files.
 - Optional Hold'em action-history policy features and first-layer input
@@ -219,6 +221,7 @@ broader context for range-aware and safe-rollout probes.
 | 2026-05-19T21:38:59-07:00 | `013dd7b` | Lowered the KL anchor on the balanced-class safe replay. | KL4 did not improve the supervised raise/fold mix and failed cheap safe rollout at `-1.2125 +/- 1.4531`; no exact/range extension. |
 | 2026-05-19T21:47:45-07:00 | `2e72c2c` | Tested action-history-compatible adaptive blends. | Expanded the current best to action-history inputs and blended toward the balanced-class side checkpoint after opponent aggression; 50% failed at `-2.5500 +/- 1.7593`, while 25% still failed at `-0.5875 +/- 1.3301`. |
 | 2026-05-19T21:52:00-07:00 | `b7de1aa` | Selected full-balanced safe replay by train loss. | Removing the validation split ran to epoch 200, but still collapsed raise/fold (`raise` target 440 vs predicted 297; `fold` target 390 vs predicted 533) and failed cheap safe rollout at `-0.8250 +/- 1.1044`; no exact/range extension. |
+| 2026-05-19T22:02:28-07:00 | `a7f6904` | Added explicit raise/fold loss shaping. | `raise=2.0`, `fold=0.5` moved the cheap safe probe positive (`+0.8125 +/- 1.8117`) but damaged tight exact (`-0.4150 +/- 0.7566`) and flattened range (`-0.0650 +/- 0.4600`); diagnostic only. |
 
 Current fixed-limit Hold'em gate:
 
@@ -367,6 +370,13 @@ Current fixed-limit Hold'em gate:
   1.1044`, with player 1 still the weak seat (`-1.7500`), so the next useful
   change is likely loss shaping or richer expert targets rather than checkpoint
   selection.
+- Adding explicit action loss weights confirmed that raise/fold shaping can
+  move the safe rollout gate, but the first dose was too aggressive.
+  `raise=2.0` and `fold=0.5` increased predicted raises to 355 and made cheap
+  safe rollout positive (`+0.8125 +/- 1.8117`), yet the small exact and range
+  probes regressed to `-0.4150 +/- 0.7566` and `-0.0650 +/- 0.4600`. This points
+  toward milder weights or seat-specific targets rather than a global heavy
+  raise bias.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
