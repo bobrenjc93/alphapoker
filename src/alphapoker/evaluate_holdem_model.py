@@ -171,6 +171,7 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
         "blend_after_opponent_aggressions",
         "facing_bet_logit_biases",
         "player_facing_bet_logit_biases",
+        "player_facing_bet_logit_bias_after_opponent_aggressions",
         "player0_checkpoint",
         "player1_checkpoint",
         "player_checkpoint",
@@ -259,6 +260,7 @@ def model_policy_from_checkpoint(
     blend_after_opponent_aggressions: int | None = None,
     facing_bet_logit_biases: dict[str, float] | None = None,
     player_facing_bet_logit_biases: dict[tuple[int, str], float] | None = None,
+    player_facing_bet_logit_bias_after_opponent_aggressions: int | None = None,
 ) -> HoldemPolicy:
     import torch
 
@@ -271,6 +273,11 @@ def model_policy_from_checkpoint(
             raise ValueError("blend_after_opponent_aggressions must be positive")
         if blend_checkpoint_path is None:
             raise ValueError("blend_after_opponent_aggressions requires a blend checkpoint")
+    if player_facing_bet_logit_bias_after_opponent_aggressions is not None:
+        if player_facing_bet_logit_bias_after_opponent_aggressions < 1:
+            raise ValueError(
+                "player_facing_bet_logit_bias_after_opponent_aggressions must be positive"
+            )
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     feature_encoder = policy_feature_encoder_from_checkpoint_data(
         checkpoint,
@@ -317,9 +324,19 @@ def model_policy_from_checkpoint(
                 for action, bias in facing_bet_logit_biases.items():
                     logits[HOLDEM_CANONICAL_ACTIONS.index(action)] += bias
                 current_player = state.current_player()
-                for (player, action), bias in player_facing_bet_logit_biases.items():
-                    if player == current_player:
-                        logits[HOLDEM_CANONICAL_ACTIONS.index(action)] += bias
+                apply_player_biases = True
+                if (
+                    player_facing_bet_logit_bias_after_opponent_aggressions
+                    is not None
+                ):
+                    apply_player_biases = (
+                        opponent_aggressions_before_current_decision(state)
+                        >= player_facing_bet_logit_bias_after_opponent_aggressions
+                    )
+                if apply_player_biases:
+                    for (player, action), bias in player_facing_bet_logit_biases.items():
+                        if player == current_player:
+                            logits[HOLDEM_CANONICAL_ACTIONS.index(action)] += bias
             logits = logits.masked_fill(~mask, -1e9)
             action_index = int(logits.argmax().item())
         return HOLDEM_CANONICAL_ACTIONS[action_index]
@@ -352,6 +369,7 @@ def evaluate_model_shard(
     blend_after_opponent_aggressions: int | None,
     facing_bet_logit_biases: dict[str, float],
     player_facing_bet_logit_biases: dict[tuple[int, str], float],
+    player_facing_bet_logit_bias_after_opponent_aggressions: int | None,
     model_player: int,
     shard_index: int,
 ) -> dict[str, Any]:
@@ -372,6 +390,9 @@ def evaluate_model_shard(
                 blend_after_opponent_aggressions=blend_after_opponent_aggressions,
                 facing_bet_logit_biases=facing_bet_logit_biases,
                 player_facing_bet_logit_biases=player_facing_bet_logit_biases,
+                player_facing_bet_logit_bias_after_opponent_aggressions=(
+                    player_facing_bet_logit_bias_after_opponent_aggressions
+                ),
             ),
             opponent_policy=make_opponent_policy(
                 opponent_policy,
@@ -395,6 +416,9 @@ def evaluate_model_shard(
         "player_facing_bet_logit_biases": serialize_player_action_biases(
             player_facing_bet_logit_biases
         ),
+        "player_facing_bet_logit_bias_after_opponent_aggressions": (
+            player_facing_bet_logit_bias_after_opponent_aggressions
+        ),
         "shard_index": shard_index,
     }
 
@@ -414,6 +438,7 @@ def evaluate_model_paired_shard(
     blend_after_opponent_aggressions: int | None,
     facing_bet_logit_biases: dict[str, float],
     player_facing_bet_logit_biases: dict[tuple[int, str], float],
+    player_facing_bet_logit_bias_after_opponent_aggressions: int | None,
     shard_index: int,
 ) -> dict[str, Any]:
     eval_seed = seed + shard_index * 1_000_003
@@ -426,6 +451,9 @@ def evaluate_model_paired_shard(
             blend_after_opponent_aggressions=blend_after_opponent_aggressions,
             facing_bet_logit_biases=facing_bet_logit_biases,
             player_facing_bet_logit_biases=player_facing_bet_logit_biases,
+            player_facing_bet_logit_bias_after_opponent_aggressions=(
+                player_facing_bet_logit_bias_after_opponent_aggressions
+            ),
         )
         for model_player in (0, 1)
     )
@@ -459,6 +487,9 @@ def evaluate_model_paired_shard(
         "facing_bet_logit_biases": facing_bet_logit_biases,
         "player_facing_bet_logit_biases": serialize_player_action_biases(
             player_facing_bet_logit_biases
+        ),
+        "player_facing_bet_logit_bias_after_opponent_aggressions": (
+            player_facing_bet_logit_bias_after_opponent_aggressions
         ),
         "shard_index": shard_index,
     }
@@ -496,6 +527,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     player_facing_bet_logit_biases = player_action_logit_biases_from_specs(
         getattr(args, "player_facing_bet_logit_bias", None)
     )
+    player_bias_after_opponent_aggressions = getattr(
+        args,
+        "player_facing_bet_logit_bias_after_opponent_aggressions",
+        None,
+    )
+    if (
+        player_bias_after_opponent_aggressions is not None
+        and player_bias_after_opponent_aggressions < 1
+    ):
+        raise ValueError(
+            "--player-facing-bet-logit-bias-after-opponent-aggressions must be positive"
+        )
     model_players = normalize_model_players(args.model_player)
     player_checkpoints = player_checkpoints_from_args(args)
     shard_hands = split_hands(args.hands, args.jobs)
@@ -517,6 +560,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "blend_after_opponent_aggressions": blend_after_opponent_aggressions,
                 "facing_bet_logit_biases": facing_bet_logit_biases,
                 "player_facing_bet_logit_biases": player_facing_bet_logit_biases,
+                "player_facing_bet_logit_bias_after_opponent_aggressions": (
+                    player_bias_after_opponent_aggressions
+                ),
                 "shard_index": shard_index,
             }
             for shard_index, shard_size in enumerate(shard_hands)
@@ -566,6 +612,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "blend_after_opponent_aggressions": blend_after_opponent_aggressions,
             "facing_bet_logit_biases": facing_bet_logit_biases,
             "player_facing_bet_logit_biases": player_facing_bet_logit_biases,
+            "player_facing_bet_logit_bias_after_opponent_aggressions": (
+                player_bias_after_opponent_aggressions
+            ),
             "model_player": model_player,
             "shard_index": shard_index,
         }
@@ -628,6 +677,14 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Add a player-specific logit bias while facing a bet, "
             "for example 0:raise=-1.0."
+        ),
+    )
+    parser.add_argument(
+        "--player-facing-bet-logit-bias-after-opponent-aggressions",
+        type=int,
+        help=(
+            "Apply player-specific facing-bet logit biases only after at least "
+            "this many visible opponent bets or raises."
         ),
     )
     parser.add_argument("--hands", type=int, default=1000)

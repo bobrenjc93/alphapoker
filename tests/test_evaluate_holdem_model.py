@@ -65,6 +65,8 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
             "call=0.5",
             "--player-facing-bet-logit-bias",
             "0:raise=-1.0",
+            "--player-facing-bet-logit-bias-after-opponent-aggressions",
+            "2",
             "--model-player",
             "1",
         ]
@@ -76,6 +78,7 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
     assert args.blend_after_opponent_aggressions == 1
     assert args.facing_bet_logit_bias == ["call=0.5"]
     assert args.player_facing_bet_logit_bias == ["0:raise=-1.0"]
+    assert args.player_facing_bet_logit_bias_after_opponent_aggressions == 2
 
 
 def test_holdem_model_eval_parser_accepts_both_model_players() -> None:
@@ -302,6 +305,33 @@ def test_model_policy_applies_player_facing_bet_logit_bias(tmp_path) -> None:
     )
 
     assert policy(raised_state) == "call"
+
+
+def test_model_policy_can_delay_player_facing_bet_logit_bias(tmp_path) -> None:
+    state = deal_fixed_limit_holdem()
+    raised_state = state.apply(RAISE)
+    current_player = raised_state.current_player()
+    policy_checkpoint = tmp_path / "policy.pt"
+    write_biased_policy_checkpoint(policy_checkpoint, "fold")
+
+    delayed_policy = model_policy_from_checkpoint(
+        policy_checkpoint,
+        player_facing_bet_logit_biases=player_action_logit_biases_from_specs(
+            [f"{current_player}:call=20.0"]
+        ),
+        player_facing_bet_logit_bias_after_opponent_aggressions=2,
+    )
+    active_policy = model_policy_from_checkpoint(
+        policy_checkpoint,
+        player_facing_bet_logit_biases=player_action_logit_biases_from_specs(
+            [f"{current_player}:call=20.0"]
+        ),
+        player_facing_bet_logit_bias_after_opponent_aggressions=1,
+    )
+
+    assert opponent_aggressions_before_current_decision(raised_state) == 1
+    assert delayed_policy(raised_state) == "fold"
+    assert active_policy(raised_state) == "call"
 
 
 def test_model_policy_blend_rejects_incompatible_features(tmp_path) -> None:
