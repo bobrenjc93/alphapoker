@@ -138,6 +138,9 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   to emphasize call/fold response states without changing cached example files.
 - Optional facing-bet target-action weighting, including per-player overrides,
   for Hold'em policy distillation from cached response-state labels.
+- Optional filtered Hold'em policy-example recording for facing-bet response
+  states after observed opponent aggression, plus appendable extra cached
+  examples for focused replay mixes.
 - Training-time facing-bet response target/prediction diagnostics for Hold'em
   policy distillation, reported globally and by player seat.
 - Optional Hold'em action-history policy features and first-layer input
@@ -289,6 +292,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T05:34:02-07:00 | `fac3618` | Tried asymmetric per-player calibration without a global bias. | Small exact/range h100 probes again stayed positive (`+0.480 +/- 0.461`, `+0.610 +/- 0.222`), but safe h100 failed (`-0.485 +/- 0.604`; model-player seats `-0.630`, `-0.340`), so the p0 nudge was not enough. |
 | 2026-05-20T05:48:15-07:00 | `fd4e3ac` | Added opponent-aggression-gated training weights. | P1-only gated value-replay weighting after two opponent aggressions worsened h100 safe rollout to `-0.920 +/- 0.602`; a stronger KL2/uniform metric probe shifted p0 and did not increase p1 raises, so this is tooling/diagnostics only. |
 | 2026-05-20T05:53:44-07:00 | `be2c55e` | Tried global plus player-1 gated training weights. | The h40 safe smoke was only `+0.0625 +/- 0.9083`, with model-player 1 still negative (`-0.4750`), so this branch is too noisy and not a current-best candidate. |
+| 2026-05-20T06:19:43-07:00 | `bf1eddb` | Added focused conditional response replay tooling. | Training can now record only facing-bet states after N opponent aggressions and append extra cached examples; focused dataset/training/evaluator tests passed (`91 passed`). |
+| 2026-05-20T06:19:49-07:00 | `ab3fd60` | Tried focused player-1 after-two-aggression response replay. | 36 focused p1 response labels moved cached p1 raises, and x4/x2 replay mixes repaired h40 safe smoke (`+0.825 +/- 0.612`, `+0.575 +/- 0.661`), but both failed exact h100 (`-0.595 +/- 0.492`, `-0.615 +/- 0.472`); current best is unchanged. |
 
 Current fixed-limit Hold'em gate:
 
@@ -737,6 +742,15 @@ Current fixed-limit Hold'em gate:
   weight to the p1 gate made the h40 safe smoke slightly positive (`+0.0625 +/-
   0.9083`) but still left player 1 negative, so it was stopped before
   exact/range extension.
+- Focused conditional replay can now collect only response states after observed
+  opponent aggression. A 100-hand player-1 safe-rollout cache produced 36
+  after-two-aggression facing-bet examples and moved cached p1 response raises.
+  Mixing that cache back into the base replay at x4 and x2 repaired the h40
+  cheap-safe smoke points (`+0.825 +/- 0.612` and `+0.575 +/- 0.661`) and kept
+  range h100 mildly positive (`+0.200 +/- 0.203` and `+0.125 +/- 0.227`), but
+  both mixes failed the tight exact h100 gate (`-0.595 +/- 0.492` and `-0.615
+  +/- 0.472`). The focused target direction is useful diagnostically, but the
+  current best remains unchanged.
 
 ## Research Roadmap
 
