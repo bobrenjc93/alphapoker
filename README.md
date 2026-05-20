@@ -350,6 +350,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T15:28:42-07:00 | `4356bda` | Added raise-probability gates for runtime calibration. | Evaluator-side facing-bet logit biases can now require a minimum pre-bias raise probability before applying global or player-specific calibration. |
 | 2026-05-20T15:34:22-07:00 | `7822c7a` | Probed raise-probability-gated runtime calibration. | Min-raise-prob `0.15` kept h100 exact and range positive (`+0.480 +/- 0.461`, `+0.470 +/- 0.246`), but cheap safe h100 remained flat-negative at `-0.100 +/- 0.616`; not a replacement. |
 | 2026-05-20T15:49:41-07:00 | `b578227` | Fixed external-sampling Hold'em MCCFR averaging. | Average-policy updates now touch only the traversed player's infosets with own reach probability; focused MCCFR tests passed (`24 passed`). A corrected 5k equity-abstraction hybrid with tight-exact fallback was weak-positive at `+0.174 +/- 0.131` over 500 paired deals (`min_strategy_weight=25`), still below the neural current best. |
+| 2026-05-20T15:59:09-07:00 | `7dc75b6` | Scaled corrected Hold'em MCCFR to 20k iterations. | Best exact h500 fallback hybrid was `+0.184 +/- 0.143` at `min_strategy_weight=50`; player 0 was strong (`+0.608`) but player 1 was negative (`-0.240`), so scaling did not produce a candidate. |
 
 Current fixed-limit Hold'em gate:
 
@@ -995,6 +996,12 @@ Current fixed-limit Hold'em gate:
   (`+0.174 +/- 0.131`) with both seats positive. It is still far below the
   neural current best and raises heavily (`295` model raises vs `131` opponent
   raises), so it remains a self-play diagnostic rather than a candidate policy.
+- Scaling the corrected equity-abstraction MCCFR run to 20k iterations did not
+  close the gap. The best fallback threshold was `min_strategy_weight=50` at
+  `+0.184 +/- 0.143` over 500 paired deals, but the seat split was unhealthy:
+  player 0 scored `+0.608` while player 1 scored `-0.240`, with `333` model
+  raises vs `176` opponent raises. More MCCFR visits alone are not enough for
+  the current abstraction.
 
 ## Research Roadmap
 
