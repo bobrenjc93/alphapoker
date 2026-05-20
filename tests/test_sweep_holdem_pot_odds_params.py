@@ -99,13 +99,55 @@ def test_turn_river_exact_pot_odds_param_sweep_smoke() -> None:
     assert metrics["best"]["paired_seats"]
 
 
+def test_tight_range_pot_odds_param_sweep_smoke() -> None:
+    args = build_parser().parse_args(
+        [
+            "--hands",
+            "1",
+            "--seed",
+            "15",
+            "--equity-sims",
+            "1",
+            "--opponent-equity-sims",
+            "2",
+            "--policy-family",
+            "tight-range-pot-odds",
+            "--opponent-policy",
+            "tight-turn-river-exact-pot-odds",
+            "--model-player",
+            "both",
+            "--paired-seats",
+            "--configs",
+            "0.62,0.84,0.08",
+        ]
+    )
+    metrics = run(args)
+
+    assert metrics["policy_family"] == "tight-range-pot-odds"
+    assert metrics["opponent_equity_sims"] == 2
+    assert metrics["best"]["policy_family"] == "tight-range-pot-odds"
+    assert metrics["best"]["opponent_equity_sims"] == 2
+
+
 def test_pot_odds_param_sweep_parser_accepts_jobs() -> None:
     args = build_parser().parse_args(
-        ["--jobs", "4", "--policy-family", "river-exact-pot-odds", "--paired-seats"]
+        [
+            "--jobs",
+            "4",
+            "--policy-family",
+            "river-exact-pot-odds",
+            "--opponent-rollout-sims",
+            "2",
+            "--rollout-margin",
+            "1.5",
+            "--paired-seats",
+        ]
     )
 
     assert args.jobs == 4
     assert args.policy_family == "river-exact-pot-odds"
+    assert args.opponent_rollout_sims == 2
+    assert args.rollout_margin == 1.5
     assert args.paired_seats
 
 
