@@ -20,10 +20,12 @@ from alphapoker.train_holdem_policy import (  # noqa: E402
     class_weight_exponent_for_mode,
     class_weights_from_targets,
     example_weights_from_masks,
+    facing_bet_action_weights_from_masks_targets,
     load_policy_checkpoint_state,
     player_action_weight_overrides_from_specs,
     player_action_weights_from_features_targets,
     player_action_value_weights_from_features_mask,
+    player_facing_bet_action_weights_from_features_masks_targets,
     player_value_weight_overrides_from_specs,
     run,
 )
@@ -72,6 +74,10 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "fold=0.5",
             "--player-action-weight",
             "1:raise=3.0",
+            "--facing-bet-action-weight",
+            "call=2.0",
+            "--player-facing-bet-action-weight",
+            "1:fold=0.5",
             "--player-action-value-weight",
             "1=2.5",
             "--facing-bet-weight",
@@ -104,6 +110,8 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.class_weight_exponent == 0.75
     assert args.action_weight == ["raise=2.0", "fold=0.5"]
     assert args.player_action_weight == ["1:raise=3.0"]
+    assert args.facing_bet_action_weight == ["call=2.0"]
+    assert args.player_facing_bet_action_weight == ["1:fold=0.5"]
     assert args.player_action_value_weight == ["1=2.5"]
     assert args.facing_bet_weight == 3.0
     assert args.jobs == 4
@@ -408,6 +416,67 @@ def test_facing_bet_weight_must_be_positive() -> None:
         example_weights_from_masks(masks, 0.0)
 
 
+def test_facing_bet_action_weights_apply_only_to_response_targets() -> None:
+    torch = pytest.importorskip("torch")
+    masks = torch.tensor(
+        [
+            [False, False, True, True, False],
+            [False, False, True, True, False],
+            [True, True, False, False, False],
+        ],
+        dtype=torch.bool,
+    )
+    targets = torch.tensor(
+        [
+            HOLDEM_CANONICAL_ACTIONS.index("call"),
+            HOLDEM_CANONICAL_ACTIONS.index("fold"),
+            HOLDEM_CANONICAL_ACTIONS.index("call"),
+        ]
+    )
+
+    overrides = action_weight_overrides_from_specs(["call=2.5"])
+    weights = facing_bet_action_weights_from_masks_targets(masks, targets, overrides)
+
+    assert weights.tolist() == [2.5, 1.0, 1.0]
+
+
+def test_player_facing_bet_action_weights_apply_only_to_selected_player_response() -> None:
+    torch = pytest.importorskip("torch")
+    feature_dim = HOLDEM_PLAYER_FEATURE_OFFSET + HOLDEM_PLAYER_FEATURE_DIM
+    features = torch.zeros((4, feature_dim))
+    features[0, HOLDEM_PLAYER_FEATURE_OFFSET] = 1.0
+    features[1, HOLDEM_PLAYER_FEATURE_OFFSET + 1] = 1.0
+    features[2, HOLDEM_PLAYER_FEATURE_OFFSET + 1] = 1.0
+    features[3, HOLDEM_PLAYER_FEATURE_OFFSET + 1] = 1.0
+    masks = torch.tensor(
+        [
+            [False, False, True, True, False],
+            [False, False, True, True, False],
+            [False, False, True, True, False],
+            [True, True, False, False, False],
+        ],
+        dtype=torch.bool,
+    )
+    targets = torch.tensor(
+        [
+            HOLDEM_CANONICAL_ACTIONS.index("call"),
+            HOLDEM_CANONICAL_ACTIONS.index("call"),
+            HOLDEM_CANONICAL_ACTIONS.index("fold"),
+            HOLDEM_CANONICAL_ACTIONS.index("call"),
+        ]
+    )
+
+    overrides = player_action_weight_overrides_from_specs(["1:call=3.0"])
+    weights = player_facing_bet_action_weights_from_features_masks_targets(
+        features,
+        masks,
+        targets,
+        overrides,
+    )
+
+    assert weights.tolist() == [1.0, 3.0, 1.0, 1.0]
+
+
 def test_policy_checkpoint_input_expansion_preserves_old_columns() -> None:
     torch = pytest.importorskip("torch")
     source_model = HoldemPolicyNet(input_dim=1)
@@ -501,6 +570,10 @@ def test_train_holdem_policy_records_validation_metrics(tmp_path) -> None:
     assert metrics["facing_bet_examples"] == 0
     assert metrics["action_weight_overrides"] == {}
     assert metrics["player_action_weight_overrides"] == {}
+    assert metrics["facing_bet_action_weight_overrides"] == {}
+    assert metrics["facing_bet_action_weighted_examples"] == 0
+    assert metrics["player_facing_bet_action_weight_overrides"] == {}
+    assert metrics["player_facing_bet_action_weighted_examples"] == 0
     assert metrics["player_target_action_counts"] is None
     assert metrics["soft_target_temperature"] is None
     assert metrics["soft_target_examples"] == 0

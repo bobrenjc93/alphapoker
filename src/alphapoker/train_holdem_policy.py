@@ -144,6 +144,50 @@ def player_action_weights_from_features_targets(
     return weights
 
 
+def facing_bet_mask_from_masks(masks):
+    call_index = HOLDEM_CANONICAL_ACTIONS.index("call")
+    fold_index = HOLDEM_CANONICAL_ACTIONS.index("fold")
+    return masks[:, call_index] & masks[:, fold_index]
+
+
+def facing_bet_action_weights_from_masks_targets(
+    masks,
+    targets,
+    overrides: dict[str, float],
+):
+    import torch
+
+    weights = torch.ones(targets.shape[0], dtype=torch.float32, device=targets.device)
+    if not overrides:
+        return weights
+    facing_bet = facing_bet_mask_from_masks(masks)
+    for action, value in overrides.items():
+        action_index = HOLDEM_CANONICAL_ACTIONS.index(action)
+        selected = facing_bet & (targets == action_index)
+        weights = torch.where(selected, torch.full_like(weights, value), weights)
+    return weights
+
+
+def player_facing_bet_action_weights_from_features_masks_targets(
+    features,
+    masks,
+    targets,
+    overrides: dict[tuple[int, str], float],
+):
+    import torch
+
+    weights = torch.ones(targets.shape[0], dtype=torch.float32, device=targets.device)
+    if not overrides:
+        return weights
+    players = player_indices_from_features(features)
+    facing_bet = facing_bet_mask_from_masks(masks)
+    for (player, action), value in overrides.items():
+        action_index = HOLDEM_CANONICAL_ACTIONS.index(action)
+        selected = (players == player) & facing_bet & (targets == action_index)
+        weights = torch.where(selected, torch.full_like(weights, value), weights)
+    return weights
+
+
 def action_value_example_weights_from_mask(action_value_mask, weight: float):
     if weight <= 0.0:
         raise ValueError("action value example weight must be positive")
@@ -220,9 +264,7 @@ def example_weights_from_masks(masks, facing_bet_weight: float):
     weights = torch.ones(masks.shape[0], dtype=torch.float32, device=masks.device)
     if facing_bet_weight == 1.0:
         return weights
-    call_index = HOLDEM_CANONICAL_ACTIONS.index("call")
-    fold_index = HOLDEM_CANONICAL_ACTIONS.index("fold")
-    facing_bet = masks[:, call_index] & masks[:, fold_index]
+    facing_bet = facing_bet_mask_from_masks(masks)
     return torch.where(
         facing_bet,
         torch.full_like(weights, facing_bet_weight),
@@ -565,11 +607,30 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     player_action_weight_overrides = player_action_weight_overrides_from_specs(
         getattr(args, "player_action_weight", None)
     )
+    facing_bet_action_weight_overrides = action_weight_overrides_from_specs(
+        getattr(args, "facing_bet_action_weight", None)
+    )
+    player_facing_bet_action_weight_overrides = player_action_weight_overrides_from_specs(
+        getattr(args, "player_facing_bet_action_weight", None)
+    )
     facing_bet_weights = example_weights_from_masks(masks, facing_bet_weight)
     player_action_weights = player_action_weights_from_features_targets(
         features,
         targets,
         player_action_weight_overrides,
+    )
+    facing_bet_action_weights = facing_bet_action_weights_from_masks_targets(
+        masks,
+        targets,
+        facing_bet_action_weight_overrides,
+    )
+    player_facing_bet_action_weights = (
+        player_facing_bet_action_weights_from_features_masks_targets(
+            features,
+            masks,
+            targets,
+            player_facing_bet_action_weight_overrides,
+        )
     )
     if action_value_target_mask is None:
         action_value_example_weights = torch.ones_like(facing_bet_weights)
@@ -587,12 +648,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     example_weights = (
         facing_bet_weights
         * player_action_weights
+        * facing_bet_action_weights
+        * player_facing_bet_action_weights
         * action_value_example_weights
         * player_action_value_weights
     )
     use_example_weights = (
         facing_bet_weight != 1.0
         or bool(player_action_weight_overrides)
+        or bool(facing_bet_action_weight_overrides)
+        or bool(player_facing_bet_action_weight_overrides)
         or action_value_example_weight != 1.0
         or bool(player_action_value_weight_overrides)
     )
@@ -602,9 +667,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if use_example_weights and validation_indices
         else None
     )
-    call_index = HOLDEM_CANONICAL_ACTIONS.index("call")
-    fold_index = HOLDEM_CANONICAL_ACTIONS.index("fold")
-    facing_bet_mask = masks[:, call_index] & masks[:, fold_index]
+    facing_bet_mask = facing_bet_mask_from_masks(masks)
 
     torch.manual_seed(0)
     model = HoldemPolicyNet(input_dim=features.shape[1])
@@ -917,6 +980,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
         if player_action_weight_overrides
         else 0,
+        "facing_bet_action_weight_overrides": facing_bet_action_weight_overrides,
+        "facing_bet_action_weighted_examples": int(
+            (facing_bet_action_weights != 1.0).sum().item()
+        )
+        if facing_bet_action_weight_overrides
+        else 0,
+        "player_facing_bet_action_weight_overrides": {
+            f"{player}:{action}": weight
+            for (player, action), weight in player_facing_bet_action_weight_overrides.items()
+        },
+        "player_facing_bet_action_weighted_examples": int(
+            (player_facing_bet_action_weights != 1.0).sum().item()
+        )
+        if player_facing_bet_action_weight_overrides
+        else 0,
         "player_action_value_weight_overrides": {
             str(player): weight
             for player, weight in player_action_value_weight_overrides.items()
@@ -1017,6 +1095,26 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Multiply examples for one current-player/action target, "
             "for example --player-action-weight 1:raise=2.0."
+        ),
+    )
+    parser.add_argument(
+        "--facing-bet-action-weight",
+        action="append",
+        default=[],
+        metavar="ACTION=WEIGHT",
+        help=(
+            "Multiply examples for one target action only when facing a bet, "
+            "for example --facing-bet-action-weight call=2.0."
+        ),
+    )
+    parser.add_argument(
+        "--player-facing-bet-action-weight",
+        action="append",
+        default=[],
+        metavar="PLAYER:ACTION=WEIGHT",
+        help=(
+            "Multiply examples for one current-player/action target only when facing "
+            "a bet, for example --player-facing-bet-action-weight 1:call=2.0."
         ),
     )
     parser.add_argument(
