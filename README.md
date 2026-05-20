@@ -270,6 +270,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T02:20:46-07:00 | `22f7404` | Tried p1 facing-bet weights with uniform KL anchoring. | Uniform KL made the cached p1 response counts move strongly (`call=64`, `fold=70`, `raise=28` vs target `59/77/26`), but over-shifted live play and failed h40 safe at `-1.7125 +/- 0.7881`. |
 | 2026-05-20T02:23:40-07:00 | `a9efba6` | Added state-only KL weighting for initialized distillation. | `--init-kl-example-weighting state` keeps state-level weights such as facing-bet weighting on the KL anchor while excluding target-action weights; `tests/test_train_holdem_policy.py` passed (`33 passed`). |
 | 2026-05-20T02:24:19-07:00 | `1b25d2a` | Tried softer uniform-KL and state-KL p1 facing-bet metric probes. | Softer uniform KL still over-raised player 0 (`raise=100` vs target `77`), and state-KL was worse (`raise=107`); both were stopped at metrics without live extension. |
+| 2026-05-20T02:26:22-07:00 | `b2c87a5` | Tried p1-only facing-bet weights without global facing-bet upweighting. | Removing `facing_bet_weight=3.0` still over-raised player 0 on cached responses (`raise=108` vs target `77`), so the branch was stopped at metrics. |
 
 Current fixed-limit Hold'em gate:
 
@@ -665,6 +666,10 @@ Current fixed-limit Hold'em gate:
   target `77`). A state-KL run that preserved facing-bet state weights on the
   anchor was worse (`p0 raise=107`, p1 `call=64`, `fold=68`, `raise=30`), so
   those metric-only probes were not extended to live gates.
+- Removing the global facing-bet state upweight did not solve the same cached
+  over-raise issue. With only p1 target-action weights and uniform KL, p1 still
+  over-shifted (`call=65`, `fold=67`, `raise=30`) and player 0 raised even more
+  (`raise=108` vs target `77`), so the branch was stopped at metrics.
 
 ## Research Roadmap
 
