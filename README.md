@@ -167,6 +167,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   for Hold'em policy distillation checkpoints.
 - Fixed-limit Hold'em neural checkpoint evaluation against random/equity
   baselines.
+- Optional evaluator-side one-step rollout search around neural Hold'em
+  checkpoints.
 - State-dependent Hold'em checkpoint blending that can switch toward a
   robustness checkpoint after observed opponent aggression.
 - Hold'em checkpoint blending can be restricted to selected current-player
@@ -330,6 +332,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T13:28:53-07:00 | `6c84ee6` | Rechecked the `0.62/0.90/0.00` threshold retune. | Focused h20 exact/range comparison rejected the retune: default scored `+1.175 +/- 0.576` exact and `+0.425 +/- 0.284` range, while `0.62/0.90/0.00` scored `+1.125 +/- 0.512` exact and `-0.175 +/- 0.578` range. |
 | 2026-05-20T13:44:40-07:00 | `b54fb35` | Rechecked the 2k balanced range-feature distillation. | The checkpoint stayed positive but below current best on range h1000 (`+0.153 +/- 0.085`), and its safe-rollout h40 spike (`+1.7875 +/- 0.893`) failed h100 confirmation at `-0.670 +/- 0.460`; not a replacement. |
 | 2026-05-20T13:49:37-07:00 | `442a76f` | Tried seat-specific composites with the 2k balanced checkpoint. | 2k for player 0 plus current best for player 1 was near-flat negative on safe h40 (`-0.200 +/- 0.744`); current best for player 0 plus 2k for player 1 failed harder (`-1.4375 +/- 0.600`). |
+| 2026-05-20T14:05:23-07:00 | `30f358b` | Tried evaluator-side neural one-step rollout search. | A cheap safe-rollout smoke with one rollout sim/action and an exact-policy inner opponent failed at `-1.1875 +/- 1.8778` over 8 paired deals; player 0 was the weak seat (`-3.500 +/- 2.712`). |
 
 Current fixed-limit Hold'em gate:
 
@@ -358,6 +361,10 @@ Current fixed-limit Hold'em gate:
   raised on 22.6% of its actions, while the model folded on 22.3% of its
   actions. The cheaper `rollout_sims=1` probe also stayed negative at
   `-0.9750 +/- 0.6183` over 40 paired deals.
+- Wrapping the same checkpoint in evaluator-side one-step rollout search did
+  not repair that cheap safe-rollout gap in the first complete smoke test:
+  `-1.1875 +/- 1.8778` over 8 paired deals with one rollout sim/action and a
+  tight exact inner opponent.
 - A small DAgger-style counterexample fine-tune on 200 player-0 and 200
   player-1 hands against that safe-rollout opponent repaired the rollout probe
   to `+0.2250 +/- 0.4165`, but it damaged the main tight exact gate to
