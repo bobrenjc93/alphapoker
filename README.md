@@ -116,8 +116,9 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Imperfect-information pot-odds rollout policy for one-step action-value search.
 - Opponent-range-conditioned pot-odds policy that filters hidden-card samples by
   observed opponent actions under an assumed baseline policy.
-- Range-aware rollout, safe-rollout, and range-default safe-rollout Hold'em
-  policies for future response labeling and robustness gates.
+- Range-aware rollout, safe-rollout, range-default safe-rollout, and fast
+  range-default safe-rollout Hold'em policies for future response labeling and
+  robustness gates.
 - JSON metric output for Hold'em policy-vs-policy self-play baselines.
 - Supervised fixed-limit Hold'em policy distillation from the equity baseline.
 - Supervised fixed-limit Hold'em policy distillation from pot-odds experts.
@@ -316,6 +317,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T09:34:02-07:00 | `64600f8` | Added range-aware rollout and safe-rollout policies. | `tight-range-rollout-pot-odds` and `tight-range-safe-rollout-pot-odds` are available for self-play, evaluation, and dataset labeling; focused tests passed (`113 passed`). Initial h40/h4 probes were interrupted as too slow, so this teacher needs caching before real gates. |
 | 2026-05-20T09:52:21-07:00 | `81bbece` | Added a range-default safe-rollout policy. | `tight-range-default-safe-rollout-pot-odds` keeps cheap exact rollout action values but uses a range-aware default fallback for the safe gate; focused Hold'em tests passed (`115 passed`). |
 | 2026-05-20T09:57:23-07:00 | `be4d019` | Probed range-default safe-rollout practicality. | The current-best h40 probe was interrupted after roughly three minutes without output; h4 completed in 29.27s and failed at `-5.125 +/- 3.300` vs `tight-range-default-safe-rollout-pot-odds` s1, so the current best remains unchanged. |
+| 2026-05-20T10:03:56-07:00 | `1ea6cf4` | Added a fast range-default safe-rollout policy. | `tight-fast-range-default-safe-rollout-pot-odds` keeps the exact rollout values but limits the range-aware safe fallback to two default equity sims and four matching attempts; focused Hold'em tests passed (`117 passed`). |
+| 2026-05-20T10:08:05-07:00 | `191ee1a` | Probed the fast range-default safe-rollout gate. | h4 finished in 8.67s with the same `-5.125 +/- 3.300` result; h40 finished in 175.72s but failed at `-1.425 +/- 0.753` with model-player seats `-0.450` and `-2.400`, so the current best remains unchanged. |
 
 Current fixed-limit Hold'em gate:
 
@@ -889,6 +892,12 @@ Current fixed-limit Hold'em gate:
   roughly three minutes, and the h4 timing artifact took 29.27s while failing at
   `-5.125 +/- 3.300`. This variant is useful as a design checkpoint, not a new
   gate yet.
+- A fast range-default approximation makes that idea runnable at h40 by reducing
+  the range-aware fallback to two equity sims and four matching attempts. It cut
+  h4 wall time from 29.27s to 8.67s and completed h40 in 175.72s, but the h40
+  result was still a clear failure (`-1.425 +/- 0.753`; seats `-0.450`,
+  `-2.400`). The approximation is now available for slow smoke tests, but it is
+  not a current-best update.
 
 ## Research Roadmap
 
