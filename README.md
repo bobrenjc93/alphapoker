@@ -144,6 +144,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   expansion for initializing wider feature checkpoints from older policies.
 - Hold'em policy-distillation checkpoint initialization, optional KL anchoring,
   rollout-margin control, and shard progress for long example-generation runs.
+- Optional uniform KL anchoring for initialized Hold'em distillation, allowing
+  supervised/value example weights without also upweighting the anchor term.
 - REINFORCE-style Hold'em policy-gradient training against fixed opponents,
   with supervised checkpoint initialization, weighted opponent mixtures, and
   weighted seat-balanced training.
@@ -263,6 +265,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T02:04:24-07:00 | `332b2a2` | Tried player-1 facing-bet call/fold weighting. | P1 `call=4.0`, `fold=0.5` improved h40 safe to `+0.325 +/- 0.949` and h100 safe to `+0.235 +/- 0.572`, but h100 range failed at `-0.230 +/- 0.317`; adding p1 `raise=2.0` flattened h40 safe to `+0.0125 +/- 0.849`. Current best unchanged. |
 | 2026-05-20T02:07:36-07:00 | `e96c5fc` | Added training-time facing-bet response diagnostics. | Policy-distillation metrics now report target and predicted action counts restricted to facing-bet states, globally and by player; `tests/test_train_holdem_policy.py` passed (`33 passed`). |
 | 2026-05-20T02:14:51-07:00 | `53a53e5` | Tried stronger lower-KL player-1 facing-bet call/fold weighting. | KL2 p1 `call=12.0`, `fold=0.25` moved cached p1 response counts toward target (`call 47->52`, `fold 87->84`, `raise 28->26`), but h40 safe failed at `-0.800 +/- 0.944`; both seats were negative. |
+| 2026-05-20T02:17:54-07:00 | `0d9c57a` | Added uniform KL weighting for initialized distillation. | `--init-kl-example-weighting uniform` keeps the KL anchor unweighted while supervised/value losses still use example weights; `tests/test_train_holdem_policy.py` passed (`33 passed`). |
+| 2026-05-20T02:20:46-07:00 | `22f7404` | Tried p1 facing-bet weights with uniform KL anchoring. | Uniform KL made the cached p1 response counts move strongly (`call=64`, `fold=70`, `raise=28` vs target `59/77/26`), but over-shifted live play and failed h40 safe at `-1.7125 +/- 0.7881`. |
 
 Current fixed-limit Hold'em gate:
 
@@ -645,6 +649,13 @@ Current fixed-limit Hold'em gate:
   but failed the live h40 safe-rollout smoke test at `-0.800 +/- 0.944`.
   Player 0 regressed to `-1.05` and player 1 was still negative at `-0.55`, so
   stronger scalar weighting is not enough.
+- Decoupling supervised example weights from KL anchoring confirmed that the
+  old weighted-KL behavior was suppressing the targeted response shift, but the
+  first uniform-KL probe over-corrected. P1 cached facing-bet predictions moved
+  to `call=64`, `fold=70`, `raise=28` against target `59/77/26`, while player
+  0 over-raised (`raise=99` vs target `77`); the h40 safe rollout then failed
+  badly at `-1.7125 +/- 0.7881`. The next repair needs a softer way to move
+  p1 responses without increasing player-0 aggression.
 
 ## Research Roadmap
 
