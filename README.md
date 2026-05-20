@@ -169,6 +169,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Hold'em match-evaluation action-count and facing-bet response diagnostics by
   model/opponent role and player seat, with optional progress reporting for
   long checkpoint evaluations.
+- Optional evaluator-side facing-bet logit calibration for neural Hold'em
+  policies, including global and per-player action biases.
 - Fixed-limit Hold'em equity regression model and threshold-policy evaluation.
 - Both-seat training data for fixed-limit Hold'em equity regression.
 - Cacheable Hold'em equity-value training examples for longer runs.
@@ -271,6 +273,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T02:23:40-07:00 | `a9efba6` | Added state-only KL weighting for initialized distillation. | `--init-kl-example-weighting state` keeps state-level weights such as facing-bet weighting on the KL anchor while excluding target-action weights; `tests/test_train_holdem_policy.py` passed (`33 passed`). |
 | 2026-05-20T02:24:19-07:00 | `1b25d2a` | Tried softer uniform-KL and state-KL p1 facing-bet metric probes. | Softer uniform KL still over-raised player 0 (`raise=100` vs target `77`), and state-KL was worse (`raise=107`); both were stopped at metrics without live extension. |
 | 2026-05-20T02:26:22-07:00 | `b2c87a5` | Tried p1-only facing-bet weights without global facing-bet upweighting. | Removing `facing_bet_weight=3.0` still over-raised player 0 on cached responses (`raise=108` vs target `77`), so the branch was stopped at metrics. |
+| 2026-05-20T02:31:07-07:00 | `7349203` | Added evaluator-side facing-bet logit calibration. | Tooling can bias model logits only while facing a bet/raise, globally or per player; `tests/test_evaluate_holdem_model.py` passed (`21 passed`). |
+| 2026-05-20T02:34:48-07:00 | `7e42eca` | Tried runtime response calibration on the current best. | Global facing-bet `raise=+0.5`, `fold=-0.5` improved the h40 safe s1 smoke to `+0.050 +/- 0.715`; player 1 stayed negative and exact/range gates are not confirmed, so current best is unchanged. |
 
 Current fixed-limit Hold'em gate:
 
@@ -670,6 +674,13 @@ Current fixed-limit Hold'em gate:
   over-raise issue. With only p1 target-action weights and uniform KL, p1 still
   over-shifted (`call=65`, `fold=67`, `raise=30`) and player 0 raised even more
   (`raise=108` vs target `77`), so the branch was stopped at metrics.
+- Evaluator-only facing-bet logit calibration is the newest runtime diagnostic.
+  Applying global biases of `raise=+0.5` and `fold=-0.5` to the current-best
+  checkpoint improved the cheap h40 safe-rollout smoke from the uncalibrated
+  `-1.425 +/- 0.949` on the same seed to `+0.050 +/- 0.715`, with
+  model-facing actions at call41/fold38/raise46. Player 0 was positive
+  (`+0.600`) but player 1 remained negative (`-0.500`), and no exact/range
+  confirmation has been run yet, so this is not a current-best update.
 
 ## Research Roadmap
 
