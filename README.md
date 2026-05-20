@@ -299,6 +299,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T06:49:03-07:00 | `dcc1246` | Tried broader player-1 after-one-aggression response replay. | 101 focused p1 response labels and an x1 mix repaired h40 safe to `+0.2375 +/- 0.692` with both seats non-negative and kept h100 range strong at `+0.920 +/- 0.345`, but exact h100 was only `+0.065 +/- 0.329` with player 0 negative, so this is a side checkpoint only. |
 | 2026-05-20T07:09:47-07:00 | `a8a72ed` | Probed after-one seat composites and player-0 response bias. | Static seat composites failed h40 safe (`-0.7125 +/- 0.626`, `-0.3250 +/- 0.769`); adding a player-0 response bias kept h100 exact/range positive (`+0.410 +/- 0.315`, `+0.515 +/- 0.286`) but h100 safe failed at `-0.480 +/- 0.506` because player 1 fell to `-2.560`. |
 | 2026-05-20T07:34:01-07:00 | `6c920e8` | Scaled after-one player-1 response replay to 300 hands. | 336 focused labels kept p1 response imitation close to target and made h40 safe strongly positive (`+1.3125 +/- 1.007`), while h100 exact/range stayed positive (`+0.380 +/- 0.263`, `+0.595 +/- 0.338`); h100 safe still failed at `-0.600 +/- 0.482` because player 1 fell to `-2.170`. |
+| 2026-05-20T08:05:58-07:00 | `6a1a5cf` | Tried balanced-safe after-one player-1 response replay. | 329 balanced-safe focused labels kept p1 cached response imitation close (`153/181/157` predicted vs `167/163/161` target) and made h40 safe weak-positive (`+0.275 +/- 0.711`), but exact h100 failed (`-0.755 +/- 0.412`), range was flat (`+0.005 +/- 0.323`), and h100 safe failed (`-0.310 +/- 0.556`). |
 
 Current fixed-limit Hold'em gate:
 
@@ -796,6 +797,15 @@ Current fixed-limit Hold'em gate:
   More after-one p1 labels alone are not enough; the next useful direction is
   targeted player-1 response calibration or different p1 rollout targets that
   preserve the range/exact behavior.
+- Switching those after-one player-1 labels to a balanced-safe rollout target
+  did not repair the gap. The cache had a similar hard target mix (`108/86/135`
+  call/fold/raise), and the mixed model kept p1 cached responses near target
+  (`153/181/157` predicted vs `167/163/161`), but live play regressed: h100
+  exact failed at `-0.755 +/- 0.412`, range was effectively flat at
+  `+0.005 +/- 0.323`, and h100 safe failed at `-0.310 +/- 0.556` with both
+  seats negative.
+  The next repair needs a better integration mechanism or a targeted player-1
+  policy change, not just a looser safe-rollout label source.
 
 ## Research Roadmap
 
