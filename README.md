@@ -284,6 +284,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T04:23:17-07:00 | `fa57b88` | Added aggression gating for global runtime calibration. | Global facing-bet logit biases can now wait until at least N opponent bets/raises; `tests/test_evaluate_holdem_model.py` passed (`23 passed`). |
 | 2026-05-20T04:33:08-07:00 | `70661e9` | Probed global plus player-specific calibration gated after two opponent aggressions. | Small exact/range/safe h100 probes were all positive (`+0.560 +/- 0.460`, `+0.570 +/- 0.227`, `+0.175 +/- 0.599`), but safe remains weak and noisy, so current best is unchanged. |
 | 2026-05-20T04:44:16-07:00 | `5b704e2` | Confirmed gated global calibration on a larger safe-rollout probe. | The h200 cheap-safe result stayed only weak-positive (`+0.1125 +/- 0.4484`; model-player seats `+0.0000`, `+0.2250`), so it is still diagnostic rather than a current-best update. |
+| 2026-05-20T05:18:58-07:00 | `4bb850d` | Checked gated global calibration on larger exact and range protective gates. | Range e4 h1000 stayed positive (`+0.3115 +/- 0.0943`), but exact e8 h1000 was only `+0.2125 +/- 0.1265`, far below the current best; the runtime branch is rejected. |
 
 Current fixed-limit Hold'em gate:
 
@@ -711,7 +712,10 @@ Current fixed-limit Hold'em gate:
   h100 cheap safe point weakly positive (`+0.175 +/- 0.599`). A 200-paired
   cheap-safe confirmation stayed only weak-positive (`+0.1125 +/- 0.4484`), with
   model-player 0 flat and model-player 1 at `+0.2250`, so this runtime setting
-  remains diagnostic rather than a replacement for the current best.
+  remained diagnostic. Larger protective gates then rejected it as a current-best
+  replacement: range e4 h1000 stayed positive at `+0.3115 +/- 0.0943`, but exact
+  e8 h1000 was only `+0.2125 +/- 0.1265`, well below the current-best exact
+  result.
 
 ## Research Roadmap
 
