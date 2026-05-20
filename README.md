@@ -120,6 +120,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Supervised fixed-limit Hold'em policy distillation from the equity baseline.
 - Supervised fixed-limit Hold'em policy distillation from pot-odds experts.
 - Supervised fixed-limit Hold'em policy distillation from rollout-search experts.
+- Optional soft action-probability targets from rollout action values for
+  Hold'em policy distillation.
 - Cacheable Hold'em policy-imitation training examples for larger expert runs.
 - Held-out Hold'em policy-imitation evaluation for cloned experts.
 - Optional balanced, sqrt-balanced, and custom-exponent action-class weighting
@@ -226,6 +228,7 @@ broader context for range-aware and safe-rollout probes.
 | 2026-05-19T22:02:28-07:00 | `a7f6904` | Added explicit raise/fold loss shaping. | `raise=2.0`, `fold=0.5` moved the cheap safe probe positive (`+0.8125 +/- 1.8117`) but damaged tight exact (`-0.4150 +/- 0.7566`) and flattened range (`-0.0650 +/- 0.4600`); diagnostic only. |
 | 2026-05-19T22:15:43-07:00 | `562c955` | Swept milder and call-aware action shaping. | `raise=1.5`, `fold=0.75` failed safe rollout (`-1.7375 +/- 1.4825`); p1-focused heavy shaping also failed (`-0.8375 +/- 1.1339`); adding `call=1.5` kept exact/range near flat-positive but safe was too noisy (`+0.3000 +/- 2.0511`). |
 | 2026-05-19T22:29:07-07:00 | `4191fc5` | Tried player-action weighting for player-1 responses. | KL8 p1 call/raise upweighting still failed cheap safe rollout (`-1.0250 +/- 1.4232`); KL2 moved p1 raises but stayed negative (`-0.4000 +/- 1.5183`), and a more call-heavy KL2 variant failed at `-1.4500 +/- 1.7017`. |
+| 2026-05-19T22:56:26-07:00 | `93e7682` | Tried soft rollout action-probability targets. | A 20-hand soft safe-rollout replay raised target mass, but player 1 still under-raised and cheap safe rollout failed at `-1.8625 +/- 0.8881` over 40 paired deals. |
 
 Current fixed-limit Hold'em gate:
 
@@ -398,6 +401,14 @@ Current fixed-limit Hold'em gate:
   calls/raises better, then failed live safe rollout at `-1.4500 +/- 1.7017`.
   The next useful direction is likely richer expert targets or value/margin
   labels, not more scalar hard-label weighting.
+- Soft action-probability targets from safe-rollout action values improved the
+  label signal but did not fix live play at small scale. A 20-hand soft replay
+  produced target action mass with `25.22` raises and only `9.73` folds across
+  87 examples, but the trained model still predicted only one player-1 raise on
+  the held-out split. The cheap safe-rollout gate failed at `-1.8625 +/-
+  0.8881` over 40 paired deals, with player 0 at `+0.2250` and player 1 at
+  `-3.9500`, so the rollout-value signal needs a better seat-specific training
+  setup before scaling.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
