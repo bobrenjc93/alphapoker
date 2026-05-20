@@ -283,6 +283,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T04:19:26-07:00 | `aea95b7` | Tried p1-only gated calibration without the global response bias. | Exact/range h100 stayed positive (`+0.480 +/- 0.461`, `+0.610 +/- 0.222`), but safe h100 failed (`-0.685 +/- 0.563`; model-player seats `-1.030`, `-0.340`), so this cleaner branch is not viable. |
 | 2026-05-20T04:23:17-07:00 | `fa57b88` | Added aggression gating for global runtime calibration. | Global facing-bet logit biases can now wait until at least N opponent bets/raises; `tests/test_evaluate_holdem_model.py` passed (`23 passed`). |
 | 2026-05-20T04:33:08-07:00 | `70661e9` | Probed global plus player-specific calibration gated after two opponent aggressions. | Small exact/range/safe h100 probes were all positive (`+0.560 +/- 0.460`, `+0.570 +/- 0.227`, `+0.175 +/- 0.599`), but safe remains weak and noisy, so current best is unchanged. |
+| 2026-05-20T04:44:16-07:00 | `5b704e2` | Confirmed gated global calibration on a larger safe-rollout probe. | The h200 cheap-safe result stayed only weak-positive (`+0.1125 +/- 0.4484`; model-player seats `+0.0000`, `+0.2250`), so it is still diagnostic rather than a current-best update. |
 
 Current fixed-limit Hold'em gate:
 
@@ -707,8 +708,10 @@ Current fixed-limit Hold'em gate:
   both the global raise/fold bias and the player-1 raise/fold bias until after
   two opponent aggressions restored the small protective probes (`+0.560 +/-
   0.460` vs tight exact e8, `+0.570 +/- 0.227` vs tight range e4) and kept the
-  h100 cheap safe point weakly positive (`+0.175 +/- 0.599`), but that signal is
-  still too noisy to replace the current best without a larger confirmation.
+  h100 cheap safe point weakly positive (`+0.175 +/- 0.599`). A 200-paired
+  cheap-safe confirmation stayed only weak-positive (`+0.1125 +/- 0.4484`), with
+  model-player 0 flat and model-player 1 at `+0.2250`, so this runtime setting
+  remains diagnostic rather than a replacement for the current best.
 
 ## Research Roadmap
 
