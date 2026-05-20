@@ -335,6 +335,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T14:05:23-07:00 | `30f358b` | Tried evaluator-side neural one-step rollout search. | A cheap safe-rollout smoke with one rollout sim/action and an exact-policy inner opponent failed at `-1.1875 +/- 1.8778` over 8 paired deals; player 0 was the weak seat (`-3.500 +/- 2.712`). |
 | 2026-05-20T14:09:57-07:00 | `292c792` | Compared neural rollout search to the same-seed control. | The current-best control was also negative but better at `-0.4375 +/- 1.2763`; raising the rollout override margin to 1.0 worsened to `-2.8125 +/- 2.8362`, so this search wrapper is rejected for now. |
 | 2026-05-20T15:02:25-07:00 | `f4897cc` | Tried no-history 500-hand softer class balancing. | Power-0.75 class balancing fixed the worst over-raise diagnostics and stayed positive on exact (`+0.427 +/- 0.139`) and range (`+0.133 +/- 0.095`) h500 probes, but cheap safe rollout failed badly at `-2.1125 +/- 0.4944`; not a candidate. |
+| 2026-05-20T15:07:50-07:00 | `4b4f384` | Probed p1 runtime bias on the softer checkpoint. | Mild p1 facing-bet bias improved cheap safe h40 from `-2.1125` to `-1.625`, but stayed clearly negative and still produced zero model-player-1 raises; stronger raise/fold bias worsened to `-1.8375`, so runtime calibration is rejected. |
 
 Current fixed-limit Hold'em gate:
 
@@ -374,7 +375,9 @@ Current fixed-limit Hold'em gate:
   positive on small exact/range h500 probes (`+0.427 +/- 0.139`,
   `+0.133 +/- 0.095`), but failed cheap safe rollout at
   `-2.1125 +/- 0.4944` over 40 paired deals. Reducing raises alone leaves the
-  model too passive as player 1 against the safe-rollout opponent.
+  model too passive as player 1 against the safe-rollout opponent. Mild p1
+  facing-bet runtime bias improved only to `-1.625 +/- 0.5185`, and stronger
+  bias worsened to `-1.8375 +/- 0.5545`; neither repairs the branch.
 - A small DAgger-style counterexample fine-tune on 200 player-0 and 200
   player-1 hands against that safe-rollout opponent repaired the rollout probe
   to `+0.2250 +/- 0.4165`, but it damaged the main tight exact gate to
