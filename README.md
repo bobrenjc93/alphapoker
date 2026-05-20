@@ -279,6 +279,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T03:06:49-07:00 | `47ba023` | Gated player-specific logit calibration by observed aggression. | Player-specific facing-bet biases can now wait until at least N opponent bets/raises; `tests/test_evaluate_holdem_model.py` passed (`22 passed`). |
 | 2026-05-20T03:19:48-07:00 | `3f63500` | Probed global, player-specific, and aggression-gated runtime calibration. | Global bias kept h100 exact/range positive but failed safe s1 (`-0.285 +/- 0.493`); ungated player-1 raise/fold repaired safe (`+0.655 +/- 0.548`) but failed range (`-0.385 +/- 0.342`); after-two-aggressions player-1 raise/fold stayed positive on protective exact/range/safe h100 seeds (`+0.550`, `+0.265`, `+0.220`) but is not confirmed enough to replace the current best. |
 | 2026-05-20T03:35:33-07:00 | `d5bece6` | Confirmed gated runtime calibration on a larger safe-rollout probe. | After-two-aggressions player-1 raise/fold calibration stayed positive vs cheap safe rollout over 200 paired deals (`+0.2925 +/- 0.4591`; model-player seats `+0.4300`, `+0.1550`), but the interval still crosses zero, so current best is unchanged. |
+| 2026-05-20T04:08:41-07:00 | `47054fe` | Checked gated calibration on larger exact and range protective gates. | Range e4 h1000 stayed positive (`+0.253 +/- 0.113`), but exact e8 h1000 regressed to `+0.171 +/- 0.140`, far below the current best; the calibrated runtime variant is not a candidate replacement. |
 
 Current fixed-limit Hold'em gate:
 
@@ -692,8 +693,11 @@ Current fixed-limit Hold'em gate:
   signal is noisy and the exact/range points do not improve the main gate. A
   larger 200-paired safe-rollout confirmation stayed positive at `+0.2925 +/-
   0.4591`, with model-player 0 at `+0.4300` and model-player 1 at `+0.1550`;
-  the confidence interval still crosses zero, so this remains a promising
-  calibration probe rather than a replacement for the current best.
+  the confidence interval still crosses zero. Larger protective gates then
+  showed the cost: range e4 h1000 stayed positive at `+0.253 +/- 0.113`, but
+  exact e8 h1000 regressed to `+0.171 +/- 0.140` with model-player 0 negative
+  (`-0.096`). This remains a useful calibration diagnostic rather than a
+  replacement for the current best.
 
 ## Research Roadmap
 
