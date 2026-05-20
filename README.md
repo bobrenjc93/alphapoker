@@ -164,8 +164,9 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   evaluation gates, with weighted-mean or minimum-score aggregation and
   per-opponent equity/rollout settings.
 - Sampled abstract Hold'em MCCFR with coarse, medium, and equity abstractions,
-  fallback-gated evaluation, min-strategy-weight sweeps, and corrected
-  external-sampling average-policy updates.
+  fallback-gated evaluation, count/reach support modes for
+  min-strategy-weight sweeps, and corrected external-sampling average-policy
+  updates.
 - Backward-compatible Hold'em hand-summary, made-hand strength, legal-action,
   and pot-odds features for neural policies.
 - Optional Monte Carlo, turn/river exact, and tight range-filtered equity features
@@ -351,6 +352,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T15:34:22-07:00 | `7822c7a` | Probed raise-probability-gated runtime calibration. | Min-raise-prob `0.15` kept h100 exact and range positive (`+0.480 +/- 0.461`, `+0.470 +/- 0.246`), but cheap safe h100 remained flat-negative at `-0.100 +/- 0.616`; not a replacement. |
 | 2026-05-20T15:49:41-07:00 | `b578227` | Fixed external-sampling Hold'em MCCFR averaging. | Average-policy updates now touch only the traversed player's infosets with own reach probability; focused MCCFR tests passed (`24 passed`). A corrected 5k equity-abstraction hybrid with tight-exact fallback was weak-positive at `+0.174 +/- 0.131` over 500 paired deals (`min_strategy_weight=25`), still below the neural current best. |
 | 2026-05-20T15:59:09-07:00 | `7dc75b6` | Scaled corrected Hold'em MCCFR to 20k iterations. | Best exact h500 fallback hybrid was `+0.184 +/- 0.143` at `min_strategy_weight=50`; player 0 was strong (`+0.608`) but player 1 was negative (`-0.240`), so scaling did not produce a candidate. |
+| 2026-05-20T16:06:39-07:00 | `dad765f` | Added reach-support gating for Hold'em MCCFR fallback. | Evaluators can now gate fallback by accumulated average-strategy mass as well as raw update count; focused tests passed (`26 passed`). The 5k reach-support sweep failed the tight exact h500 gate, with best threshold `10000` at `-0.035 +/- 0.145`. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1002,6 +1004,11 @@ Current fixed-limit Hold'em gate:
   player 0 scored `+0.608` while player 1 scored `-0.240`, with `333` model
   raises vs `176` opponent raises. More MCCFR visits alone are not enough for
   the current abstraction.
+- Reach-support fallback gating is available for future MCCFR diagnostics, but
+  it did not repair the current equity abstraction. A 5k reach-mode sweep over
+  `0,10,100,1000,10000` was negative at every threshold; the best was
+  `-0.035 +/- 0.145`, still over-raising heavily (`327` model raises vs `151`
+  opponent raises).
 
 ## Research Roadmap
 
