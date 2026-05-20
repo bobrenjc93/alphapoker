@@ -280,6 +280,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T03:19:48-07:00 | `3f63500` | Probed global, player-specific, and aggression-gated runtime calibration. | Global bias kept h100 exact/range positive but failed safe s1 (`-0.285 +/- 0.493`); ungated player-1 raise/fold repaired safe (`+0.655 +/- 0.548`) but failed range (`-0.385 +/- 0.342`); after-two-aggressions player-1 raise/fold stayed positive on protective exact/range/safe h100 seeds (`+0.550`, `+0.265`, `+0.220`) but is not confirmed enough to replace the current best. |
 | 2026-05-20T03:35:33-07:00 | `d5bece6` | Confirmed gated runtime calibration on a larger safe-rollout probe. | After-two-aggressions player-1 raise/fold calibration stayed positive vs cheap safe rollout over 200 paired deals (`+0.2925 +/- 0.4591`; model-player seats `+0.4300`, `+0.1550`), but the interval still crosses zero, so current best is unchanged. |
 | 2026-05-20T04:08:41-07:00 | `47054fe` | Checked gated calibration on larger exact and range protective gates. | Range e4 h1000 stayed positive (`+0.253 +/- 0.113`), but exact e8 h1000 regressed to `+0.171 +/- 0.140`, far below the current best; the calibrated runtime variant is not a candidate replacement. |
+| 2026-05-20T04:19:26-07:00 | `aea95b7` | Tried p1-only gated calibration without the global response bias. | Exact/range h100 stayed positive (`+0.480 +/- 0.461`, `+0.610 +/- 0.222`), but safe h100 failed (`-0.685 +/- 0.563`; model-player seats `-1.030`, `-0.340`), so this cleaner branch is not viable. |
 
 Current fixed-limit Hold'em gate:
 
@@ -697,7 +698,10 @@ Current fixed-limit Hold'em gate:
   showed the cost: range e4 h1000 stayed positive at `+0.253 +/- 0.113`, but
   exact e8 h1000 regressed to `+0.171 +/- 0.140` with model-player 0 negative
   (`-0.096`). This remains a useful calibration diagnostic rather than a
-  replacement for the current best.
+  replacement for the current best. Removing the global bias and keeping only
+  the after-two-aggressions player-1 bias preserved small exact/range probes
+  (`+0.480 +/- 0.461`, `+0.610 +/- 0.222`) but lost the safe repair (`-0.685
+  +/- 0.563`), so the cleaner p1-only runtime branch is also not viable.
 
 ## Research Roadmap
 
