@@ -170,8 +170,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   model/opponent role and player seat, with optional progress reporting for
   long checkpoint evaluations.
 - Optional evaluator-side facing-bet logit calibration for neural Hold'em
-  policies, including global biases, per-player action biases, and
-  aggression-count gates for player-specific response calibration.
+  policies, including global and per-player action biases plus
+  aggression-count gates for response calibration.
 - Fixed-limit Hold'em equity regression model and threshold-policy evaluation.
 - Both-seat training data for fixed-limit Hold'em equity regression.
 - Cacheable Hold'em equity-value training examples for longer runs.
@@ -281,6 +281,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T03:35:33-07:00 | `d5bece6` | Confirmed gated runtime calibration on a larger safe-rollout probe. | After-two-aggressions player-1 raise/fold calibration stayed positive vs cheap safe rollout over 200 paired deals (`+0.2925 +/- 0.4591`; model-player seats `+0.4300`, `+0.1550`), but the interval still crosses zero, so current best is unchanged. |
 | 2026-05-20T04:08:41-07:00 | `47054fe` | Checked gated calibration on larger exact and range protective gates. | Range e4 h1000 stayed positive (`+0.253 +/- 0.113`), but exact e8 h1000 regressed to `+0.171 +/- 0.140`, far below the current best; the calibrated runtime variant is not a candidate replacement. |
 | 2026-05-20T04:19:26-07:00 | `aea95b7` | Tried p1-only gated calibration without the global response bias. | Exact/range h100 stayed positive (`+0.480 +/- 0.461`, `+0.610 +/- 0.222`), but safe h100 failed (`-0.685 +/- 0.563`; model-player seats `-1.030`, `-0.340`), so this cleaner branch is not viable. |
+| 2026-05-20T04:23:17-07:00 | `fa57b88` | Added aggression gating for global runtime calibration. | Global facing-bet logit biases can now wait until at least N opponent bets/raises; `tests/test_evaluate_holdem_model.py` passed (`23 passed`). |
+| 2026-05-20T04:33:08-07:00 | `70661e9` | Probed global plus player-specific calibration gated after two opponent aggressions. | Small exact/range/safe h100 probes were all positive (`+0.560 +/- 0.460`, `+0.570 +/- 0.227`, `+0.175 +/- 0.599`), but safe remains weak and noisy, so current best is unchanged. |
 
 Current fixed-limit Hold'em gate:
 
@@ -701,7 +703,12 @@ Current fixed-limit Hold'em gate:
   replacement for the current best. Removing the global bias and keeping only
   the after-two-aggressions player-1 bias preserved small exact/range probes
   (`+0.480 +/- 0.461`, `+0.610 +/- 0.222`) but lost the safe repair (`-0.685
-  +/- 0.563`), so the cleaner p1-only runtime branch is also not viable.
+  +/- 0.563`), so the cleaner p1-only runtime branch is also not viable. Gating
+  both the global raise/fold bias and the player-1 raise/fold bias until after
+  two opponent aggressions restored the small protective probes (`+0.560 +/-
+  0.460` vs tight exact e8, `+0.570 +/- 0.227` vs tight range e4) and kept the
+  h100 cheap safe point weakly positive (`+0.175 +/- 0.599`), but that signal is
+  still too noisy to replace the current best without a larger confirmation.
 
 ## Research Roadmap
 
