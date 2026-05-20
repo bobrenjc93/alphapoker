@@ -211,6 +211,7 @@ broader context for range-aware and safe-rollout probes.
 | 2026-05-19T19:04:07-07:00 | `81d7135` | Swept KL/class-weight replay variants from the mixed safe-expert replay set. | KL8 sqrt-balanced recovered small exact/range probes (`+0.9400 +/- 0.7225`, `+0.7050 +/- 0.3965`), but safe rollout s1 failed at `-1.5875 +/- 1.1674`; KL16 balanced was also exact/range positive but safe negative. |
 | 2026-05-19T19:28:35-07:00 | `a079098` | Upweighted facing-bet response states in the mixed replay set. | KL8 sqrt-facing3 preserved small exact/range probes (`+0.8750 +/- 0.5249`, `+0.5300 +/- 0.4541`) but still failed safe rollout s1 at `-1.0500 +/- 1.0175`; not a candidate. |
 | 2026-05-19T19:46:54-07:00 | `7db8e2b` | Tried explicit action-history features for safe-expert self-play labels. | First-layer-expanded KL8 sqrt-facing3 action-history pilot still failed safe rollout s1 at `-1.2750 +/- 1.0562` over 40 paired deals. |
+| 2026-05-19T20:23:11-07:00 | `5574b59` | Mixed action-history range replay with safe-expert labels. | A 774-example base replay plus 472 safe labels still failed safe rollout s1 at `-1.5750 +/- 1.1819`; no exact/range extension. |
 
 Current fixed-limit Hold'em gate:
 
@@ -318,6 +319,11 @@ Current fixed-limit Hold'em gate:
   gate in a 100-hand safe-expert self-play pilot. The cheap safe-rollout probe
   was `-1.2750 +/- 1.0562`, so the issue is not solved by exposing prior
   aggression counts alone.
+- Regenerating both the range-teacher replay and the safe-expert labels with
+  action-history features preserved a balanced supervised action mix, but did
+  not improve live robustness. The 774-example base replay plus 472 safe labels
+  failed cheap safe rollout at `-1.5750 +/- 1.1819`, so history-aware replay is
+  not enough at this scale and mix.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
