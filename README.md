@@ -294,6 +294,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T05:53:44-07:00 | `be2c55e` | Tried global plus player-1 gated training weights. | The h40 safe smoke was only `+0.0625 +/- 0.9083`, with model-player 1 still negative (`-0.4750`), so this branch is too noisy and not a current-best candidate. |
 | 2026-05-20T06:19:43-07:00 | `bf1eddb` | Added focused conditional response replay tooling. | Training can now record only facing-bet states after N opponent aggressions and append extra cached examples; focused dataset/training/evaluator tests passed (`91 passed`). |
 | 2026-05-20T06:19:49-07:00 | `ab3fd60` | Tried focused player-1 after-two-aggression response replay. | 36 focused p1 response labels moved cached p1 raises, and x4/x2 replay mixes repaired h40 safe smoke (`+0.825 +/- 0.612`, `+0.575 +/- 0.661`), but both failed exact h100 (`-0.595 +/- 0.492`, `-0.615 +/- 0.472`); current best is unchanged. |
+| 2026-05-20T06:31:59-07:00 | `f31e5b6` | Swept focused replay dose and runtime blends. | Runtime blends after two opponent aggressions were h40-safe positive overall (`+0.325`, `+0.475`, `+0.600`) but left p1 negative; x1 failed safe (`-0.625 +/- 0.673`) and x1.5 was near-flat with p1 still weak (`-0.0875 +/- 0.814`, p1 `-1.700`), so no exact/range extension. |
 
 Current fixed-limit Hold'em gate:
 
@@ -751,6 +752,15 @@ Current fixed-limit Hold'em gate:
   both mixes failed the tight exact h100 gate (`-0.595 +/- 0.492` and `-0.615
   +/- 0.472`). The focused target direction is useful diagnostically, but the
   current best remains unchanged.
+- Follow-up focused replay dose and runtime-blend sweeps did not find a stable
+  repair. Blending from the action-history-expanded current best toward the
+  focused p1 response checkpoint after two opponent aggressions made h40 safe
+  positive overall at blend weights 0.25, 0.5, and 1.0 (`+0.325`, `+0.475`,
+  `+0.600`), but model-player 1 stayed negative in all three runs. Lower replay
+  doses were also not viable: x1 failed cheap safe rollout (`-0.625 +/-
+  0.673`), and x1.5 was only near-flat overall (`-0.0875 +/- 0.814`) because
+  player 1 was still very weak (`-1.700`). The focused p1 labels need a better
+  integration mechanism than simple replay dose or checkpoint blending.
 
 ## Research Roadmap
 
