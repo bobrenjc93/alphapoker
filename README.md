@@ -243,6 +243,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-19T23:42:25-07:00 | `27af624` | Added dense rollout action-value targets. | Cached Hold'em examples can now store per-action rollout values, and training can add an auxiliary legal-action advantage-matching loss; dataset/training tests passed (`55 passed`). |
 | 2026-05-19T23:49:00-07:00 | `7ad0461` | Tried value-aware soft safe-rollout targets. | A 40-hand value-target replay preserved 200 action-value examples, but the best KL2 train-selected sweep still predicted only `5` player-1 raises vs `11` target, so live gate extension was skipped. |
 | 2026-05-20T00:32:12-07:00 | `ecdae88` | Increased action-value pressure and mixed value replay. | Strong value-only training repaired the cheap safe smoke test but broke exact/range; 2x value mixed replay kept small exact/range probes positive and narrowed cheap safe to `-0.335 +/- 0.481` over 100 paired deals, still not a confirmed repair. |
+| 2026-05-20T00:48:43-07:00 | `d65941a` | Checked player-1 hard-label weighting and full value-branch switching. | P1 call/fold/raise weights left the supervised p1 mix essentially unchanged; a 100% switch to the value-only branch failed exact/range/safe probes (`-1.785`, `-0.320`, `-1.0625`), so runtime branch switching is not a candidate. |
 
 Current fixed-limit Hold'em gate:
 
@@ -475,6 +476,14 @@ Current fixed-limit Hold'em gate:
   the 100-paired cheap safe confirmation was still negative at `-0.3350 +/-
   0.4811`. The value signal is now clearly useful, but the player-1 safe seat
   still needs better calibration than replay ratio alone provides.
+- Player-1 hard-label weighting did not move that mixed value branch. Adding
+  `1:call=3`, `1:fold=0.5`, and then `1:raise=2` left the p1 supervised mix at
+  `47` calls, `87` folds, and `28` raises against targets of `59`, `77`, and
+  `26`, so the failure is not fixed by target-action scalar weights. Fully
+  switching from the current best to the strong value-only branch also failed:
+  `-1.7850` vs tight exact e8, `-0.3200` vs `tight-range-pot-odds` e4, and
+  `-1.0625` vs cheap safe rollout. The value branch needs training-time
+  integration, not a runtime swap.
 - A 25% logit blend from the current best toward that unweighted KL robustness
   checkpoint stayed positive but noisy on small exact and range probes
   (`+0.3950 +/- 0.4353` vs tight exact e8 and `+0.1200 +/- 0.2015` vs
