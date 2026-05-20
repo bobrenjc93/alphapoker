@@ -14,6 +14,7 @@ from alphapoker.holdem_dataset import (  # noqa: E402
     encode_policy_example_features,
     read_policy_examples,
     read_equity_value_examples,
+    should_record_policy_example,
     soft_action_probs_from_values,
     write_policy_examples,
     write_equity_value_examples,
@@ -27,8 +28,9 @@ from alphapoker.holdem_features import (  # noqa: E402
     encode_holdem_action_history_features,
     encode_holdem_state,
     holdem_legal_action_mask,
+    opponent_aggressions_before_current_decision,
 )
-from alphapoker.kuhn import CALL  # noqa: E402
+from alphapoker.kuhn import CALL, CHECK  # noqa: E402
 
 
 def test_holdem_features_have_fixed_shape() -> None:
@@ -114,6 +116,17 @@ def test_holdem_policy_features_can_include_action_history() -> None:
     assert history_features == [0.0, 1.0 / 16.0, 0.0, 1.0 / 4.0, 1.0]
     assert len(features) == HOLDEM_FEATURE_DIM + HOLDEM_ACTION_HISTORY_FEATURE_DIM
     assert features[-HOLDEM_ACTION_HISTORY_FEATURE_DIM:] == history_features
+
+
+def test_opponent_aggressions_before_current_decision_replays_history() -> None:
+    state = FixedLimitHoldemState.initial(
+        (("As", "Qs"), ("Ah", "Ad")),
+        ("2s", "7s", "9s", "Kd", "3c"),
+    )
+    raised_state = state.apply(RAISE)
+
+    assert opponent_aggressions_before_current_decision(state) == 0
+    assert opponent_aggressions_before_current_decision(raised_state) == 1
 
 
 def test_holdem_policy_features_reject_two_equity_feature_modes() -> None:
@@ -282,6 +295,55 @@ def test_generate_equity_policy_examples_with_soft_rollout_targets() -> None:
             if not legal:
                 assert probability == 0.0
                 assert action_value == 0.0
+
+
+def test_policy_example_record_filters_select_conditional_response_states() -> None:
+    state = FixedLimitHoldemState.initial(
+        (("As", "Qs"), ("Ah", "Ad")),
+        ("2s", "7s", "9s", "Kd", "3c"),
+    )
+    raised_state = state.apply(RAISE)
+
+    assert not should_record_policy_example(
+        state,
+        record_facing_bet_only=True,
+        record_min_opponent_aggressions=1,
+    )
+    assert should_record_policy_example(
+        raised_state,
+        record_facing_bet_only=True,
+        record_min_opponent_aggressions=1,
+    )
+    with pytest.raises(ValueError, match="must be positive"):
+        should_record_policy_example(raised_state, record_min_opponent_aggressions=0)
+
+
+def test_generate_equity_policy_examples_can_filter_recorded_states() -> None:
+    def aggressive_behavior(state: FixedLimitHoldemState) -> str:
+        legal_actions = state.legal_actions()
+        if RAISE in legal_actions:
+            return RAISE
+        if CALL in legal_actions:
+            return CALL
+        return CHECK
+
+    examples = generate_equity_policy_examples(
+        hands=1,
+        seed=23,
+        equity_sims=2,
+        expert_policy="pot-odds",
+        opponent_policy="pot-odds",
+        expert_behavior_policy=aggressive_behavior,
+        action_history_features=True,
+        record_facing_bet_only=True,
+        record_min_opponent_aggressions=1,
+    )
+
+    assert examples
+    for example in examples:
+        assert example.legal_mask[2]
+        assert example.legal_mask[3]
+        assert example.features[-4] >= 1.0 / 16.0
 
 
 def test_soft_action_probs_from_values_rejects_bad_temperature() -> None:

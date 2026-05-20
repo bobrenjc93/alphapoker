@@ -88,6 +88,31 @@ def iter_holdem_history_actions(state: FixedLimitHoldemState):
             actor = 1 - actor
 
 
+def opponent_aggressions_before_current_decision(state: FixedLimitHoldemState) -> int:
+    """Count prior opponent bets/raises visible to the current player."""
+
+    current_player = state.current_player()
+    replay_state = FixedLimitHoldemState.initial(
+        state.private_cards,
+        state.board_cards,
+        small_blind=state.small_blind,
+        big_blind=state.big_blind,
+        small_bet=state.small_bet,
+        big_bet=state.big_bet,
+        max_bets_per_round=state.max_bets_per_round,
+    )
+    aggressions = 0
+    for street_history in state.histories:
+        for action in street_history:
+            if replay_state.is_terminal():
+                return aggressions
+            actor = replay_state.current_player()
+            if actor != current_player and action in (BET, RAISE):
+                aggressions += 1
+            replay_state = replay_state.apply(action)
+    return aggressions
+
+
 def encode_holdem_action_history_features(state: FixedLimitHoldemState) -> list[float]:
     player = state.current_player()
     own_aggressions = 0

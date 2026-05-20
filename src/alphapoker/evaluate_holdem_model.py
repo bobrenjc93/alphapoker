@@ -13,7 +13,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
-from alphapoker.holdem import BET, RAISE, FixedLimitHoldemState, HoldemPolicy
+from alphapoker.holdem import FixedLimitHoldemState, HoldemPolicy
 from alphapoker.holdem_evaluation import (
     ACTION_COUNT_KEYS,
     add_action_counts,
@@ -22,7 +22,11 @@ from alphapoker.holdem_evaluation import (
     evaluate_policy_match,
     evaluate_policy_match_paired_seats,
 )
-from alphapoker.holdem_features import HOLDEM_CANONICAL_ACTIONS, holdem_legal_action_mask
+from alphapoker.holdem_features import (
+    HOLDEM_CANONICAL_ACTIONS,
+    holdem_legal_action_mask,
+    opponent_aggressions_before_current_decision,
+)
 from alphapoker.holdem_policy_features import (
     policy_feature_encoder_from_checkpoint_data,
 )
@@ -225,31 +229,6 @@ def validate_blend_checkpoint_compatibility(
             "blended checkpoints must have compatible feature metadata: "
             f"{primary_metadata} != {blend_metadata}"
         )
-
-
-def opponent_aggressions_before_current_decision(state: FixedLimitHoldemState) -> int:
-    """Count prior opponent bets/raises visible to the current player."""
-
-    current_player = state.current_player()
-    replay_state = FixedLimitHoldemState.initial(
-        state.private_cards,
-        state.board_cards,
-        small_blind=state.small_blind,
-        big_blind=state.big_blind,
-        small_bet=state.small_bet,
-        big_bet=state.big_bet,
-        max_bets_per_round=state.max_bets_per_round,
-    )
-    aggressions = 0
-    for street_history in state.histories:
-        for action in street_history:
-            if replay_state.is_terminal():
-                return aggressions
-            actor = replay_state.current_player()
-            if actor != current_player and action in (BET, RAISE):
-                aggressions += 1
-            replay_state = replay_state.apply(action)
-    return aggressions
 
 
 def model_policy_from_checkpoint(

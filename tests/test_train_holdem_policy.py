@@ -52,6 +52,9 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "--action-history-features",
             "--soft-target-temperature",
             "0.75",
+            "--record-facing-bet-only",
+            "--record-min-opponent-aggressions",
+            "2",
             "--action-value-loss-weight",
             "0.25",
             "--action-value-target-scale",
@@ -67,6 +70,8 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "--init-allow-input-expansion",
             "--examples-in",
             "examples.json",
+            "--extra-examples-in",
+            "focused.json",
             "--examples-out",
             "cached.json",
             "--class-weighting",
@@ -109,6 +114,8 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.feature_equity_mode == "sampled"
     assert args.action_history_features
     assert args.soft_target_temperature == 0.75
+    assert args.record_facing_bet_only
+    assert args.record_min_opponent_aggressions == 2
     assert args.action_value_loss_weight == 0.25
     assert args.action_value_target_scale == 2.0
     assert args.action_value_example_weight == 4.0
@@ -130,6 +137,7 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.progress
     assert args.validation_fraction == 0.2
     assert str(args.examples_in) == "examples.json"
+    assert [str(path) for path in args.extra_examples_in] == ["focused.json"]
     assert str(args.examples_out) == "cached.json"
 
 
@@ -697,6 +705,49 @@ def test_train_holdem_policy_records_validation_metrics(tmp_path) -> None:
     assert metrics["action_value_weighted_examples"] == 0
     assert metrics["player_action_value_weight_overrides"] == {}
     assert metrics["player_action_value_weighted_examples"] == 0
+
+
+def test_train_holdem_policy_appends_extra_cached_examples(tmp_path) -> None:
+    base_examples_path = tmp_path / "base_examples.json"
+    extra_examples_path = tmp_path / "extra_examples.json"
+    write_policy_examples(
+        base_examples_path,
+        [
+            HoldemPolicyExample(
+                features=[1.0],
+                action_index=0,
+                legal_mask=[True, False, False, False, False],
+            )
+        ],
+    )
+    write_policy_examples(
+        extra_examples_path,
+        [
+            HoldemPolicyExample(
+                features=[0.0],
+                action_index=1,
+                legal_mask=[True, True, False, False, False],
+            )
+        ],
+    )
+
+    args = build_parser().parse_args(
+        [
+            "--examples-in",
+            str(base_examples_path),
+            "--extra-examples-in",
+            str(extra_examples_path),
+            "--epochs",
+            "1",
+            "--out",
+            str(tmp_path / "out"),
+        ]
+    )
+    metrics = run(args)
+
+    assert metrics["examples"] == 2
+    assert metrics["extra_examples"] == 1
+    assert metrics["extra_examples_in"] == [str(extra_examples_path)]
 
 
 def test_train_holdem_policy_records_facing_bet_action_counts(tmp_path) -> None:

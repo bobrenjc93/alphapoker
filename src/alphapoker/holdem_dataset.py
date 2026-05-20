@@ -26,8 +26,10 @@ from alphapoker.holdem_features import (
     encode_holdem_state,
     holdem_action_index,
     holdem_legal_action_mask,
+    opponent_aggressions_before_current_decision,
 )
 from alphapoker.holdem_self_play import make_policy, make_policy_action_value_fn
+from alphapoker.kuhn import CALL, FOLD
 
 HOLDEM_EXPERT_POLICIES = (
     "equity",
@@ -261,6 +263,27 @@ def soft_action_probs_from_values(
     return [weight / total for weight in weights]
 
 
+def should_record_policy_example(
+    state: FixedLimitHoldemState,
+    *,
+    record_facing_bet_only: bool = False,
+    record_min_opponent_aggressions: int | None = None,
+) -> bool:
+    if record_facing_bet_only:
+        legal_actions = set(state.legal_actions())
+        if CALL not in legal_actions or FOLD not in legal_actions:
+            return False
+    if record_min_opponent_aggressions is not None:
+        if record_min_opponent_aggressions < 1:
+            raise ValueError("record_min_opponent_aggressions must be positive")
+        if (
+            opponent_aggressions_before_current_decision(state)
+            < record_min_opponent_aggressions
+        ):
+            return False
+    return True
+
+
 def generate_equity_policy_examples(
     *,
     hands: int,
@@ -277,6 +300,8 @@ def generate_equity_policy_examples(
     expert_behavior_policy: HoldemPolicy | None = None,
     action_history_features: bool = False,
     soft_target_temperature: float | None = None,
+    record_facing_bet_only: bool = False,
+    record_min_opponent_aggressions: int | None = None,
 ) -> list[HoldemPolicyExample]:
     if feature_equity_mode not in HOLDEM_FEATURE_EQUITY_MODES:
         raise ValueError(f"Unknown feature equity mode: {feature_equity_mode}")
@@ -326,8 +351,15 @@ def generate_equity_policy_examples(
         while not state.is_terminal():
             player = state.current_player()
             use_expert = expert_player is None or player == expert_player
+            record_example = use_expert and should_record_policy_example(
+                state,
+                record_facing_bet_only=record_facing_bet_only,
+                record_min_opponent_aggressions=record_min_opponent_aggressions,
+            )
             action_probs = None
-            if use_expert and expert_action_value_fn is not None:
+            dense_action_values = None
+            expert_action = None
+            if record_example and expert_action_value_fn is not None:
                 expert_action, action_values = expert_action_value_fn(state)
                 legal_mask = holdem_legal_action_mask(state)
                 action_probs = soft_action_probs_from_values(
@@ -340,10 +372,16 @@ def generate_equity_policy_examples(
                     for action in HOLDEM_CANONICAL_ACTIONS
                 ]
             else:
-                expert_action = expert_action_policy(state) if use_expert else non_expert_policy(state)
-                legal_mask = holdem_legal_action_mask(state) if use_expert else None
-                dense_action_values = None
-            if use_expert:
+                if use_expert and (record_example or expert_behavior_policy is None):
+                    expert_action = expert_action_policy(state)
+                elif not use_expert:
+                    expert_action = non_expert_policy(state)
+                legal_mask = holdem_legal_action_mask(state) if record_example else None
+            if record_example:
+                if expert_action is None:
+                    raise AssertionError("recorded examples require an expert action")
+                if legal_mask is None:
+                    raise AssertionError("recorded examples require a legal mask")
                 examples.append(
                     HoldemPolicyExample(
                         features=encode_policy_example_features(
@@ -365,6 +403,8 @@ def generate_equity_policy_examples(
                 if action not in state.legal_actions():
                     raise ValueError(f"Behavior policy selected illegal action {action!r}")
             else:
+                if expert_action is None:
+                    raise AssertionError("expert policy did not select an action")
                 action = expert_action
             state = state.apply(action)
     return examples

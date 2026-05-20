@@ -390,6 +390,8 @@ def generate_policy_examples_shard(
     behavior_checkpoint: Path | None,
     action_history_features: bool,
     soft_target_temperature: float | None,
+    record_facing_bet_only: bool,
+    record_min_opponent_aggressions: int | None,
 ):
     feature_equity_fn = None
     if feature_equity_checkpoint is not None:
@@ -416,6 +418,8 @@ def generate_policy_examples_shard(
         expert_behavior_policy=behavior_policy,
         action_history_features=action_history_features,
         soft_target_temperature=soft_target_temperature,
+        record_facing_bet_only=record_facing_bet_only,
+        record_min_opponent_aggressions=record_min_opponent_aggressions,
     )
 
 
@@ -435,6 +439,8 @@ def generate_policy_training_examples(
     behavior_checkpoint: Path | None,
     action_history_features: bool,
     soft_target_temperature: float | None,
+    record_facing_bet_only: bool,
+    record_min_opponent_aggressions: int | None,
     jobs: int,
     progress: bool = False,
 ):
@@ -457,6 +463,8 @@ def generate_policy_training_examples(
             behavior_checkpoint=behavior_checkpoint,
             action_history_features=action_history_features,
             soft_target_temperature=soft_target_temperature,
+            record_facing_bet_only=record_facing_bet_only,
+            record_min_opponent_aggressions=record_min_opponent_aggressions,
         )
         if progress:
             print(
@@ -489,6 +497,8 @@ def generate_policy_training_examples(
                 behavior_checkpoint=behavior_checkpoint,
                 action_history_features=action_history_features,
                 soft_target_temperature=soft_target_temperature,
+                record_facing_bet_only=record_facing_bet_only,
+                record_min_opponent_aggressions=record_min_opponent_aggressions,
             ): index
             for index, shard_size in enumerate(shard_hands)
         }
@@ -523,6 +533,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("--feature-equity-mode is only used with --feature-equity-sims")
 
     examples_in = getattr(args, "examples_in", None)
+    extra_examples_in = getattr(args, "extra_examples_in", None) or []
     examples_out = getattr(args, "examples_out", None)
     jobs = getattr(args, "jobs", 1)
     rollout_margin = float(getattr(args, "rollout_margin", 1.0))
@@ -544,9 +555,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             behavior_checkpoint=args.behavior_checkpoint,
             action_history_features=bool(getattr(args, "action_history_features", False)),
             soft_target_temperature=getattr(args, "soft_target_temperature", None),
+            record_facing_bet_only=bool(getattr(args, "record_facing_bet_only", False)),
+            record_min_opponent_aggressions=getattr(
+                args,
+                "record_min_opponent_aggressions",
+                None,
+            ),
             jobs=jobs,
             progress=bool(getattr(args, "progress", False)),
         )
+    extra_example_count = 0
+    for extra_examples_path in extra_examples_in:
+        extra_examples = read_policy_examples(extra_examples_path)
+        extra_example_count += len(extra_examples)
+        examples.extend(extra_examples)
     if examples_out is not None:
         write_policy_examples(examples_out, examples)
     features = torch.tensor([example.features for example in examples], dtype=torch.float32)
@@ -1050,6 +1072,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         "action_history_features": bool(getattr(args, "action_history_features", False)),
         "soft_target_temperature": getattr(args, "soft_target_temperature", None),
+        "record_facing_bet_only": bool(getattr(args, "record_facing_bet_only", False)),
+        "record_min_opponent_aggressions": getattr(
+            args,
+            "record_min_opponent_aggressions",
+            None,
+        ),
         "soft_target_examples": int(soft_target_examples),
         "soft_target_action_mass": soft_target_action_mass,
         "action_value_target_examples": int(action_value_target_examples),
@@ -1152,6 +1180,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         metrics["init_input_expanded"] = init_input_expanded
     if examples_in is not None:
         metrics["examples_in"] = str(examples_in)
+    metrics["extra_examples_in"] = [str(path) for path in extra_examples_in]
+    metrics["extra_examples"] = int(extra_example_count)
     if examples_out is not None:
         metrics["examples_out"] = str(examples_out)
     write_json(out_dir / "metrics.json", metrics)
@@ -1180,6 +1210,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--feature-equity-checkpoint", type=Path)
     parser.add_argument("--action-history-features", action="store_true")
     parser.add_argument("--soft-target-temperature", type=float)
+    parser.add_argument(
+        "--record-facing-bet-only",
+        action="store_true",
+        help="Record supervised examples only when the expert player is facing a bet.",
+    )
+    parser.add_argument(
+        "--record-min-opponent-aggressions",
+        type=int,
+        help=(
+            "Record supervised examples only after at least this many prior "
+            "opponent bets or raises."
+        ),
+    )
     parser.add_argument("--action-value-loss-weight", type=float, default=0.0)
     parser.add_argument("--action-value-target-scale", type=float, default=1.0)
     parser.add_argument("--action-value-example-weight", type=float, default=1.0)
@@ -1269,6 +1312,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--progress", action="store_true")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--examples-in", type=Path)
+    parser.add_argument(
+        "--extra-examples-in",
+        action="append",
+        default=[],
+        type=Path,
+        help="Append cached examples to the primary generated or cached examples.",
+    )
     parser.add_argument("--examples-out", type=Path)
     parser.add_argument("--out", type=Path, required=True)
     return parser
