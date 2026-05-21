@@ -187,6 +187,9 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Seat-specific Hold'em blending can skip inactive blend checkpoints, allowing
   feature-incompatible player-0 and player-1 composite probes when
   `--blend-player` excludes one seat.
+- Evaluator-side Hold'em checkpoint blending can use different blend
+  checkpoints for player 0 and player 1, enabling seat-specific response
+  composites with incompatible feature encoders.
 - Cross-seat Hold'em neural checkpoint evaluation.
 - Hold'em match-evaluation action-count and facing-bet response diagnostics by
   model/opponent role and player seat, with optional progress reporting for
@@ -380,6 +383,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T18:58:18-07:00 | `030fb58` | Confirmed the 75% response blend on a larger exact gate. | Tight exact e8 h500 regressed to `-0.034 +/- 0.181` with both seats near flat (`p0 +0.012`, `p1 -0.080`), so the 75% blend is rejected before larger range/safe confirmations. |
 | 2026-05-20T19:05:45-07:00 | `73c600a` | Gated the value400/p1 response composite after one opponent aggression. | The after-one gate kept h100 safe positive (`+0.200 +/- 0.613`, seats `+0.33/+0.07`), but h100 exact/range stayed weak (`+0.025 +/- 0.328`, `+0.070 +/- 0.314`) with exact player 0 negative and range player 1 negative; the larger exact failure from the 75% blend made further confirmation unwarranted. |
 | 2026-05-20T19:17:06-07:00 | `f0d7cd8` | Tried KL8 replay anchoring for the value400/p1 response composite. | KL8 player-0 replay improved the same h100 safe seed to `+0.305 +/- 0.597` (`p0 +0.54`, `p1 +0.07`), but protective h100 exact/range were only `+0.085 +/- 0.338` and `-0.015 +/- 0.314`; current best unchanged. |
+| 2026-05-20T19:32:00-07:00 | `8ef1d07` | Added per-seat blend checkpoints to the Hold'em evaluator. | Tooling can now blend different player-0 and player-1 checkpoints in one evaluation; `tests/test_evaluate_holdem_model.py` passed (`31 passed`). |
+| 2026-05-20T19:39:02-07:00 | `56d2e95` | Probed per-seat and range-regularized response composites. | Player-0 facing-only value400 plus player-1 cap-2 blending was flat on h100 safe (`-0.010 +/- 0.641`), and adding range-response labels to the p1 branch failed worse (`-0.595 +/- 0.606`); current best unchanged. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1157,6 +1162,19 @@ Current fixed-limit Hold'em gate:
   with player 0 negative (`-0.17`), and range h100 was flat-negative at
   `-0.015 +/- 0.314` with player 1 negative (`-0.13`), so this branch is also
   diagnostic rather than a current-best update.
+- Per-seat blend checkpoints made it possible to combine an action-history
+  value400 blend for player 0 with the no-history cap-2 response blend for
+  player 1 in one evaluation, but restricting the value400 player-0 branch to
+  facing-bet states lost the safe repair. The same h100 cheap-safe seed was
+  only `-0.010 +/- 0.641`, with both seats at `-0.01`, so the value400
+  player-0 gain appears to require more than a local facing-bet override.
+- A small range-response cache for player 1 against `tight-range-pot-odds`
+  added 18 fold-heavy examples (`call/fold/raise = 5/10/3`) to the cap-2 p1
+  response branch. The combined branch matched cached responses reasonably
+  (`105/78/29` predicted vs `115/68/29` target), but in the full KL8
+  player-0 composite it failed the h100 cheap-safe seed at
+  `-0.595 +/- 0.606` (`p0 -0.24`, `p1 -0.95`), so tiny range-response
+  regularization is not enough.
 
 ## Research Roadmap
 
