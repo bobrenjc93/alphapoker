@@ -1,0 +1,6417 @@
+{
+  "avg_actions": 6.02,
+  "avg_utility_model": 0.305,
+  "avg_utility_p0": 0.235,
+  "blend_after_opponent_aggressions": 1,
+  "blend_checkpoint": "experiments/holdem_cap2_mccfr_response_p1only_distill_200_kl2_balanced_call4_fold01_raise2_trainselect/holdem_policy.pt",
+  "blend_facing_bet_only": true,
+  "blend_players": [
+    1
+  ],
+  "blend_weight": 1.0,
+  "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+  "equity_sims": 8,
+  "facing_bet_logit_bias_after_opponent_aggressions": null,
+  "facing_bet_logit_bias_min_raise_prob": null,
+  "facing_bet_logit_biases": {},
+  "folds": 158,
+  "hands": 200,
+  "hands_per_model_player": 100,
+  "jobs": 16,
+  "model_action_counts": {
+    "bet": 130,
+    "call": 165,
+    "check": 121,
+    "fold": 85,
+    "raise": 111
+  },
+  "model_decision_diagnostics_enabled": false,
+  "model_facing_bet_action_counts": {
+    "bet": 0,
+    "call": 165,
+    "check": 0,
+    "fold": 85,
+    "raise": 111
+  },
+  "model_player": "both",
+  "model_rollout_margin": null,
+  "model_rollout_opponent_equity_sims": null,
+  "model_rollout_opponent_policy": null,
+  "model_rollout_opponent_rollout_margin": null,
+  "model_rollout_opponent_rollout_sims": null,
+  "model_rollout_sims": null,
+  "opponent_action_counts": {
+    "bet": 106,
+    "call": 113,
+    "check": 145,
+    "fold": 73,
+    "raise": 155
+  },
+  "opponent_facing_bet_action_counts": {
+    "bet": 0,
+    "call": 113,
+    "check": 0,
+    "fold": 73,
+    "raise": 155
+  },
+  "opponent_policy": "tight-safe-rollout-pot-odds",
+  "p0_action_counts": {
+    "bet": 104,
+    "call": 162,
+    "check": 81,
+    "fold": 92,
+    "raise": 172
+  },
+  "p0_facing_bet_action_counts": {
+    "bet": 0,
+    "call": 162,
+    "check": 0,
+    "fold": 92,
+    "raise": 172
+  },
+  "p1_action_counts": {
+    "bet": 132,
+    "call": 116,
+    "check": 185,
+    "fold": 66,
+    "raise": 94
+  },
+  "p1_facing_bet_action_counts": {
+    "bet": 0,
+    "call": 116,
+    "check": 0,
+    "fold": 66,
+    "raise": 94
+  },
+  "paired_deals": 100,
+  "paired_seats": true,
+  "player0_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_value_mixed_base774_value400_kl8_sqrt_facing3_temp075_vw05_vscale2_feat4_trainselect/holdem_policy.pt",
+  "player1_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+  "player_facing_bet_logit_bias_after_opponent_aggressions": 1,
+  "player_facing_bet_logit_bias_min_raise_prob": null,
+  "player_facing_bet_logit_biases": {
+    "1:fold": -0.5,
+    "1:raise": 1.0
+  },
+  "rollout_margin": 1.0,
+  "rollout_sims": 1,
+  "seat_metrics": [
+    {
+      "avg_actions": 6.31,
+      "avg_utility_model": 0.54,
+      "avg_utility_p0": 0.54,
+      "folds": 79,
+      "hands": 100,
+      "model_action_counts": {
+        "bet": 64,
+        "call": 100,
+        "check": 32,
+        "fold": 49,
+        "raise": 80
+      },
+      "model_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 100,
+        "check": 0,
+        "fold": 49,
+        "raise": 80
+      },
+      "model_player": 0,
+      "opponent_action_counts": {
+        "bet": 66,
+        "call": 51,
+        "check": 96,
+        "fold": 30,
+        "raise": 63
+      },
+      "opponent_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 51,
+        "check": 0,
+        "fold": 30,
+        "raise": 63
+      },
+      "p0_action_counts": {
+        "bet": 64,
+        "call": 100,
+        "check": 32,
+        "fold": 49,
+        "raise": 80
+      },
+      "p0_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 100,
+        "check": 0,
+        "fold": 49,
+        "raise": 80
+      },
+      "p1_action_counts": {
+        "bet": 66,
+        "call": 51,
+        "check": 96,
+        "fold": 30,
+        "raise": 63
+      },
+      "p1_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 51,
+        "check": 0,
+        "fold": 30,
+        "raise": 63
+      },
+      "seed": 92955,
+      "shard_metrics": [
+        {
+          "avg_actions": 7.285714285714286,
+          "avg_utility_model": -2.0,
+          "avg_utility_p0": -2.0,
+          "folds": 5,
+          "hands": 7,
+          "model_action_counts": {
+            "bet": 4,
+            "call": 7,
+            "check": 5,
+            "fold": 4,
+            "raise": 6
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 7,
+            "check": 0,
+            "fold": 4,
+            "raise": 6
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 6,
+            "call": 5,
+            "check": 9,
+            "fold": 1,
+            "raise": 4
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 1,
+            "raise": 4
+          },
+          "p0_action_counts": {
+            "bet": 4,
+            "call": 7,
+            "check": 5,
+            "fold": 4,
+            "raise": 6
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 7,
+            "check": 0,
+            "fold": 4,
+            "raise": 6
+          },
+          "p1_action_counts": {
+            "bet": 6,
+            "call": 5,
+            "check": 9,
+            "fold": 1,
+            "raise": 4
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 1,
+            "raise": 4
+          },
+          "seed": 92955,
+          "showdowns": 2,
+          "utility_stderr_model": 5.503245795502349,
+          "utility_stderr_p0": 5.503245795502349,
+          "utility_stdev_model": 14.560219778561036,
+          "utility_stdev_p0": 14.560219778561036
+        },
+        {
+          "avg_actions": 6.857142857142857,
+          "avg_utility_model": 3.4285714285714284,
+          "avg_utility_p0": 3.4285714285714284,
+          "folds": 6,
+          "hands": 7,
+          "model_action_counts": {
+            "bet": 5,
+            "call": 9,
+            "check": 2,
+            "fold": 2,
+            "raise": 7
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 9,
+            "check": 0,
+            "fold": 2,
+            "raise": 7
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 4,
+            "call": 1,
+            "check": 7,
+            "fold": 4,
+            "raise": 7
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 1,
+            "check": 0,
+            "fold": 4,
+            "raise": 7
+          },
+          "p0_action_counts": {
+            "bet": 5,
+            "call": 9,
+            "check": 2,
+            "fold": 2,
+            "raise": 7
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 9,
+            "check": 0,
+            "fold": 2,
+            "raise": 7
+          },
+          "p1_action_counts": {
+            "bet": 4,
+            "call": 1,
+            "check": 7,
+            "fold": 4,
+            "raise": 7
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 1,
+            "check": 0,
+            "fold": 4,
+            "raise": 7
+          },
+          "seed": 1092958,
+          "showdowns": 1,
+          "utility_stderr_model": 4.156791017675275,
+          "utility_stderr_p0": 4.156791017675275,
+          "utility_stdev_model": 10.997835284835872,
+          "utility_stdev_p0": 10.997835284835872
+        },
+        {
+          "avg_actions": 4.714285714285714,
+          "avg_utility_model": 3.4285714285714284,
+          "avg_utility_p0": 3.4285714285714284,
+          "folds": 6,
+          "hands": 7,
+          "model_action_counts": {
+            "bet": 4,
+            "call": 8,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 8,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 4,
+            "call": 1,
+            "check": 4,
+            "fold": 3,
+            "raise": 3
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 1,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "p0_action_counts": {
+            "bet": 4,
+            "call": 8,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 8,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "p1_action_counts": {
+            "bet": 4,
+            "call": 1,
+            "check": 4,
+            "fold": 3,
+            "raise": 3
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 1,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "seed": 2092961,
+          "showdowns": 1,
+          "utility_stderr_model": 3.5109159221270017,
+          "utility_stderr_p0": 3.5109159221270017,
+          "utility_stdev_model": 9.289010404005062,
+          "utility_stdev_p0": 9.289010404005062
+        },
+        {
+          "avg_actions": 6.714285714285714,
+          "avg_utility_model": 5.428571428571429,
+          "avg_utility_p0": 5.428571428571429,
+          "folds": 5,
+          "hands": 7,
+          "model_action_counts": {
+            "bet": 6,
+            "call": 7,
+            "check": 1,
+            "fold": 4,
+            "raise": 6
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 7,
+            "check": 0,
+            "fold": 4,
+            "raise": 6
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 4,
+            "call": 5,
+            "check": 7,
+            "fold": 1,
+            "raise": 6
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 1,
+            "raise": 6
+          },
+          "p0_action_counts": {
+            "bet": 6,
+            "call": 7,
+            "check": 1,
+            "fold": 4,
+            "raise": 6
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 7,
+            "check": 0,
+            "fold": 4,
+            "raise": 6
+          },
+          "p1_action_counts": {
+            "bet": 4,
+            "call": 5,
+            "check": 7,
+            "fold": 1,
+            "raise": 6
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 1,
+            "raise": 6
+          },
+          "seed": 3092964,
+          "showdowns": 2,
+          "utility_stderr_model": 4.873920602637709,
+          "utility_stderr_p0": 4.873920602637709,
+          "utility_stdev_model": 12.895181824453438,
+          "utility_stdev_p0": 12.895181824453438
+        },
+        {
+          "avg_actions": 5.333333333333333,
+          "avg_utility_model": -0.3333333333333333,
+          "avg_utility_p0": -0.3333333333333333,
+          "folds": 6,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 3,
+            "call": 4,
+            "check": 3,
+            "fold": 4,
+            "raise": 3
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 3
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 3,
+            "call": 2,
+            "check": 6,
+            "fold": 2,
+            "raise": 2
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 2,
+            "raise": 2
+          },
+          "p0_action_counts": {
+            "bet": 3,
+            "call": 4,
+            "check": 3,
+            "fold": 4,
+            "raise": 3
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 3
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 2,
+            "check": 6,
+            "fold": 2,
+            "raise": 2
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 2,
+            "raise": 2
+          },
+          "seed": 4092967,
+          "showdowns": 0,
+          "utility_stderr_model": 1.8915014612148144,
+          "utility_stderr_p0": 1.8915014612148144,
+          "utility_stdev_model": 4.633213427705081,
+          "utility_stdev_p0": 4.633213427705081
+        },
+        {
+          "avg_actions": 5.666666666666667,
+          "avg_utility_model": 2.3333333333333335,
+          "avg_utility_p0": 2.3333333333333335,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 2,
+            "fold": 3,
+            "raise": 5
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 3,
+            "raise": 5
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 3,
+            "call": 2,
+            "check": 5,
+            "fold": 2,
+            "raise": 4
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 2,
+            "raise": 4
+          },
+          "p0_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 2,
+            "fold": 3,
+            "raise": 5
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 3,
+            "raise": 5
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 2,
+            "check": 5,
+            "fold": 2,
+            "raise": 4
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 2,
+            "raise": 4
+          },
+          "seed": 5092970,
+          "showdowns": 1,
+          "utility_stderr_model": 4.046946722873651,
+          "utility_stderr_p0": 4.046946722873651,
+          "utility_stdev_model": 9.912954487269003,
+          "utility_stdev_p0": 9.912954487269003
+        },
+        {
+          "avg_actions": 6.0,
+          "avg_utility_model": -3.0,
+          "avg_utility_p0": -3.0,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 5,
+            "call": 6,
+            "check": 2,
+            "fold": 4,
+            "raise": 2
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 4,
+            "raise": 2
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 3,
+            "call": 3,
+            "check": 7,
+            "fold": 1,
+            "raise": 3
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 1,
+            "raise": 3
+          },
+          "p0_action_counts": {
+            "bet": 5,
+            "call": 6,
+            "check": 2,
+            "fold": 4,
+            "raise": 2
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 4,
+            "raise": 2
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 3,
+            "check": 7,
+            "fold": 1,
+            "raise": 3
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 1,
+            "raise": 3
+          },
+          "seed": 6092973,
+          "showdowns": 1,
+          "utility_stderr_model": 2.1756225162774294,
+          "utility_stderr_p0": 2.1756225162774294,
+          "utility_stdev_model": 5.329165037789691,
+          "utility_stdev_p0": 5.329165037789691
+        },
+        {
+          "avg_actions": 11.5,
+          "avg_utility_model": -13.0,
+          "avg_utility_p0": -13.0,
+          "folds": 2,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 8,
+            "call": 11,
+            "check": 3,
+            "fold": 1,
+            "raise": 11
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 11,
+            "check": 0,
+            "fold": 1,
+            "raise": 11
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 5,
+            "call": 6,
+            "check": 11,
+            "fold": 1,
+            "raise": 12
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 1,
+            "raise": 12
+          },
+          "p0_action_counts": {
+            "bet": 8,
+            "call": 11,
+            "check": 3,
+            "fold": 1,
+            "raise": 11
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 11,
+            "check": 0,
+            "fold": 1,
+            "raise": 11
+          },
+          "p1_action_counts": {
+            "bet": 5,
+            "call": 6,
+            "check": 11,
+            "fold": 1,
+            "raise": 12
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 1,
+            "raise": 12
+          },
+          "seed": 7092976,
+          "showdowns": 4,
+          "utility_stderr_model": 9.448103866208642,
+          "utility_stderr_p0": 9.448103866208642,
+          "utility_stdev_model": 23.143033509028154,
+          "utility_stdev_p0": 23.143033509028154
+        },
+        {
+          "avg_actions": 3.6666666666666665,
+          "avg_utility_model": -0.3333333333333333,
+          "avg_utility_p0": -0.3333333333333333,
+          "folds": 6,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 1,
+            "call": 3,
+            "check": 2,
+            "fold": 3,
+            "raise": 3
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 3,
+            "call": 1,
+            "check": 3,
+            "fold": 3,
+            "raise": 0
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 1,
+            "check": 0,
+            "fold": 3,
+            "raise": 0
+          },
+          "p0_action_counts": {
+            "bet": 1,
+            "call": 3,
+            "check": 2,
+            "fold": 3,
+            "raise": 3
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 1,
+            "check": 3,
+            "fold": 3,
+            "raise": 0
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 1,
+            "check": 0,
+            "fold": 3,
+            "raise": 0
+          },
+          "seed": 8092979,
+          "showdowns": 0,
+          "utility_stderr_model": 1.0852547064066471,
+          "utility_stderr_p0": 1.0852547064066471,
+          "utility_stdev_model": 2.6583202716502514,
+          "utility_stdev_p0": 2.6583202716502514
+        },
+        {
+          "avg_actions": 4.833333333333333,
+          "avg_utility_model": 0.6666666666666666,
+          "avg_utility_p0": 0.6666666666666666,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 3,
+            "call": 2,
+            "check": 3,
+            "fold": 3,
+            "raise": 3
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "p0_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 2,
+            "check": 3,
+            "fold": 3,
+            "raise": 3
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "seed": 9092982,
+          "showdowns": 1,
+          "utility_stderr_model": 1.4298407059684812,
+          "utility_stderr_p0": 1.4298407059684812,
+          "utility_stdev_model": 3.5023801430836525,
+          "utility_stdev_p0": 3.5023801430836525
+        },
+        {
+          "avg_actions": 6.166666666666667,
+          "avg_utility_model": -2.6666666666666665,
+          "avg_utility_p0": -2.6666666666666665,
+          "folds": 4,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 5,
+            "call": 8,
+            "check": 3,
+            "fold": 2,
+            "raise": 1
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 8,
+            "check": 0,
+            "fold": 2,
+            "raise": 1
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 4,
+            "call": 3,
+            "check": 8,
+            "fold": 2,
+            "raise": 1
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 2,
+            "raise": 1
+          },
+          "p0_action_counts": {
+            "bet": 5,
+            "call": 8,
+            "check": 3,
+            "fold": 2,
+            "raise": 1
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 8,
+            "check": 0,
+            "fold": 2,
+            "raise": 1
+          },
+          "p1_action_counts": {
+            "bet": 4,
+            "call": 3,
+            "check": 8,
+            "fold": 2,
+            "raise": 1
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 2,
+            "raise": 1
+          },
+          "seed": 10092985,
+          "showdowns": 2,
+          "utility_stderr_model": 2.9962940072325646,
+          "utility_stderr_p0": 2.9962940072325646,
+          "utility_stdev_model": 7.339391437078872,
+          "utility_stdev_p0": 7.339391437078872
+        },
+        {
+          "avg_actions": 5.0,
+          "avg_utility_model": -0.3333333333333333,
+          "avg_utility_p0": -0.3333333333333333,
+          "folds": 4,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 1,
+            "call": 9,
+            "check": 3,
+            "fold": 2,
+            "raise": 2
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 9,
+            "check": 0,
+            "fold": 2,
+            "raise": 2
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 6,
+            "call": 0,
+            "check": 4,
+            "fold": 2,
+            "raise": 1
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 0,
+            "check": 0,
+            "fold": 2,
+            "raise": 1
+          },
+          "p0_action_counts": {
+            "bet": 1,
+            "call": 9,
+            "check": 3,
+            "fold": 2,
+            "raise": 2
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 9,
+            "check": 0,
+            "fold": 2,
+            "raise": 2
+          },
+          "p1_action_counts": {
+            "bet": 6,
+            "call": 0,
+            "check": 4,
+            "fold": 2,
+            "raise": 1
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 0,
+            "check": 0,
+            "fold": 2,
+            "raise": 1
+          },
+          "seed": 11092988,
+          "showdowns": 2,
+          "utility_stderr_model": 2.7527763762750106,
+          "utility_stderr_p0": 2.7527763762750106,
+          "utility_stdev_model": 6.742897497861485,
+          "utility_stdev_p0": 6.742897497861485
+        },
+        {
+          "avg_actions": 6.333333333333333,
+          "avg_utility_model": 1.6666666666666667,
+          "avg_utility_p0": 1.6666666666666667,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 7
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 7
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 5,
+            "call": 4,
+            "check": 3,
+            "fold": 0,
+            "raise": 6
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 0,
+            "raise": 6
+          },
+          "p0_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 7
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 7
+          },
+          "p1_action_counts": {
+            "bet": 5,
+            "call": 4,
+            "check": 3,
+            "fold": 0,
+            "raise": 6
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 0,
+            "raise": 6
+          },
+          "seed": 12092991,
+          "showdowns": 1,
+          "utility_stderr_model": 6.0754515149996156,
+          "utility_stderr_p0": 6.0754515149996156,
+          "utility_stdev_model": 14.881756168768076,
+          "utility_stdev_p0": 14.881756168768076
+        },
+        {
+          "avg_actions": 6.666666666666667,
+          "avg_utility_model": 2.6666666666666665,
+          "avg_utility_p0": 2.6666666666666665,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 4,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 6
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 6
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 6,
+            "call": 6,
+            "check": 4,
+            "fold": 0,
+            "raise": 4
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 0,
+            "raise": 4
+          },
+          "p0_action_counts": {
+            "bet": 4,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 6
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 6
+          },
+          "p1_action_counts": {
+            "bet": 6,
+            "call": 6,
+            "check": 4,
+            "fold": 0,
+            "raise": 4
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 0,
+            "raise": 4
+          },
+          "seed": 13092994,
+          "showdowns": 1,
+          "utility_stderr_model": 6.863753427324668,
+          "utility_stderr_p0": 6.863753427324668,
+          "utility_stdev_model": 16.812693617224657,
+          "utility_stdev_p0": 16.812693617224657
+        },
+        {
+          "avg_actions": 7.833333333333333,
+          "avg_utility_model": 4.0,
+          "avg_utility_p0": 4.0,
+          "folds": 4,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 6,
+            "call": 4,
+            "check": 3,
+            "fold": 4,
+            "raise": 6
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 6
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 3,
+            "call": 7,
+            "check": 9,
+            "fold": 0,
+            "raise": 5
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 7,
+            "check": 0,
+            "fold": 0,
+            "raise": 5
+          },
+          "p0_action_counts": {
+            "bet": 6,
+            "call": 4,
+            "check": 3,
+            "fold": 4,
+            "raise": 6
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 6
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 7,
+            "check": 9,
+            "fold": 0,
+            "raise": 5
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 7,
+            "check": 0,
+            "fold": 0,
+            "raise": 5
+          },
+          "seed": 14092997,
+          "showdowns": 2,
+          "utility_stderr_model": 6.3456021516217564,
+          "utility_stderr_p0": 6.3456021516217564,
+          "utility_stdev_model": 15.543487382180357,
+          "utility_stdev_p0": 15.543487382180357
+        },
+        {
+          "avg_actions": 6.333333333333333,
+          "avg_utility_model": 5.333333333333333,
+          "avg_utility_p0": 5.333333333333333,
+          "folds": 6,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 3,
+            "call": 4,
+            "check": 3,
+            "fold": 1,
+            "raise": 7
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 1,
+            "raise": 7
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 4,
+            "call": 3,
+            "check": 6,
+            "fold": 5,
+            "raise": 2
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 5,
+            "raise": 2
+          },
+          "p0_action_counts": {
+            "bet": 3,
+            "call": 4,
+            "check": 3,
+            "fold": 1,
+            "raise": 7
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 1,
+            "raise": 7
+          },
+          "p1_action_counts": {
+            "bet": 4,
+            "call": 3,
+            "check": 6,
+            "fold": 5,
+            "raise": 2
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 5,
+            "raise": 2
+          },
+          "seed": 15093000,
+          "showdowns": 0,
+          "utility_stderr_model": 2.3475755815545347,
+          "utility_stderr_p0": 2.3475755815545347,
+          "utility_stdev_model": 5.750362307426086,
+          "utility_stdev_p0": 5.750362307426086
+        }
+      ],
+      "shards": 16,
+      "showdowns": 21,
+      "utility_stderr_model": 1.1574458121574451,
+      "utility_stderr_p0": 1.1574458121574451,
+      "utility_stdev_model": 11.574458121574452,
+      "utility_stdev_p0": 11.574458121574452
+    },
+    {
+      "avg_actions": 5.73,
+      "avg_utility_model": 0.07,
+      "avg_utility_p0": -0.07,
+      "folds": 79,
+      "hands": 100,
+      "model_action_counts": {
+        "bet": 66,
+        "call": 65,
+        "check": 89,
+        "fold": 36,
+        "raise": 31
+      },
+      "model_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 65,
+        "check": 0,
+        "fold": 36,
+        "raise": 31
+      },
+      "model_player": 1,
+      "opponent_action_counts": {
+        "bet": 40,
+        "call": 62,
+        "check": 49,
+        "fold": 43,
+        "raise": 92
+      },
+      "opponent_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 62,
+        "check": 0,
+        "fold": 43,
+        "raise": 92
+      },
+      "p0_action_counts": {
+        "bet": 40,
+        "call": 62,
+        "check": 49,
+        "fold": 43,
+        "raise": 92
+      },
+      "p0_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 62,
+        "check": 0,
+        "fold": 43,
+        "raise": 92
+      },
+      "p1_action_counts": {
+        "bet": 66,
+        "call": 65,
+        "check": 89,
+        "fold": 36,
+        "raise": 31
+      },
+      "p1_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 65,
+        "check": 0,
+        "fold": 36,
+        "raise": 31
+      },
+      "seed": 92955,
+      "shard_metrics": [
+        {
+          "avg_actions": 5.571428571428571,
+          "avg_utility_model": 2.2857142857142856,
+          "avg_utility_p0": -2.2857142857142856,
+          "folds": 5,
+          "hands": 7,
+          "model_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 8,
+            "fold": 3,
+            "raise": 1
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 3,
+            "raise": 1
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 4,
+            "call": 4,
+            "check": 4,
+            "fold": 2,
+            "raise": 5
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p0_action_counts": {
+            "bet": 4,
+            "call": 4,
+            "check": 4,
+            "fold": 2,
+            "raise": 5
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 8,
+            "fold": 3,
+            "raise": 1
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 3,
+            "raise": 1
+          },
+          "seed": 92955,
+          "showdowns": 2,
+          "utility_stderr_model": 2.9657913560038134,
+          "utility_stderr_p0": 2.9657913560038134,
+          "utility_stdev_model": 7.84674636849112,
+          "utility_stdev_p0": 7.84674636849112
+        },
+        {
+          "avg_actions": 5.571428571428571,
+          "avg_utility_model": -1.1428571428571428,
+          "avg_utility_p0": 1.1428571428571428,
+          "folds": 5,
+          "hands": 7,
+          "model_action_counts": {
+            "bet": 6,
+            "call": 4,
+            "check": 4,
+            "fold": 2,
+            "raise": 3
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 2,
+            "raise": 3
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 2,
+            "call": 6,
+            "check": 2,
+            "fold": 3,
+            "raise": 7
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 3,
+            "raise": 7
+          },
+          "p0_action_counts": {
+            "bet": 2,
+            "call": 6,
+            "check": 2,
+            "fold": 3,
+            "raise": 7
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 3,
+            "raise": 7
+          },
+          "p1_action_counts": {
+            "bet": 6,
+            "call": 4,
+            "check": 4,
+            "fold": 2,
+            "raise": 3
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 2,
+            "raise": 3
+          },
+          "seed": 1092958,
+          "showdowns": 2,
+          "utility_stderr_model": 4.1313469003321845,
+          "utility_stderr_p0": 4.1313469003321845,
+          "utility_stdev_model": 10.93051647801651,
+          "utility_stdev_p0": 10.93051647801651
+        },
+        {
+          "avg_actions": 3.4285714285714284,
+          "avg_utility_model": -1.8571428571428572,
+          "avg_utility_p0": 1.8571428571428572,
+          "folds": 6,
+          "hands": 7,
+          "model_action_counts": {
+            "bet": 4,
+            "call": 3,
+            "check": 2,
+            "fold": 2,
+            "raise": 0
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 2,
+            "raise": 0
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 2,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 3
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 3
+          },
+          "p0_action_counts": {
+            "bet": 2,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 3
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 3
+          },
+          "p1_action_counts": {
+            "bet": 4,
+            "call": 3,
+            "check": 2,
+            "fold": 2,
+            "raise": 0
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 2,
+            "raise": 0
+          },
+          "seed": 2092961,
+          "showdowns": 1,
+          "utility_stderr_model": 2.2406267344797315,
+          "utility_stderr_p0": 2.2406267344797315,
+          "utility_stdev_model": 5.9281411203561225,
+          "utility_stdev_p0": 5.9281411203561225
+        },
+        {
+          "avg_actions": 4.857142857142857,
+          "avg_utility_model": -0.5714285714285714,
+          "avg_utility_p0": 0.5714285714285714,
+          "folds": 7,
+          "hands": 7,
+          "model_action_counts": {
+            "bet": 2,
+            "call": 4,
+            "check": 7,
+            "fold": 3,
+            "raise": 1
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 3,
+            "raise": 1
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 4,
+            "call": 2,
+            "check": 3,
+            "fold": 4,
+            "raise": 4
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 4,
+            "raise": 4
+          },
+          "p0_action_counts": {
+            "bet": 4,
+            "call": 2,
+            "check": 3,
+            "fold": 4,
+            "raise": 4
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 4,
+            "raise": 4
+          },
+          "p1_action_counts": {
+            "bet": 2,
+            "call": 4,
+            "check": 7,
+            "fold": 3,
+            "raise": 1
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 3,
+            "raise": 1
+          },
+          "seed": 3092964,
+          "showdowns": 0,
+          "utility_stderr_model": 1.6014449257904988,
+          "utility_stderr_p0": 1.6014449257904988,
+          "utility_stdev_model": 4.2370250120079485,
+          "utility_stdev_p0": 4.2370250120079485
+        },
+        {
+          "avg_actions": 6.0,
+          "avg_utility_model": -4.666666666666667,
+          "avg_utility_p0": 4.666666666666667,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 1,
+            "call": 5,
+            "check": 9,
+            "fold": 5,
+            "raise": 0
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 0
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 5,
+            "call": 2,
+            "check": 4,
+            "fold": 0,
+            "raise": 5
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 0,
+            "raise": 5
+          },
+          "p0_action_counts": {
+            "bet": 5,
+            "call": 2,
+            "check": 4,
+            "fold": 0,
+            "raise": 5
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 0,
+            "raise": 5
+          },
+          "p1_action_counts": {
+            "bet": 1,
+            "call": 5,
+            "check": 9,
+            "fold": 5,
+            "raise": 0
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 0
+          },
+          "seed": 4092967,
+          "showdowns": 1,
+          "utility_stderr_model": 0.843274042711568,
+          "utility_stderr_p0": 0.843274042711568,
+          "utility_stdev_model": 2.0655911179772892,
+          "utility_stdev_p0": 2.0655911179772892
+        },
+        {
+          "avg_actions": 5.333333333333333,
+          "avg_utility_model": -4.333333333333333,
+          "avg_utility_p0": 4.333333333333333,
+          "folds": 3,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 7,
+            "fold": 1,
+            "raise": 0
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 1,
+            "raise": 0
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 1,
+            "call": 2,
+            "check": 6,
+            "fold": 2,
+            "raise": 5
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p0_action_counts": {
+            "bet": 1,
+            "call": 2,
+            "check": 6,
+            "fold": 2,
+            "raise": 5
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 7,
+            "fold": 1,
+            "raise": 0
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 1,
+            "raise": 0
+          },
+          "seed": 5092970,
+          "showdowns": 3,
+          "utility_stderr_model": 2.6915505650915135,
+          "utility_stderr_p0": 2.6915505650915135,
+          "utility_stdev_model": 6.592925501373928,
+          "utility_stdev_p0": 6.592925501373928
+        },
+        {
+          "avg_actions": 6.666666666666667,
+          "avg_utility_model": 4.166666666666667,
+          "avg_utility_p0": -4.166666666666667,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 4,
+            "call": 4,
+            "check": 8,
+            "fold": 2,
+            "raise": 2
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 2,
+            "raise": 2
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 2,
+            "call": 3,
+            "check": 6,
+            "fold": 3,
+            "raise": 6
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 3,
+            "raise": 6
+          },
+          "p0_action_counts": {
+            "bet": 2,
+            "call": 3,
+            "check": 6,
+            "fold": 3,
+            "raise": 6
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 3,
+            "raise": 6
+          },
+          "p1_action_counts": {
+            "bet": 4,
+            "call": 4,
+            "check": 8,
+            "fold": 2,
+            "raise": 2
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 2,
+            "raise": 2
+          },
+          "seed": 6092973,
+          "showdowns": 1,
+          "utility_stderr_model": 3.2702361450580977,
+          "utility_stderr_p0": 3.2702361450580977,
+          "utility_stdev_model": 8.010409893798611,
+          "utility_stdev_p0": 8.010409893798611
+        },
+        {
+          "avg_actions": 8.166666666666666,
+          "avg_utility_model": 11.666666666666666,
+          "avg_utility_p0": -11.666666666666666,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 9,
+            "call": 8,
+            "check": 3,
+            "fold": 1,
+            "raise": 5
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 8,
+            "check": 0,
+            "fold": 1,
+            "raise": 5
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 1,
+            "call": 3,
+            "check": 2,
+            "fold": 4,
+            "raise": 13
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 4,
+            "raise": 13
+          },
+          "p0_action_counts": {
+            "bet": 1,
+            "call": 3,
+            "check": 2,
+            "fold": 4,
+            "raise": 13
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 4,
+            "raise": 13
+          },
+          "p1_action_counts": {
+            "bet": 9,
+            "call": 8,
+            "check": 3,
+            "fold": 1,
+            "raise": 5
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 8,
+            "check": 0,
+            "fold": 1,
+            "raise": 5
+          },
+          "seed": 7092976,
+          "showdowns": 1,
+          "utility_stderr_model": 5.044248650140519,
+          "utility_stderr_p0": 5.044248650140519,
+          "utility_stdev_model": 12.355835328567093,
+          "utility_stdev_p0": 12.355835328567093
+        },
+        {
+          "avg_actions": 7.5,
+          "avg_utility_model": 9.5,
+          "avg_utility_p0": -9.5,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 8,
+            "call": 6,
+            "check": 4,
+            "fold": 1,
+            "raise": 4
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 1,
+            "raise": 4
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 2,
+            "call": 5,
+            "check": 2,
+            "fold": 4,
+            "raise": 9
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 4,
+            "raise": 9
+          },
+          "p0_action_counts": {
+            "bet": 2,
+            "call": 5,
+            "check": 2,
+            "fold": 4,
+            "raise": 9
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 4,
+            "raise": 9
+          },
+          "p1_action_counts": {
+            "bet": 8,
+            "call": 6,
+            "check": 4,
+            "fold": 1,
+            "raise": 4
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 1,
+            "raise": 4
+          },
+          "seed": 8092979,
+          "showdowns": 1,
+          "utility_stderr_model": 4.112987559751023,
+          "utility_stderr_p0": 4.112987559751023,
+          "utility_stdev_model": 10.074720839804943,
+          "utility_stdev_p0": 10.074720839804943
+        },
+        {
+          "avg_actions": 6.166666666666667,
+          "avg_utility_model": 3.0,
+          "avg_utility_p0": -3.0,
+          "folds": 4,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 8,
+            "call": 3,
+            "check": 3,
+            "fold": 2,
+            "raise": 2
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 2,
+            "raise": 2
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 2,
+            "call": 9,
+            "check": 1,
+            "fold": 2,
+            "raise": 5
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 9,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p0_action_counts": {
+            "bet": 2,
+            "call": 9,
+            "check": 1,
+            "fold": 2,
+            "raise": 5
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 9,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p1_action_counts": {
+            "bet": 8,
+            "call": 3,
+            "check": 3,
+            "fold": 2,
+            "raise": 2
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 2,
+            "raise": 2
+          },
+          "seed": 9092982,
+          "showdowns": 2,
+          "utility_stderr_model": 2.7688746209726918,
+          "utility_stderr_p0": 2.7688746209726918,
+          "utility_stdev_model": 6.782329983125268,
+          "utility_stdev_p0": 6.782329983125268
+        },
+        {
+          "avg_actions": 5.5,
+          "avg_utility_model": -3.5,
+          "avg_utility_p0": 3.5,
+          "folds": 6,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 8,
+            "fold": 5,
+            "raise": 1
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 5,
+            "raise": 1
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 6,
+            "call": 2,
+            "check": 2,
+            "fold": 1,
+            "raise": 4
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 1,
+            "raise": 4
+          },
+          "p0_action_counts": {
+            "bet": 6,
+            "call": 2,
+            "check": 2,
+            "fold": 1,
+            "raise": 4
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 1,
+            "raise": 4
+          },
+          "p1_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 8,
+            "fold": 5,
+            "raise": 1
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 5,
+            "raise": 1
+          },
+          "seed": 10092985,
+          "showdowns": 0,
+          "utility_stderr_model": 1.2041594578792296,
+          "utility_stderr_p0": 1.2041594578792296,
+          "utility_stdev_model": 2.9495762407505253,
+          "utility_stdev_p0": 2.9495762407505253
+        },
+        {
+          "avg_actions": 5.166666666666667,
+          "avg_utility_model": -6.333333333333333,
+          "avg_utility_p0": 6.333333333333333,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 4,
+            "call": 4,
+            "check": 4,
+            "fold": 3,
+            "raise": 1
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 3,
+            "raise": 1
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 3,
+            "call": 4,
+            "check": 1,
+            "fold": 2,
+            "raise": 5
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p0_action_counts": {
+            "bet": 3,
+            "call": 4,
+            "check": 1,
+            "fold": 2,
+            "raise": 5
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p1_action_counts": {
+            "bet": 4,
+            "call": 4,
+            "check": 4,
+            "fold": 3,
+            "raise": 1
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 3,
+            "raise": 1
+          },
+          "seed": 11092988,
+          "showdowns": 1,
+          "utility_stderr_model": 4.477102237434885,
+          "utility_stderr_p0": 4.477102237434885,
+          "utility_stdev_model": 10.966616007988366,
+          "utility_stdev_p0": 10.966616007988366
+        },
+        {
+          "avg_actions": 8.5,
+          "avg_utility_model": -8.0,
+          "avg_utility_p0": 8.0,
+          "folds": 3,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 3,
+            "call": 4,
+            "check": 13,
+            "fold": 3,
+            "raise": 3
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 4,
+            "call": 6,
+            "check": 9,
+            "fold": 0,
+            "raise": 6
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 0,
+            "raise": 6
+          },
+          "p0_action_counts": {
+            "bet": 4,
+            "call": 6,
+            "check": 9,
+            "fold": 0,
+            "raise": 6
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 0,
+            "raise": 6
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 4,
+            "check": 13,
+            "fold": 3,
+            "raise": 3
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "seed": 12092991,
+          "showdowns": 3,
+          "utility_stderr_model": 3.0110906108363245,
+          "utility_stderr_p0": 3.0110906108363245,
+          "utility_stdev_model": 7.37563556583431,
+          "utility_stdev_p0": 7.37563556583431
+        },
+        {
+          "avg_actions": 6.0,
+          "avg_utility_model": -0.5,
+          "avg_utility_p0": 0.5,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 7,
+            "call": 5,
+            "check": 2,
+            "fold": 1,
+            "raise": 3
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 1,
+            "raise": 3
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 1,
+            "call": 4,
+            "check": 1,
+            "fold": 4,
+            "raise": 8
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 8
+          },
+          "p0_action_counts": {
+            "bet": 1,
+            "call": 4,
+            "check": 1,
+            "fold": 4,
+            "raise": 8
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 8
+          },
+          "p1_action_counts": {
+            "bet": 7,
+            "call": 5,
+            "check": 2,
+            "fold": 1,
+            "raise": 3
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 1,
+            "raise": 3
+          },
+          "seed": 13092994,
+          "showdowns": 1,
+          "utility_stderr_model": 4.951430769653017,
+          "utility_stderr_p0": 4.951430769653017,
+          "utility_stdev_model": 12.128478882366082,
+          "utility_stdev_p0": 12.128478882366082
+        },
+        {
+          "avg_actions": 4.166666666666667,
+          "avg_utility_model": -0.16666666666666666,
+          "avg_utility_p0": 0.16666666666666666,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 3,
+            "call": 0,
+            "check": 3,
+            "fold": 1,
+            "raise": 3
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 0,
+            "check": 0,
+            "fold": 1,
+            "raise": 3
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 3,
+            "fold": 4,
+            "raise": 4
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 4
+          },
+          "p0_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 3,
+            "fold": 4,
+            "raise": 4
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 4
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 0,
+            "check": 3,
+            "fold": 1,
+            "raise": 3
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 0,
+            "check": 0,
+            "fold": 1,
+            "raise": 3
+          },
+          "seed": 14092997,
+          "showdowns": 1,
+          "utility_stderr_model": 2.600213666434186,
+          "utility_stderr_p0": 2.600213666434186,
+          "utility_stdev_model": 6.369196704975178,
+          "utility_stdev_p0": 6.369196704975178
+        },
+        {
+          "avg_actions": 3.6666666666666665,
+          "avg_utility_model": 1.8333333333333333,
+          "avg_utility_p0": -1.8333333333333333,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 1,
+            "call": 1,
+            "check": 4,
+            "fold": 1,
+            "raise": 2
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 1,
+            "check": 0,
+            "fold": 1,
+            "raise": 2
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 1,
+            "call": 2,
+            "check": 3,
+            "fold": 4,
+            "raise": 3
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 4,
+            "raise": 3
+          },
+          "p0_action_counts": {
+            "bet": 1,
+            "call": 2,
+            "check": 3,
+            "fold": 4,
+            "raise": 3
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 4,
+            "raise": 3
+          },
+          "p1_action_counts": {
+            "bet": 1,
+            "call": 1,
+            "check": 4,
+            "fold": 1,
+            "raise": 2
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 1,
+            "check": 0,
+            "fold": 1,
+            "raise": 2
+          },
+          "seed": 15093000,
+          "showdowns": 1,
+          "utility_stderr_model": 2.1200104821543797,
+          "utility_stderr_p0": 2.1200104821543797,
+          "utility_stdev_model": 5.192943930629973,
+          "utility_stdev_p0": 5.192943930629973
+        }
+      ],
+      "shards": 16,
+      "showdowns": 21,
+      "utility_stderr_model": 0.8992988289986726,
+      "utility_stderr_p0": 0.8992988289986726,
+      "utility_stdev_model": 8.992988289986727,
+      "utility_stdev_p0": 8.992988289986727
+    }
+  ],
+  "seed": 92955,
+  "shard_hands": [
+    7,
+    7,
+    7,
+    7,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6
+  ],
+  "shard_metrics": [
+    {
+      "avg_actions": 6.428571428571429,
+      "avg_utility_model": 0.14285714285714285,
+      "avg_utility_p0": -2.142857142857143,
+      "blend_after_opponent_aggressions": 1,
+      "blend_checkpoint": "experiments/holdem_cap2_mccfr_response_p1only_distill_200_kl2_balanced_call4_fold01_raise2_trainselect/holdem_policy.pt",
+      "blend_facing_bet_only": true,
+      "blend_players": [
+        1
+      ],
+      "blend_weight": 1.0,
+      "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "equity_sims": 8,
+      "facing_bet_logit_bias_after_opponent_aggressions": null,
+      "facing_bet_logit_bias_min_raise_prob": null,
+      "facing_bet_logit_biases": {},
+      "folds": 10,
+      "hands": 14,
+      "hands_per_model_player": 7,
+      "model_action_counts": {
+        "bet": 7,
+        "call": 12,
+        "check": 13,
+        "fold": 7,
+        "raise": 7
+      },
+      "model_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 12,
+        "check": 0,
+        "fold": 7,
+        "raise": 7
+      },
+      "model_player": "both",
+      "model_rollout_margin": null,
+      "model_rollout_opponent_equity_sims": null,
+      "model_rollout_opponent_policy": null,
+      "model_rollout_opponent_rollout_margin": null,
+      "model_rollout_opponent_rollout_sims": null,
+      "model_rollout_sims": null,
+      "opponent_action_counts": {
+        "bet": 10,
+        "call": 9,
+        "check": 13,
+        "fold": 3,
+        "raise": 9
+      },
+      "opponent_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 9,
+        "check": 0,
+        "fold": 3,
+        "raise": 9
+      },
+      "opponent_policy": "tight-safe-rollout-pot-odds",
+      "p0_action_counts": {
+        "bet": 8,
+        "call": 11,
+        "check": 9,
+        "fold": 6,
+        "raise": 11
+      },
+      "p0_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 11,
+        "check": 0,
+        "fold": 6,
+        "raise": 11
+      },
+      "p1_action_counts": {
+        "bet": 9,
+        "call": 10,
+        "check": 17,
+        "fold": 4,
+        "raise": 5
+      },
+      "p1_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 10,
+        "check": 0,
+        "fold": 4,
+        "raise": 5
+      },
+      "paired_deals": 7,
+      "player0_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_value_mixed_base774_value400_kl8_sqrt_facing3_temp075_vw05_vscale2_feat4_trainselect/holdem_policy.pt",
+      "player1_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "player_facing_bet_logit_bias_after_opponent_aggressions": 1,
+      "player_facing_bet_logit_bias_min_raise_prob": null,
+      "player_facing_bet_logit_biases": {
+        "1:fold": -0.5,
+        "1:raise": 1.0
+      },
+      "rollout_margin": 1.0,
+      "rollout_sims": 1,
+      "seat_metrics": [
+        {
+          "avg_actions": 7.285714285714286,
+          "avg_utility_model": -2.0,
+          "avg_utility_p0": -2.0,
+          "folds": 5,
+          "hands": 7,
+          "model_action_counts": {
+            "bet": 4,
+            "call": 7,
+            "check": 5,
+            "fold": 4,
+            "raise": 6
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 7,
+            "check": 0,
+            "fold": 4,
+            "raise": 6
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 6,
+            "call": 5,
+            "check": 9,
+            "fold": 1,
+            "raise": 4
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 1,
+            "raise": 4
+          },
+          "p0_action_counts": {
+            "bet": 4,
+            "call": 7,
+            "check": 5,
+            "fold": 4,
+            "raise": 6
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 7,
+            "check": 0,
+            "fold": 4,
+            "raise": 6
+          },
+          "p1_action_counts": {
+            "bet": 6,
+            "call": 5,
+            "check": 9,
+            "fold": 1,
+            "raise": 4
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 1,
+            "raise": 4
+          },
+          "seed": 92955,
+          "showdowns": 2,
+          "utility_stderr_model": 5.503245795502349,
+          "utility_stderr_p0": 5.503245795502349,
+          "utility_stdev_model": 14.560219778561036,
+          "utility_stdev_p0": 14.560219778561036
+        },
+        {
+          "avg_actions": 5.571428571428571,
+          "avg_utility_model": 2.2857142857142856,
+          "avg_utility_p0": -2.2857142857142856,
+          "folds": 5,
+          "hands": 7,
+          "model_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 8,
+            "fold": 3,
+            "raise": 1
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 3,
+            "raise": 1
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 4,
+            "call": 4,
+            "check": 4,
+            "fold": 2,
+            "raise": 5
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p0_action_counts": {
+            "bet": 4,
+            "call": 4,
+            "check": 4,
+            "fold": 2,
+            "raise": 5
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 8,
+            "fold": 3,
+            "raise": 1
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 3,
+            "raise": 1
+          },
+          "seed": 92955,
+          "showdowns": 2,
+          "utility_stderr_model": 2.9657913560038134,
+          "utility_stderr_p0": 2.9657913560038134,
+          "utility_stdev_model": 7.84674636849112,
+          "utility_stdev_p0": 7.84674636849112
+        }
+      ],
+      "seed": 92955,
+      "shard_index": 0,
+      "showdowns": 4,
+      "utility_stderr_model": 1.860345224344529,
+      "utility_stderr_p0": 4.009979048921467,
+      "utility_stdev_model": 4.922010816342288,
+      "utility_stdev_p0": 10.609407326025512
+    },
+    {
+      "avg_actions": 6.214285714285714,
+      "avg_utility_model": 1.1428571428571428,
+      "avg_utility_p0": 2.2857142857142856,
+      "blend_after_opponent_aggressions": 1,
+      "blend_checkpoint": "experiments/holdem_cap2_mccfr_response_p1only_distill_200_kl2_balanced_call4_fold01_raise2_trainselect/holdem_policy.pt",
+      "blend_facing_bet_only": true,
+      "blend_players": [
+        1
+      ],
+      "blend_weight": 1.0,
+      "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "equity_sims": 8,
+      "facing_bet_logit_bias_after_opponent_aggressions": null,
+      "facing_bet_logit_bias_min_raise_prob": null,
+      "facing_bet_logit_biases": {},
+      "folds": 11,
+      "hands": 14,
+      "hands_per_model_player": 7,
+      "model_action_counts": {
+        "bet": 11,
+        "call": 13,
+        "check": 6,
+        "fold": 4,
+        "raise": 10
+      },
+      "model_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 13,
+        "check": 0,
+        "fold": 4,
+        "raise": 10
+      },
+      "model_player": "both",
+      "model_rollout_margin": null,
+      "model_rollout_opponent_equity_sims": null,
+      "model_rollout_opponent_policy": null,
+      "model_rollout_opponent_rollout_margin": null,
+      "model_rollout_opponent_rollout_sims": null,
+      "model_rollout_sims": null,
+      "opponent_action_counts": {
+        "bet": 6,
+        "call": 7,
+        "check": 9,
+        "fold": 7,
+        "raise": 14
+      },
+      "opponent_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 7,
+        "check": 0,
+        "fold": 7,
+        "raise": 14
+      },
+      "opponent_policy": "tight-safe-rollout-pot-odds",
+      "p0_action_counts": {
+        "bet": 7,
+        "call": 15,
+        "check": 4,
+        "fold": 5,
+        "raise": 14
+      },
+      "p0_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 15,
+        "check": 0,
+        "fold": 5,
+        "raise": 14
+      },
+      "p1_action_counts": {
+        "bet": 10,
+        "call": 5,
+        "check": 11,
+        "fold": 6,
+        "raise": 10
+      },
+      "p1_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 5,
+        "check": 0,
+        "fold": 6,
+        "raise": 10
+      },
+      "paired_deals": 7,
+      "player0_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_value_mixed_base774_value400_kl8_sqrt_facing3_temp075_vw05_vscale2_feat4_trainselect/holdem_policy.pt",
+      "player1_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "player_facing_bet_logit_bias_after_opponent_aggressions": 1,
+      "player_facing_bet_logit_bias_min_raise_prob": null,
+      "player_facing_bet_logit_biases": {
+        "1:fold": -0.5,
+        "1:raise": 1.0
+      },
+      "rollout_margin": 1.0,
+      "rollout_sims": 1,
+      "seat_metrics": [
+        {
+          "avg_actions": 6.857142857142857,
+          "avg_utility_model": 3.4285714285714284,
+          "avg_utility_p0": 3.4285714285714284,
+          "folds": 6,
+          "hands": 7,
+          "model_action_counts": {
+            "bet": 5,
+            "call": 9,
+            "check": 2,
+            "fold": 2,
+            "raise": 7
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 9,
+            "check": 0,
+            "fold": 2,
+            "raise": 7
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 4,
+            "call": 1,
+            "check": 7,
+            "fold": 4,
+            "raise": 7
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 1,
+            "check": 0,
+            "fold": 4,
+            "raise": 7
+          },
+          "p0_action_counts": {
+            "bet": 5,
+            "call": 9,
+            "check": 2,
+            "fold": 2,
+            "raise": 7
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 9,
+            "check": 0,
+            "fold": 2,
+            "raise": 7
+          },
+          "p1_action_counts": {
+            "bet": 4,
+            "call": 1,
+            "check": 7,
+            "fold": 4,
+            "raise": 7
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 1,
+            "check": 0,
+            "fold": 4,
+            "raise": 7
+          },
+          "seed": 1092958,
+          "showdowns": 1,
+          "utility_stderr_model": 4.156791017675275,
+          "utility_stderr_p0": 4.156791017675275,
+          "utility_stdev_model": 10.997835284835872,
+          "utility_stdev_p0": 10.997835284835872
+        },
+        {
+          "avg_actions": 5.571428571428571,
+          "avg_utility_model": -1.1428571428571428,
+          "avg_utility_p0": 1.1428571428571428,
+          "folds": 5,
+          "hands": 7,
+          "model_action_counts": {
+            "bet": 6,
+            "call": 4,
+            "check": 4,
+            "fold": 2,
+            "raise": 3
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 2,
+            "raise": 3
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 2,
+            "call": 6,
+            "check": 2,
+            "fold": 3,
+            "raise": 7
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 3,
+            "raise": 7
+          },
+          "p0_action_counts": {
+            "bet": 2,
+            "call": 6,
+            "check": 2,
+            "fold": 3,
+            "raise": 7
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 3,
+            "raise": 7
+          },
+          "p1_action_counts": {
+            "bet": 6,
+            "call": 4,
+            "check": 4,
+            "fold": 2,
+            "raise": 3
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 2,
+            "raise": 3
+          },
+          "seed": 1092958,
+          "showdowns": 2,
+          "utility_stderr_model": 4.1313469003321845,
+          "utility_stderr_p0": 4.1313469003321845,
+          "utility_stdev_model": 10.93051647801651,
+          "utility_stdev_p0": 10.93051647801651
+        }
+      ],
+      "seed": 1092958,
+      "shard_index": 1,
+      "showdowns": 3,
+      "utility_stderr_model": 1.4988657843368705,
+      "utility_stderr_p0": 3.863530865451876,
+      "utility_stdev_model": 3.9656261140191313,
+      "utility_stdev_p0": 10.221941852607813
+    },
+    {
+      "avg_actions": 4.071428571428571,
+      "avg_utility_model": 0.7857142857142857,
+      "avg_utility_p0": 2.642857142857143,
+      "blend_after_opponent_aggressions": 1,
+      "blend_checkpoint": "experiments/holdem_cap2_mccfr_response_p1only_distill_200_kl2_balanced_call4_fold01_raise2_trainselect/holdem_policy.pt",
+      "blend_facing_bet_only": true,
+      "blend_players": [
+        1
+      ],
+      "blend_weight": 1.0,
+      "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "equity_sims": 8,
+      "facing_bet_logit_bias_after_opponent_aggressions": null,
+      "facing_bet_logit_bias_min_raise_prob": null,
+      "facing_bet_logit_biases": {},
+      "folds": 12,
+      "hands": 14,
+      "hands_per_model_player": 7,
+      "model_action_counts": {
+        "bet": 8,
+        "call": 11,
+        "check": 2,
+        "fold": 5,
+        "raise": 3
+      },
+      "model_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 11,
+        "check": 0,
+        "fold": 5,
+        "raise": 3
+      },
+      "model_player": "both",
+      "model_rollout_margin": null,
+      "model_rollout_opponent_equity_sims": null,
+      "model_rollout_opponent_policy": null,
+      "model_rollout_opponent_rollout_margin": null,
+      "model_rollout_opponent_rollout_sims": null,
+      "model_rollout_sims": null,
+      "opponent_action_counts": {
+        "bet": 6,
+        "call": 5,
+        "check": 4,
+        "fold": 7,
+        "raise": 6
+      },
+      "opponent_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 5,
+        "check": 0,
+        "fold": 7,
+        "raise": 6
+      },
+      "opponent_policy": "tight-safe-rollout-pot-odds",
+      "p0_action_counts": {
+        "bet": 6,
+        "call": 12,
+        "check": 0,
+        "fold": 7,
+        "raise": 6
+      },
+      "p0_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 12,
+        "check": 0,
+        "fold": 7,
+        "raise": 6
+      },
+      "p1_action_counts": {
+        "bet": 8,
+        "call": 4,
+        "check": 6,
+        "fold": 5,
+        "raise": 3
+      },
+      "p1_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 4,
+        "check": 0,
+        "fold": 5,
+        "raise": 3
+      },
+      "paired_deals": 7,
+      "player0_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_value_mixed_base774_value400_kl8_sqrt_facing3_temp075_vw05_vscale2_feat4_trainselect/holdem_policy.pt",
+      "player1_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "player_facing_bet_logit_bias_after_opponent_aggressions": 1,
+      "player_facing_bet_logit_bias_min_raise_prob": null,
+      "player_facing_bet_logit_biases": {
+        "1:fold": -0.5,
+        "1:raise": 1.0
+      },
+      "rollout_margin": 1.0,
+      "rollout_sims": 1,
+      "seat_metrics": [
+        {
+          "avg_actions": 4.714285714285714,
+          "avg_utility_model": 3.4285714285714284,
+          "avg_utility_p0": 3.4285714285714284,
+          "folds": 6,
+          "hands": 7,
+          "model_action_counts": {
+            "bet": 4,
+            "call": 8,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 8,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 4,
+            "call": 1,
+            "check": 4,
+            "fold": 3,
+            "raise": 3
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 1,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "p0_action_counts": {
+            "bet": 4,
+            "call": 8,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 8,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "p1_action_counts": {
+            "bet": 4,
+            "call": 1,
+            "check": 4,
+            "fold": 3,
+            "raise": 3
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 1,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "seed": 2092961,
+          "showdowns": 1,
+          "utility_stderr_model": 3.5109159221270017,
+          "utility_stderr_p0": 3.5109159221270017,
+          "utility_stdev_model": 9.289010404005062,
+          "utility_stdev_p0": 9.289010404005062
+        },
+        {
+          "avg_actions": 3.4285714285714284,
+          "avg_utility_model": -1.8571428571428572,
+          "avg_utility_p0": 1.8571428571428572,
+          "folds": 6,
+          "hands": 7,
+          "model_action_counts": {
+            "bet": 4,
+            "call": 3,
+            "check": 2,
+            "fold": 2,
+            "raise": 0
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 2,
+            "raise": 0
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 2,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 3
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 3
+          },
+          "p0_action_counts": {
+            "bet": 2,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 3
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 3
+          },
+          "p1_action_counts": {
+            "bet": 4,
+            "call": 3,
+            "check": 2,
+            "fold": 2,
+            "raise": 0
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 2,
+            "raise": 0
+          },
+          "seed": 2092961,
+          "showdowns": 1,
+          "utility_stderr_model": 2.2406267344797315,
+          "utility_stderr_p0": 2.2406267344797315,
+          "utility_stdev_model": 5.9281411203561225,
+          "utility_stdev_p0": 5.9281411203561225
+        }
+      ],
+      "seed": 2092961,
+      "shard_index": 2,
+      "showdowns": 2,
+      "utility_stderr_model": 0.9931739816482957,
+      "utility_stderr_p0": 2.7725574529542163,
+      "utility_stdev_model": 2.627691364061218,
+      "utility_stdev_p0": 7.33549751615552
+    },
+    {
+      "avg_actions": 5.785714285714286,
+      "avg_utility_model": 2.4285714285714284,
+      "avg_utility_p0": 3.0,
+      "blend_after_opponent_aggressions": 1,
+      "blend_checkpoint": "experiments/holdem_cap2_mccfr_response_p1only_distill_200_kl2_balanced_call4_fold01_raise2_trainselect/holdem_policy.pt",
+      "blend_facing_bet_only": true,
+      "blend_players": [
+        1
+      ],
+      "blend_weight": 1.0,
+      "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "equity_sims": 8,
+      "facing_bet_logit_bias_after_opponent_aggressions": null,
+      "facing_bet_logit_bias_min_raise_prob": null,
+      "facing_bet_logit_biases": {},
+      "folds": 12,
+      "hands": 14,
+      "hands_per_model_player": 7,
+      "model_action_counts": {
+        "bet": 8,
+        "call": 11,
+        "check": 8,
+        "fold": 7,
+        "raise": 7
+      },
+      "model_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 11,
+        "check": 0,
+        "fold": 7,
+        "raise": 7
+      },
+      "model_player": "both",
+      "model_rollout_margin": null,
+      "model_rollout_opponent_equity_sims": null,
+      "model_rollout_opponent_policy": null,
+      "model_rollout_opponent_rollout_margin": null,
+      "model_rollout_opponent_rollout_sims": null,
+      "model_rollout_sims": null,
+      "opponent_action_counts": {
+        "bet": 8,
+        "call": 7,
+        "check": 10,
+        "fold": 5,
+        "raise": 10
+      },
+      "opponent_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 7,
+        "check": 0,
+        "fold": 5,
+        "raise": 10
+      },
+      "opponent_policy": "tight-safe-rollout-pot-odds",
+      "p0_action_counts": {
+        "bet": 10,
+        "call": 9,
+        "check": 4,
+        "fold": 8,
+        "raise": 10
+      },
+      "p0_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 9,
+        "check": 0,
+        "fold": 8,
+        "raise": 10
+      },
+      "p1_action_counts": {
+        "bet": 6,
+        "call": 9,
+        "check": 14,
+        "fold": 4,
+        "raise": 7
+      },
+      "p1_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 9,
+        "check": 0,
+        "fold": 4,
+        "raise": 7
+      },
+      "paired_deals": 7,
+      "player0_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_value_mixed_base774_value400_kl8_sqrt_facing3_temp075_vw05_vscale2_feat4_trainselect/holdem_policy.pt",
+      "player1_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "player_facing_bet_logit_bias_after_opponent_aggressions": 1,
+      "player_facing_bet_logit_bias_min_raise_prob": null,
+      "player_facing_bet_logit_biases": {
+        "1:fold": -0.5,
+        "1:raise": 1.0
+      },
+      "rollout_margin": 1.0,
+      "rollout_sims": 1,
+      "seat_metrics": [
+        {
+          "avg_actions": 6.714285714285714,
+          "avg_utility_model": 5.428571428571429,
+          "avg_utility_p0": 5.428571428571429,
+          "folds": 5,
+          "hands": 7,
+          "model_action_counts": {
+            "bet": 6,
+            "call": 7,
+            "check": 1,
+            "fold": 4,
+            "raise": 6
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 7,
+            "check": 0,
+            "fold": 4,
+            "raise": 6
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 4,
+            "call": 5,
+            "check": 7,
+            "fold": 1,
+            "raise": 6
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 1,
+            "raise": 6
+          },
+          "p0_action_counts": {
+            "bet": 6,
+            "call": 7,
+            "check": 1,
+            "fold": 4,
+            "raise": 6
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 7,
+            "check": 0,
+            "fold": 4,
+            "raise": 6
+          },
+          "p1_action_counts": {
+            "bet": 4,
+            "call": 5,
+            "check": 7,
+            "fold": 1,
+            "raise": 6
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 1,
+            "raise": 6
+          },
+          "seed": 3092964,
+          "showdowns": 2,
+          "utility_stderr_model": 4.873920602637709,
+          "utility_stderr_p0": 4.873920602637709,
+          "utility_stdev_model": 12.895181824453438,
+          "utility_stdev_p0": 12.895181824453438
+        },
+        {
+          "avg_actions": 4.857142857142857,
+          "avg_utility_model": -0.5714285714285714,
+          "avg_utility_p0": 0.5714285714285714,
+          "folds": 7,
+          "hands": 7,
+          "model_action_counts": {
+            "bet": 2,
+            "call": 4,
+            "check": 7,
+            "fold": 3,
+            "raise": 1
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 3,
+            "raise": 1
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 4,
+            "call": 2,
+            "check": 3,
+            "fold": 4,
+            "raise": 4
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 4,
+            "raise": 4
+          },
+          "p0_action_counts": {
+            "bet": 4,
+            "call": 2,
+            "check": 3,
+            "fold": 4,
+            "raise": 4
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 4,
+            "raise": 4
+          },
+          "p1_action_counts": {
+            "bet": 2,
+            "call": 4,
+            "check": 7,
+            "fold": 3,
+            "raise": 1
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 3,
+            "raise": 1
+          },
+          "seed": 3092964,
+          "showdowns": 0,
+          "utility_stderr_model": 1.6014449257904988,
+          "utility_stderr_p0": 1.6014449257904988,
+          "utility_stdev_model": 4.2370250120079485,
+          "utility_stdev_p0": 4.2370250120079485
+        }
+      ],
+      "seed": 3092964,
+      "shard_index": 3,
+      "showdowns": 2,
+      "utility_stderr_model": 1.9223886785175668,
+      "utility_stderr_p0": 3.0764079239082895,
+      "utility_stdev_model": 5.0861623665635785,
+      "utility_stdev_p0": 8.139410298049853
+    },
+    {
+      "avg_actions": 5.666666666666667,
+      "avg_utility_model": -2.5,
+      "avg_utility_p0": 2.1666666666666665,
+      "blend_after_opponent_aggressions": 1,
+      "blend_checkpoint": "experiments/holdem_cap2_mccfr_response_p1only_distill_200_kl2_balanced_call4_fold01_raise2_trainselect/holdem_policy.pt",
+      "blend_facing_bet_only": true,
+      "blend_players": [
+        1
+      ],
+      "blend_weight": 1.0,
+      "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "equity_sims": 8,
+      "facing_bet_logit_bias_after_opponent_aggressions": null,
+      "facing_bet_logit_bias_min_raise_prob": null,
+      "facing_bet_logit_biases": {},
+      "folds": 11,
+      "hands": 12,
+      "hands_per_model_player": 6,
+      "model_action_counts": {
+        "bet": 4,
+        "call": 9,
+        "check": 12,
+        "fold": 9,
+        "raise": 3
+      },
+      "model_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 9,
+        "check": 0,
+        "fold": 9,
+        "raise": 3
+      },
+      "model_player": "both",
+      "model_rollout_margin": null,
+      "model_rollout_opponent_equity_sims": null,
+      "model_rollout_opponent_policy": null,
+      "model_rollout_opponent_rollout_margin": null,
+      "model_rollout_opponent_rollout_sims": null,
+      "model_rollout_sims": null,
+      "opponent_action_counts": {
+        "bet": 8,
+        "call": 4,
+        "check": 10,
+        "fold": 2,
+        "raise": 7
+      },
+      "opponent_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 4,
+        "check": 0,
+        "fold": 2,
+        "raise": 7
+      },
+      "opponent_policy": "tight-safe-rollout-pot-odds",
+      "p0_action_counts": {
+        "bet": 8,
+        "call": 6,
+        "check": 7,
+        "fold": 4,
+        "raise": 8
+      },
+      "p0_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 6,
+        "check": 0,
+        "fold": 4,
+        "raise": 8
+      },
+      "p1_action_counts": {
+        "bet": 4,
+        "call": 7,
+        "check": 15,
+        "fold": 7,
+        "raise": 2
+      },
+      "p1_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 7,
+        "check": 0,
+        "fold": 7,
+        "raise": 2
+      },
+      "paired_deals": 6,
+      "player0_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_value_mixed_base774_value400_kl8_sqrt_facing3_temp075_vw05_vscale2_feat4_trainselect/holdem_policy.pt",
+      "player1_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "player_facing_bet_logit_bias_after_opponent_aggressions": 1,
+      "player_facing_bet_logit_bias_min_raise_prob": null,
+      "player_facing_bet_logit_biases": {
+        "1:fold": -0.5,
+        "1:raise": 1.0
+      },
+      "rollout_margin": 1.0,
+      "rollout_sims": 1,
+      "seat_metrics": [
+        {
+          "avg_actions": 5.333333333333333,
+          "avg_utility_model": -0.3333333333333333,
+          "avg_utility_p0": -0.3333333333333333,
+          "folds": 6,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 3,
+            "call": 4,
+            "check": 3,
+            "fold": 4,
+            "raise": 3
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 3
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 3,
+            "call": 2,
+            "check": 6,
+            "fold": 2,
+            "raise": 2
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 2,
+            "raise": 2
+          },
+          "p0_action_counts": {
+            "bet": 3,
+            "call": 4,
+            "check": 3,
+            "fold": 4,
+            "raise": 3
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 3
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 2,
+            "check": 6,
+            "fold": 2,
+            "raise": 2
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 2,
+            "raise": 2
+          },
+          "seed": 4092967,
+          "showdowns": 0,
+          "utility_stderr_model": 1.8915014612148144,
+          "utility_stderr_p0": 1.8915014612148144,
+          "utility_stdev_model": 4.633213427705081,
+          "utility_stdev_p0": 4.633213427705081
+        },
+        {
+          "avg_actions": 6.0,
+          "avg_utility_model": -4.666666666666667,
+          "avg_utility_p0": 4.666666666666667,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 1,
+            "call": 5,
+            "check": 9,
+            "fold": 5,
+            "raise": 0
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 0
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 5,
+            "call": 2,
+            "check": 4,
+            "fold": 0,
+            "raise": 5
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 0,
+            "raise": 5
+          },
+          "p0_action_counts": {
+            "bet": 5,
+            "call": 2,
+            "check": 4,
+            "fold": 0,
+            "raise": 5
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 0,
+            "raise": 5
+          },
+          "p1_action_counts": {
+            "bet": 1,
+            "call": 5,
+            "check": 9,
+            "fold": 5,
+            "raise": 0
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 0
+          },
+          "seed": 4092967,
+          "showdowns": 1,
+          "utility_stderr_model": 0.843274042711568,
+          "utility_stderr_p0": 0.843274042711568,
+          "utility_stdev_model": 2.0655911179772892,
+          "utility_stdev_p0": 2.0655911179772892
+        }
+      ],
+      "seed": 4092967,
+      "shard_index": 4,
+      "showdowns": 1,
+      "utility_stderr_model": 0.7637626158259734,
+      "utility_stderr_p0": 1.2494443209327541,
+      "utility_stdev_model": 1.8708286933869707,
+      "utility_stdev_p0": 3.0605010483034745
+    },
+    {
+      "avg_actions": 5.5,
+      "avg_utility_model": -1.0,
+      "avg_utility_p0": 3.3333333333333335,
+      "blend_after_opponent_aggressions": 1,
+      "blend_checkpoint": "experiments/holdem_cap2_mccfr_response_p1only_distill_200_kl2_balanced_call4_fold01_raise2_trainselect/holdem_policy.pt",
+      "blend_facing_bet_only": true,
+      "blend_players": [
+        1
+      ],
+      "blend_weight": 1.0,
+      "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "equity_sims": 8,
+      "facing_bet_logit_bias_after_opponent_aggressions": null,
+      "facing_bet_logit_bias_min_raise_prob": null,
+      "facing_bet_logit_biases": {},
+      "folds": 8,
+      "hands": 12,
+      "hands_per_model_player": 6,
+      "model_action_counts": {
+        "bet": 6,
+        "call": 10,
+        "check": 9,
+        "fold": 4,
+        "raise": 5
+      },
+      "model_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 10,
+        "check": 0,
+        "fold": 4,
+        "raise": 5
+      },
+      "model_player": "both",
+      "model_rollout_margin": null,
+      "model_rollout_opponent_equity_sims": null,
+      "model_rollout_opponent_policy": null,
+      "model_rollout_opponent_rollout_margin": null,
+      "model_rollout_opponent_rollout_sims": null,
+      "model_rollout_sims": null,
+      "opponent_action_counts": {
+        "bet": 4,
+        "call": 4,
+        "check": 11,
+        "fold": 4,
+        "raise": 9
+      },
+      "opponent_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 4,
+        "check": 0,
+        "fold": 4,
+        "raise": 9
+      },
+      "opponent_policy": "tight-safe-rollout-pot-odds",
+      "p0_action_counts": {
+        "bet": 4,
+        "call": 7,
+        "check": 8,
+        "fold": 5,
+        "raise": 10
+      },
+      "p0_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 7,
+        "check": 0,
+        "fold": 5,
+        "raise": 10
+      },
+      "p1_action_counts": {
+        "bet": 6,
+        "call": 7,
+        "check": 12,
+        "fold": 3,
+        "raise": 4
+      },
+      "p1_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 7,
+        "check": 0,
+        "fold": 3,
+        "raise": 4
+      },
+      "paired_deals": 6,
+      "player0_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_value_mixed_base774_value400_kl8_sqrt_facing3_temp075_vw05_vscale2_feat4_trainselect/holdem_policy.pt",
+      "player1_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "player_facing_bet_logit_bias_after_opponent_aggressions": 1,
+      "player_facing_bet_logit_bias_min_raise_prob": null,
+      "player_facing_bet_logit_biases": {
+        "1:fold": -0.5,
+        "1:raise": 1.0
+      },
+      "rollout_margin": 1.0,
+      "rollout_sims": 1,
+      "seat_metrics": [
+        {
+          "avg_actions": 5.666666666666667,
+          "avg_utility_model": 2.3333333333333335,
+          "avg_utility_p0": 2.3333333333333335,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 2,
+            "fold": 3,
+            "raise": 5
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 3,
+            "raise": 5
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 3,
+            "call": 2,
+            "check": 5,
+            "fold": 2,
+            "raise": 4
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 2,
+            "raise": 4
+          },
+          "p0_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 2,
+            "fold": 3,
+            "raise": 5
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 3,
+            "raise": 5
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 2,
+            "check": 5,
+            "fold": 2,
+            "raise": 4
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 2,
+            "raise": 4
+          },
+          "seed": 5092970,
+          "showdowns": 1,
+          "utility_stderr_model": 4.046946722873651,
+          "utility_stderr_p0": 4.046946722873651,
+          "utility_stdev_model": 9.912954487269003,
+          "utility_stdev_p0": 9.912954487269003
+        },
+        {
+          "avg_actions": 5.333333333333333,
+          "avg_utility_model": -4.333333333333333,
+          "avg_utility_p0": 4.333333333333333,
+          "folds": 3,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 7,
+            "fold": 1,
+            "raise": 0
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 1,
+            "raise": 0
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 1,
+            "call": 2,
+            "check": 6,
+            "fold": 2,
+            "raise": 5
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p0_action_counts": {
+            "bet": 1,
+            "call": 2,
+            "check": 6,
+            "fold": 2,
+            "raise": 5
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 7,
+            "fold": 1,
+            "raise": 0
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 1,
+            "raise": 0
+          },
+          "seed": 5092970,
+          "showdowns": 3,
+          "utility_stderr_model": 2.6915505650915135,
+          "utility_stderr_p0": 2.6915505650915135,
+          "utility_stdev_model": 6.592925501373928,
+          "utility_stdev_p0": 6.592925501373928
+        }
+      ],
+      "seed": 5092970,
+      "shard_index": 5,
+      "showdowns": 4,
+      "utility_stderr_model": 2.7718826333979822,
+      "utility_stderr_p0": 2.031693327689437,
+      "utility_stdev_model": 6.789698078707182,
+      "utility_stdev_p0": 4.976611966656298
+    },
+    {
+      "avg_actions": 6.333333333333333,
+      "avg_utility_model": 0.5833333333333334,
+      "avg_utility_p0": -3.5833333333333335,
+      "blend_after_opponent_aggressions": 1,
+      "blend_checkpoint": "experiments/holdem_cap2_mccfr_response_p1only_distill_200_kl2_balanced_call4_fold01_raise2_trainselect/holdem_policy.pt",
+      "blend_facing_bet_only": true,
+      "blend_players": [
+        1
+      ],
+      "blend_weight": 1.0,
+      "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "equity_sims": 8,
+      "facing_bet_logit_bias_after_opponent_aggressions": null,
+      "facing_bet_logit_bias_min_raise_prob": null,
+      "facing_bet_logit_biases": {},
+      "folds": 10,
+      "hands": 12,
+      "hands_per_model_player": 6,
+      "model_action_counts": {
+        "bet": 9,
+        "call": 10,
+        "check": 10,
+        "fold": 6,
+        "raise": 4
+      },
+      "model_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 10,
+        "check": 0,
+        "fold": 6,
+        "raise": 4
+      },
+      "model_player": "both",
+      "model_rollout_margin": null,
+      "model_rollout_opponent_equity_sims": null,
+      "model_rollout_opponent_policy": null,
+      "model_rollout_opponent_rollout_margin": null,
+      "model_rollout_opponent_rollout_sims": null,
+      "model_rollout_sims": null,
+      "opponent_action_counts": {
+        "bet": 5,
+        "call": 6,
+        "check": 13,
+        "fold": 4,
+        "raise": 9
+      },
+      "opponent_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 6,
+        "check": 0,
+        "fold": 4,
+        "raise": 9
+      },
+      "opponent_policy": "tight-safe-rollout-pot-odds",
+      "p0_action_counts": {
+        "bet": 7,
+        "call": 9,
+        "check": 8,
+        "fold": 7,
+        "raise": 8
+      },
+      "p0_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 9,
+        "check": 0,
+        "fold": 7,
+        "raise": 8
+      },
+      "p1_action_counts": {
+        "bet": 7,
+        "call": 7,
+        "check": 15,
+        "fold": 3,
+        "raise": 5
+      },
+      "p1_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 7,
+        "check": 0,
+        "fold": 3,
+        "raise": 5
+      },
+      "paired_deals": 6,
+      "player0_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_value_mixed_base774_value400_kl8_sqrt_facing3_temp075_vw05_vscale2_feat4_trainselect/holdem_policy.pt",
+      "player1_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "player_facing_bet_logit_bias_after_opponent_aggressions": 1,
+      "player_facing_bet_logit_bias_min_raise_prob": null,
+      "player_facing_bet_logit_biases": {
+        "1:fold": -0.5,
+        "1:raise": 1.0
+      },
+      "rollout_margin": 1.0,
+      "rollout_sims": 1,
+      "seat_metrics": [
+        {
+          "avg_actions": 6.0,
+          "avg_utility_model": -3.0,
+          "avg_utility_p0": -3.0,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 5,
+            "call": 6,
+            "check": 2,
+            "fold": 4,
+            "raise": 2
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 4,
+            "raise": 2
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 3,
+            "call": 3,
+            "check": 7,
+            "fold": 1,
+            "raise": 3
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 1,
+            "raise": 3
+          },
+          "p0_action_counts": {
+            "bet": 5,
+            "call": 6,
+            "check": 2,
+            "fold": 4,
+            "raise": 2
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 4,
+            "raise": 2
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 3,
+            "check": 7,
+            "fold": 1,
+            "raise": 3
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 1,
+            "raise": 3
+          },
+          "seed": 6092973,
+          "showdowns": 1,
+          "utility_stderr_model": 2.1756225162774294,
+          "utility_stderr_p0": 2.1756225162774294,
+          "utility_stdev_model": 5.329165037789691,
+          "utility_stdev_p0": 5.329165037789691
+        },
+        {
+          "avg_actions": 6.666666666666667,
+          "avg_utility_model": 4.166666666666667,
+          "avg_utility_p0": -4.166666666666667,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 4,
+            "call": 4,
+            "check": 8,
+            "fold": 2,
+            "raise": 2
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 2,
+            "raise": 2
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 2,
+            "call": 3,
+            "check": 6,
+            "fold": 3,
+            "raise": 6
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 3,
+            "raise": 6
+          },
+          "p0_action_counts": {
+            "bet": 2,
+            "call": 3,
+            "check": 6,
+            "fold": 3,
+            "raise": 6
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 3,
+            "raise": 6
+          },
+          "p1_action_counts": {
+            "bet": 4,
+            "call": 4,
+            "check": 8,
+            "fold": 2,
+            "raise": 2
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 2,
+            "raise": 2
+          },
+          "seed": 6092973,
+          "showdowns": 1,
+          "utility_stderr_model": 3.2702361450580977,
+          "utility_stderr_p0": 3.2702361450580977,
+          "utility_stdev_model": 8.010409893798611,
+          "utility_stdev_p0": 8.010409893798611
+        }
+      ],
+      "seed": 6092973,
+      "shard_index": 6,
+      "showdowns": 2,
+      "utility_stderr_model": 1.8093123310006793,
+      "utility_stderr_p0": 2.107196663289352,
+      "utility_stdev_model": 4.431891996277286,
+      "utility_stdev_p0": 5.161556612754206
+    },
+    {
+      "avg_actions": 9.833333333333334,
+      "avg_utility_model": -0.6666666666666666,
+      "avg_utility_p0": -12.333333333333334,
+      "blend_after_opponent_aggressions": 1,
+      "blend_checkpoint": "experiments/holdem_cap2_mccfr_response_p1only_distill_200_kl2_balanced_call4_fold01_raise2_trainselect/holdem_policy.pt",
+      "blend_facing_bet_only": true,
+      "blend_players": [
+        1
+      ],
+      "blend_weight": 1.0,
+      "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "equity_sims": 8,
+      "facing_bet_logit_bias_after_opponent_aggressions": null,
+      "facing_bet_logit_bias_min_raise_prob": null,
+      "facing_bet_logit_biases": {},
+      "folds": 7,
+      "hands": 12,
+      "hands_per_model_player": 6,
+      "model_action_counts": {
+        "bet": 17,
+        "call": 19,
+        "check": 6,
+        "fold": 2,
+        "raise": 16
+      },
+      "model_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 19,
+        "check": 0,
+        "fold": 2,
+        "raise": 16
+      },
+      "model_player": "both",
+      "model_rollout_margin": null,
+      "model_rollout_opponent_equity_sims": null,
+      "model_rollout_opponent_policy": null,
+      "model_rollout_opponent_rollout_margin": null,
+      "model_rollout_opponent_rollout_sims": null,
+      "model_rollout_sims": null,
+      "opponent_action_counts": {
+        "bet": 6,
+        "call": 9,
+        "check": 13,
+        "fold": 5,
+        "raise": 25
+      },
+      "opponent_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 9,
+        "check": 0,
+        "fold": 5,
+        "raise": 25
+      },
+      "opponent_policy": "tight-safe-rollout-pot-odds",
+      "p0_action_counts": {
+        "bet": 9,
+        "call": 14,
+        "check": 5,
+        "fold": 5,
+        "raise": 24
+      },
+      "p0_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 14,
+        "check": 0,
+        "fold": 5,
+        "raise": 24
+      },
+      "p1_action_counts": {
+        "bet": 14,
+        "call": 14,
+        "check": 14,
+        "fold": 2,
+        "raise": 17
+      },
+      "p1_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 14,
+        "check": 0,
+        "fold": 2,
+        "raise": 17
+      },
+      "paired_deals": 6,
+      "player0_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_value_mixed_base774_value400_kl8_sqrt_facing3_temp075_vw05_vscale2_feat4_trainselect/holdem_policy.pt",
+      "player1_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "player_facing_bet_logit_bias_after_opponent_aggressions": 1,
+      "player_facing_bet_logit_bias_min_raise_prob": null,
+      "player_facing_bet_logit_biases": {
+        "1:fold": -0.5,
+        "1:raise": 1.0
+      },
+      "rollout_margin": 1.0,
+      "rollout_sims": 1,
+      "seat_metrics": [
+        {
+          "avg_actions": 11.5,
+          "avg_utility_model": -13.0,
+          "avg_utility_p0": -13.0,
+          "folds": 2,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 8,
+            "call": 11,
+            "check": 3,
+            "fold": 1,
+            "raise": 11
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 11,
+            "check": 0,
+            "fold": 1,
+            "raise": 11
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 5,
+            "call": 6,
+            "check": 11,
+            "fold": 1,
+            "raise": 12
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 1,
+            "raise": 12
+          },
+          "p0_action_counts": {
+            "bet": 8,
+            "call": 11,
+            "check": 3,
+            "fold": 1,
+            "raise": 11
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 11,
+            "check": 0,
+            "fold": 1,
+            "raise": 11
+          },
+          "p1_action_counts": {
+            "bet": 5,
+            "call": 6,
+            "check": 11,
+            "fold": 1,
+            "raise": 12
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 1,
+            "raise": 12
+          },
+          "seed": 7092976,
+          "showdowns": 4,
+          "utility_stderr_model": 9.448103866208642,
+          "utility_stderr_p0": 9.448103866208642,
+          "utility_stdev_model": 23.143033509028154,
+          "utility_stdev_p0": 23.143033509028154
+        },
+        {
+          "avg_actions": 8.166666666666666,
+          "avg_utility_model": 11.666666666666666,
+          "avg_utility_p0": -11.666666666666666,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 9,
+            "call": 8,
+            "check": 3,
+            "fold": 1,
+            "raise": 5
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 8,
+            "check": 0,
+            "fold": 1,
+            "raise": 5
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 1,
+            "call": 3,
+            "check": 2,
+            "fold": 4,
+            "raise": 13
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 4,
+            "raise": 13
+          },
+          "p0_action_counts": {
+            "bet": 1,
+            "call": 3,
+            "check": 2,
+            "fold": 4,
+            "raise": 13
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 4,
+            "raise": 13
+          },
+          "p1_action_counts": {
+            "bet": 9,
+            "call": 8,
+            "check": 3,
+            "fold": 1,
+            "raise": 5
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 8,
+            "check": 0,
+            "fold": 1,
+            "raise": 5
+          },
+          "seed": 7092976,
+          "showdowns": 1,
+          "utility_stderr_model": 5.044248650140519,
+          "utility_stderr_p0": 5.044248650140519,
+          "utility_stdev_model": 12.355835328567093,
+          "utility_stdev_p0": 12.355835328567093
+        }
+      ],
+      "seed": 7092976,
+      "shard_index": 7,
+      "showdowns": 5,
+      "utility_stderr_model": 4.910306620885413,
+      "utility_stderr_p0": 5.765799549450574,
+      "utility_stdev_model": 12.027745701779144,
+      "utility_stdev_p0": 14.12326685532305
+    },
+    {
+      "avg_actions": 5.583333333333333,
+      "avg_utility_model": 4.583333333333333,
+      "avg_utility_p0": -4.916666666666667,
+      "blend_after_opponent_aggressions": 1,
+      "blend_checkpoint": "experiments/holdem_cap2_mccfr_response_p1only_distill_200_kl2_balanced_call4_fold01_raise2_trainselect/holdem_policy.pt",
+      "blend_facing_bet_only": true,
+      "blend_players": [
+        1
+      ],
+      "blend_weight": 1.0,
+      "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "equity_sims": 8,
+      "facing_bet_logit_bias_after_opponent_aggressions": null,
+      "facing_bet_logit_bias_min_raise_prob": null,
+      "facing_bet_logit_biases": {},
+      "folds": 11,
+      "hands": 12,
+      "hands_per_model_player": 6,
+      "model_action_counts": {
+        "bet": 9,
+        "call": 9,
+        "check": 6,
+        "fold": 4,
+        "raise": 7
+      },
+      "model_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 9,
+        "check": 0,
+        "fold": 4,
+        "raise": 7
+      },
+      "model_player": "both",
+      "model_rollout_margin": null,
+      "model_rollout_opponent_equity_sims": null,
+      "model_rollout_opponent_policy": null,
+      "model_rollout_opponent_rollout_margin": null,
+      "model_rollout_opponent_rollout_sims": null,
+      "model_rollout_sims": null,
+      "opponent_action_counts": {
+        "bet": 5,
+        "call": 6,
+        "check": 5,
+        "fold": 7,
+        "raise": 9
+      },
+      "opponent_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 6,
+        "check": 0,
+        "fold": 7,
+        "raise": 9
+      },
+      "opponent_policy": "tight-safe-rollout-pot-odds",
+      "p0_action_counts": {
+        "bet": 3,
+        "call": 8,
+        "check": 4,
+        "fold": 7,
+        "raise": 12
+      },
+      "p0_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 8,
+        "check": 0,
+        "fold": 7,
+        "raise": 12
+      },
+      "p1_action_counts": {
+        "bet": 11,
+        "call": 7,
+        "check": 7,
+        "fold": 4,
+        "raise": 4
+      },
+      "p1_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 7,
+        "check": 0,
+        "fold": 4,
+        "raise": 4
+      },
+      "paired_deals": 6,
+      "player0_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_value_mixed_base774_value400_kl8_sqrt_facing3_temp075_vw05_vscale2_feat4_trainselect/holdem_policy.pt",
+      "player1_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "player_facing_bet_logit_bias_after_opponent_aggressions": 1,
+      "player_facing_bet_logit_bias_min_raise_prob": null,
+      "player_facing_bet_logit_biases": {
+        "1:fold": -0.5,
+        "1:raise": 1.0
+      },
+      "rollout_margin": 1.0,
+      "rollout_sims": 1,
+      "seat_metrics": [
+        {
+          "avg_actions": 3.6666666666666665,
+          "avg_utility_model": -0.3333333333333333,
+          "avg_utility_p0": -0.3333333333333333,
+          "folds": 6,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 1,
+            "call": 3,
+            "check": 2,
+            "fold": 3,
+            "raise": 3
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 3,
+            "call": 1,
+            "check": 3,
+            "fold": 3,
+            "raise": 0
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 1,
+            "check": 0,
+            "fold": 3,
+            "raise": 0
+          },
+          "p0_action_counts": {
+            "bet": 1,
+            "call": 3,
+            "check": 2,
+            "fold": 3,
+            "raise": 3
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 1,
+            "check": 3,
+            "fold": 3,
+            "raise": 0
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 1,
+            "check": 0,
+            "fold": 3,
+            "raise": 0
+          },
+          "seed": 8092979,
+          "showdowns": 0,
+          "utility_stderr_model": 1.0852547064066471,
+          "utility_stderr_p0": 1.0852547064066471,
+          "utility_stdev_model": 2.6583202716502514,
+          "utility_stdev_p0": 2.6583202716502514
+        },
+        {
+          "avg_actions": 7.5,
+          "avg_utility_model": 9.5,
+          "avg_utility_p0": -9.5,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 8,
+            "call": 6,
+            "check": 4,
+            "fold": 1,
+            "raise": 4
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 1,
+            "raise": 4
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 2,
+            "call": 5,
+            "check": 2,
+            "fold": 4,
+            "raise": 9
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 4,
+            "raise": 9
+          },
+          "p0_action_counts": {
+            "bet": 2,
+            "call": 5,
+            "check": 2,
+            "fold": 4,
+            "raise": 9
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 4,
+            "raise": 9
+          },
+          "p1_action_counts": {
+            "bet": 8,
+            "call": 6,
+            "check": 4,
+            "fold": 1,
+            "raise": 4
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 1,
+            "raise": 4
+          },
+          "seed": 8092979,
+          "showdowns": 1,
+          "utility_stderr_model": 4.112987559751023,
+          "utility_stderr_p0": 4.112987559751023,
+          "utility_stdev_model": 10.074720839804943,
+          "utility_stdev_p0": 10.074720839804943
+        }
+      ],
+      "seed": 8092979,
+      "shard_index": 8,
+      "showdowns": 1,
+      "utility_stderr_model": 2.1307927580545645,
+      "utility_stderr_p0": 2.1229565338094996,
+      "utility_stdev_model": 5.219355004851334,
+      "utility_stdev_p0": 5.200160253940898
+    },
+    {
+      "avg_actions": 5.5,
+      "avg_utility_model": 1.8333333333333333,
+      "avg_utility_p0": -1.1666666666666667,
+      "blend_after_opponent_aggressions": 1,
+      "blend_checkpoint": "experiments/holdem_cap2_mccfr_response_p1only_distill_200_kl2_balanced_call4_fold01_raise2_trainselect/holdem_policy.pt",
+      "blend_facing_bet_only": true,
+      "blend_players": [
+        1
+      ],
+      "blend_weight": 1.0,
+      "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "equity_sims": 8,
+      "facing_bet_logit_bias_after_opponent_aggressions": null,
+      "facing_bet_logit_bias_min_raise_prob": null,
+      "facing_bet_logit_biases": {},
+      "folds": 9,
+      "hands": 12,
+      "hands_per_model_player": 6,
+      "model_action_counts": {
+        "bet": 11,
+        "call": 8,
+        "check": 3,
+        "fold": 4,
+        "raise": 7
+      },
+      "model_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 8,
+        "check": 0,
+        "fold": 4,
+        "raise": 7
+      },
+      "model_player": "both",
+      "model_rollout_margin": null,
+      "model_rollout_opponent_equity_sims": null,
+      "model_rollout_opponent_policy": null,
+      "model_rollout_opponent_rollout_margin": null,
+      "model_rollout_opponent_rollout_sims": null,
+      "model_rollout_sims": null,
+      "opponent_action_counts": {
+        "bet": 5,
+        "call": 11,
+        "check": 4,
+        "fold": 5,
+        "raise": 8
+      },
+      "opponent_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 11,
+        "check": 0,
+        "fold": 5,
+        "raise": 8
+      },
+      "opponent_policy": "tight-safe-rollout-pot-odds",
+      "p0_action_counts": {
+        "bet": 5,
+        "call": 14,
+        "check": 1,
+        "fold": 4,
+        "raise": 10
+      },
+      "p0_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 14,
+        "check": 0,
+        "fold": 4,
+        "raise": 10
+      },
+      "p1_action_counts": {
+        "bet": 11,
+        "call": 5,
+        "check": 6,
+        "fold": 5,
+        "raise": 5
+      },
+      "p1_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 5,
+        "check": 0,
+        "fold": 5,
+        "raise": 5
+      },
+      "paired_deals": 6,
+      "player0_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_value_mixed_base774_value400_kl8_sqrt_facing3_temp075_vw05_vscale2_feat4_trainselect/holdem_policy.pt",
+      "player1_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "player_facing_bet_logit_bias_after_opponent_aggressions": 1,
+      "player_facing_bet_logit_bias_min_raise_prob": null,
+      "player_facing_bet_logit_biases": {
+        "1:fold": -0.5,
+        "1:raise": 1.0
+      },
+      "rollout_margin": 1.0,
+      "rollout_sims": 1,
+      "seat_metrics": [
+        {
+          "avg_actions": 4.833333333333333,
+          "avg_utility_model": 0.6666666666666666,
+          "avg_utility_p0": 0.6666666666666666,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 3,
+            "call": 2,
+            "check": 3,
+            "fold": 3,
+            "raise": 3
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "p0_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 2,
+            "check": 3,
+            "fold": 3,
+            "raise": 3
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "seed": 9092982,
+          "showdowns": 1,
+          "utility_stderr_model": 1.4298407059684812,
+          "utility_stderr_p0": 1.4298407059684812,
+          "utility_stdev_model": 3.5023801430836525,
+          "utility_stdev_p0": 3.5023801430836525
+        },
+        {
+          "avg_actions": 6.166666666666667,
+          "avg_utility_model": 3.0,
+          "avg_utility_p0": -3.0,
+          "folds": 4,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 8,
+            "call": 3,
+            "check": 3,
+            "fold": 2,
+            "raise": 2
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 2,
+            "raise": 2
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 2,
+            "call": 9,
+            "check": 1,
+            "fold": 2,
+            "raise": 5
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 9,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p0_action_counts": {
+            "bet": 2,
+            "call": 9,
+            "check": 1,
+            "fold": 2,
+            "raise": 5
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 9,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p1_action_counts": {
+            "bet": 8,
+            "call": 3,
+            "check": 3,
+            "fold": 2,
+            "raise": 2
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 2,
+            "raise": 2
+          },
+          "seed": 9092982,
+          "showdowns": 2,
+          "utility_stderr_model": 2.7688746209726918,
+          "utility_stderr_p0": 2.7688746209726918,
+          "utility_stdev_model": 6.782329983125268,
+          "utility_stdev_p0": 6.782329983125268
+        }
+      ],
+      "seed": 9092982,
+      "shard_index": 9,
+      "showdowns": 3,
+      "utility_stderr_model": 2.006932429798716,
+      "utility_stderr_p0": 0.9098229375970789,
+      "utility_stdev_model": 4.915960401250875,
+      "utility_stdev_p0": 2.228601953392904
+    },
+    {
+      "avg_actions": 5.833333333333333,
+      "avg_utility_model": -3.0833333333333335,
+      "avg_utility_p0": 0.4166666666666667,
+      "blend_after_opponent_aggressions": 1,
+      "blend_checkpoint": "experiments/holdem_cap2_mccfr_response_p1only_distill_200_kl2_balanced_call4_fold01_raise2_trainselect/holdem_policy.pt",
+      "blend_facing_bet_only": true,
+      "blend_players": [
+        1
+      ],
+      "blend_weight": 1.0,
+      "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "equity_sims": 8,
+      "facing_bet_logit_bias_after_opponent_aggressions": null,
+      "facing_bet_logit_bias_min_raise_prob": null,
+      "facing_bet_logit_biases": {},
+      "folds": 10,
+      "hands": 12,
+      "hands_per_model_player": 6,
+      "model_action_counts": {
+        "bet": 5,
+        "call": 12,
+        "check": 11,
+        "fold": 7,
+        "raise": 2
+      },
+      "model_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 12,
+        "check": 0,
+        "fold": 7,
+        "raise": 2
+      },
+      "model_player": "both",
+      "model_rollout_margin": null,
+      "model_rollout_opponent_equity_sims": null,
+      "model_rollout_opponent_policy": null,
+      "model_rollout_opponent_rollout_margin": null,
+      "model_rollout_opponent_rollout_sims": null,
+      "model_rollout_sims": null,
+      "opponent_action_counts": {
+        "bet": 10,
+        "call": 5,
+        "check": 10,
+        "fold": 3,
+        "raise": 5
+      },
+      "opponent_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 5,
+        "check": 0,
+        "fold": 3,
+        "raise": 5
+      },
+      "opponent_policy": "tight-safe-rollout-pot-odds",
+      "p0_action_counts": {
+        "bet": 11,
+        "call": 10,
+        "check": 5,
+        "fold": 3,
+        "raise": 5
+      },
+      "p0_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 10,
+        "check": 0,
+        "fold": 3,
+        "raise": 5
+      },
+      "p1_action_counts": {
+        "bet": 4,
+        "call": 7,
+        "check": 16,
+        "fold": 7,
+        "raise": 2
+      },
+      "p1_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 7,
+        "check": 0,
+        "fold": 7,
+        "raise": 2
+      },
+      "paired_deals": 6,
+      "player0_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_value_mixed_base774_value400_kl8_sqrt_facing3_temp075_vw05_vscale2_feat4_trainselect/holdem_policy.pt",
+      "player1_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "player_facing_bet_logit_bias_after_opponent_aggressions": 1,
+      "player_facing_bet_logit_bias_min_raise_prob": null,
+      "player_facing_bet_logit_biases": {
+        "1:fold": -0.5,
+        "1:raise": 1.0
+      },
+      "rollout_margin": 1.0,
+      "rollout_sims": 1,
+      "seat_metrics": [
+        {
+          "avg_actions": 6.166666666666667,
+          "avg_utility_model": -2.6666666666666665,
+          "avg_utility_p0": -2.6666666666666665,
+          "folds": 4,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 5,
+            "call": 8,
+            "check": 3,
+            "fold": 2,
+            "raise": 1
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 8,
+            "check": 0,
+            "fold": 2,
+            "raise": 1
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 4,
+            "call": 3,
+            "check": 8,
+            "fold": 2,
+            "raise": 1
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 2,
+            "raise": 1
+          },
+          "p0_action_counts": {
+            "bet": 5,
+            "call": 8,
+            "check": 3,
+            "fold": 2,
+            "raise": 1
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 8,
+            "check": 0,
+            "fold": 2,
+            "raise": 1
+          },
+          "p1_action_counts": {
+            "bet": 4,
+            "call": 3,
+            "check": 8,
+            "fold": 2,
+            "raise": 1
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 2,
+            "raise": 1
+          },
+          "seed": 10092985,
+          "showdowns": 2,
+          "utility_stderr_model": 2.9962940072325646,
+          "utility_stderr_p0": 2.9962940072325646,
+          "utility_stdev_model": 7.339391437078872,
+          "utility_stdev_p0": 7.339391437078872
+        },
+        {
+          "avg_actions": 5.5,
+          "avg_utility_model": -3.5,
+          "avg_utility_p0": 3.5,
+          "folds": 6,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 8,
+            "fold": 5,
+            "raise": 1
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 5,
+            "raise": 1
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 6,
+            "call": 2,
+            "check": 2,
+            "fold": 1,
+            "raise": 4
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 1,
+            "raise": 4
+          },
+          "p0_action_counts": {
+            "bet": 6,
+            "call": 2,
+            "check": 2,
+            "fold": 1,
+            "raise": 4
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 1,
+            "raise": 4
+          },
+          "p1_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 8,
+            "fold": 5,
+            "raise": 1
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 5,
+            "raise": 1
+          },
+          "seed": 10092985,
+          "showdowns": 0,
+          "utility_stderr_model": 1.2041594578792296,
+          "utility_stderr_p0": 1.2041594578792296,
+          "utility_stdev_model": 2.9495762407505253,
+          "utility_stdev_p0": 2.9495762407505253
+        }
+      ],
+      "seed": 10092985,
+      "shard_index": 10,
+      "showdowns": 2,
+      "utility_stderr_model": 1.2410792794087644,
+      "utility_stderr_p0": 1.916666666666667,
+      "utility_stdev_model": 3.040010964892506,
+      "utility_stdev_p0": 4.694855340334425
+    },
+    {
+      "avg_actions": 5.083333333333333,
+      "avg_utility_model": -3.3333333333333335,
+      "avg_utility_p0": 3.0,
+      "blend_after_opponent_aggressions": 1,
+      "blend_checkpoint": "experiments/holdem_cap2_mccfr_response_p1only_distill_200_kl2_balanced_call4_fold01_raise2_trainselect/holdem_policy.pt",
+      "blend_facing_bet_only": true,
+      "blend_players": [
+        1
+      ],
+      "blend_weight": 1.0,
+      "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "equity_sims": 8,
+      "facing_bet_logit_bias_after_opponent_aggressions": null,
+      "facing_bet_logit_bias_min_raise_prob": null,
+      "facing_bet_logit_biases": {},
+      "folds": 9,
+      "hands": 12,
+      "hands_per_model_player": 6,
+      "model_action_counts": {
+        "bet": 5,
+        "call": 13,
+        "check": 7,
+        "fold": 5,
+        "raise": 3
+      },
+      "model_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 13,
+        "check": 0,
+        "fold": 5,
+        "raise": 3
+      },
+      "model_player": "both",
+      "model_rollout_margin": null,
+      "model_rollout_opponent_equity_sims": null,
+      "model_rollout_opponent_policy": null,
+      "model_rollout_opponent_rollout_margin": null,
+      "model_rollout_opponent_rollout_sims": null,
+      "model_rollout_sims": null,
+      "opponent_action_counts": {
+        "bet": 9,
+        "call": 4,
+        "check": 5,
+        "fold": 4,
+        "raise": 6
+      },
+      "opponent_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 4,
+        "check": 0,
+        "fold": 4,
+        "raise": 6
+      },
+      "opponent_policy": "tight-safe-rollout-pot-odds",
+      "p0_action_counts": {
+        "bet": 4,
+        "call": 13,
+        "check": 4,
+        "fold": 4,
+        "raise": 7
+      },
+      "p0_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 13,
+        "check": 0,
+        "fold": 4,
+        "raise": 7
+      },
+      "p1_action_counts": {
+        "bet": 10,
+        "call": 4,
+        "check": 8,
+        "fold": 5,
+        "raise": 2
+      },
+      "p1_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 4,
+        "check": 0,
+        "fold": 5,
+        "raise": 2
+      },
+      "paired_deals": 6,
+      "player0_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_value_mixed_base774_value400_kl8_sqrt_facing3_temp075_vw05_vscale2_feat4_trainselect/holdem_policy.pt",
+      "player1_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "player_facing_bet_logit_bias_after_opponent_aggressions": 1,
+      "player_facing_bet_logit_bias_min_raise_prob": null,
+      "player_facing_bet_logit_biases": {
+        "1:fold": -0.5,
+        "1:raise": 1.0
+      },
+      "rollout_margin": 1.0,
+      "rollout_sims": 1,
+      "seat_metrics": [
+        {
+          "avg_actions": 5.0,
+          "avg_utility_model": -0.3333333333333333,
+          "avg_utility_p0": -0.3333333333333333,
+          "folds": 4,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 1,
+            "call": 9,
+            "check": 3,
+            "fold": 2,
+            "raise": 2
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 9,
+            "check": 0,
+            "fold": 2,
+            "raise": 2
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 6,
+            "call": 0,
+            "check": 4,
+            "fold": 2,
+            "raise": 1
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 0,
+            "check": 0,
+            "fold": 2,
+            "raise": 1
+          },
+          "p0_action_counts": {
+            "bet": 1,
+            "call": 9,
+            "check": 3,
+            "fold": 2,
+            "raise": 2
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 9,
+            "check": 0,
+            "fold": 2,
+            "raise": 2
+          },
+          "p1_action_counts": {
+            "bet": 6,
+            "call": 0,
+            "check": 4,
+            "fold": 2,
+            "raise": 1
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 0,
+            "check": 0,
+            "fold": 2,
+            "raise": 1
+          },
+          "seed": 11092988,
+          "showdowns": 2,
+          "utility_stderr_model": 2.7527763762750106,
+          "utility_stderr_p0": 2.7527763762750106,
+          "utility_stdev_model": 6.742897497861485,
+          "utility_stdev_p0": 6.742897497861485
+        },
+        {
+          "avg_actions": 5.166666666666667,
+          "avg_utility_model": -6.333333333333333,
+          "avg_utility_p0": 6.333333333333333,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 4,
+            "call": 4,
+            "check": 4,
+            "fold": 3,
+            "raise": 1
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 3,
+            "raise": 1
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 3,
+            "call": 4,
+            "check": 1,
+            "fold": 2,
+            "raise": 5
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p0_action_counts": {
+            "bet": 3,
+            "call": 4,
+            "check": 1,
+            "fold": 2,
+            "raise": 5
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 2,
+            "raise": 5
+          },
+          "p1_action_counts": {
+            "bet": 4,
+            "call": 4,
+            "check": 4,
+            "fold": 3,
+            "raise": 1
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 3,
+            "raise": 1
+          },
+          "seed": 11092988,
+          "showdowns": 1,
+          "utility_stderr_model": 4.477102237434885,
+          "utility_stderr_p0": 4.477102237434885,
+          "utility_stdev_model": 10.966616007988366,
+          "utility_stdev_p0": 10.966616007988366
+        }
+      ],
+      "seed": 11092988,
+      "shard_index": 11,
+      "showdowns": 3,
+      "utility_stderr_model": 2.925937646483792,
+      "utility_stderr_p0": 2.2912878474779204,
+      "utility_stdev_model": 7.167054253085201,
+      "utility_stdev_p0": 5.612486080160912
+    },
+    {
+      "avg_actions": 7.416666666666667,
+      "avg_utility_model": -3.1666666666666665,
+      "avg_utility_p0": 4.833333333333333,
+      "blend_after_opponent_aggressions": 1,
+      "blend_checkpoint": "experiments/holdem_cap2_mccfr_response_p1only_distill_200_kl2_balanced_call4_fold01_raise2_trainselect/holdem_policy.pt",
+      "blend_facing_bet_only": true,
+      "blend_players": [
+        1
+      ],
+      "blend_weight": 1.0,
+      "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "equity_sims": 8,
+      "facing_bet_logit_bias_after_opponent_aggressions": null,
+      "facing_bet_logit_bias_min_raise_prob": null,
+      "facing_bet_logit_biases": {},
+      "folds": 8,
+      "hands": 12,
+      "hands_per_model_player": 6,
+      "model_action_counts": {
+        "bet": 6,
+        "call": 9,
+        "check": 13,
+        "fold": 8,
+        "raise": 10
+      },
+      "model_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 9,
+        "check": 0,
+        "fold": 8,
+        "raise": 10
+      },
+      "model_player": "both",
+      "model_rollout_margin": null,
+      "model_rollout_opponent_equity_sims": null,
+      "model_rollout_opponent_policy": null,
+      "model_rollout_opponent_rollout_margin": null,
+      "model_rollout_opponent_rollout_sims": null,
+      "model_rollout_sims": null,
+      "opponent_action_counts": {
+        "bet": 9,
+        "call": 10,
+        "check": 12,
+        "fold": 0,
+        "raise": 12
+      },
+      "opponent_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 10,
+        "check": 0,
+        "fold": 0,
+        "raise": 12
+      },
+      "opponent_policy": "tight-safe-rollout-pot-odds",
+      "p0_action_counts": {
+        "bet": 7,
+        "call": 11,
+        "check": 9,
+        "fold": 5,
+        "raise": 13
+      },
+      "p0_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 11,
+        "check": 0,
+        "fold": 5,
+        "raise": 13
+      },
+      "p1_action_counts": {
+        "bet": 8,
+        "call": 8,
+        "check": 16,
+        "fold": 3,
+        "raise": 9
+      },
+      "p1_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 8,
+        "check": 0,
+        "fold": 3,
+        "raise": 9
+      },
+      "paired_deals": 6,
+      "player0_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_value_mixed_base774_value400_kl8_sqrt_facing3_temp075_vw05_vscale2_feat4_trainselect/holdem_policy.pt",
+      "player1_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "player_facing_bet_logit_bias_after_opponent_aggressions": 1,
+      "player_facing_bet_logit_bias_min_raise_prob": null,
+      "player_facing_bet_logit_biases": {
+        "1:fold": -0.5,
+        "1:raise": 1.0
+      },
+      "rollout_margin": 1.0,
+      "rollout_sims": 1,
+      "seat_metrics": [
+        {
+          "avg_actions": 6.333333333333333,
+          "avg_utility_model": 1.6666666666666667,
+          "avg_utility_p0": 1.6666666666666667,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 7
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 7
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 5,
+            "call": 4,
+            "check": 3,
+            "fold": 0,
+            "raise": 6
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 0,
+            "raise": 6
+          },
+          "p0_action_counts": {
+            "bet": 3,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 7
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 7
+          },
+          "p1_action_counts": {
+            "bet": 5,
+            "call": 4,
+            "check": 3,
+            "fold": 0,
+            "raise": 6
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 0,
+            "raise": 6
+          },
+          "seed": 12092991,
+          "showdowns": 1,
+          "utility_stderr_model": 6.0754515149996156,
+          "utility_stderr_p0": 6.0754515149996156,
+          "utility_stdev_model": 14.881756168768076,
+          "utility_stdev_p0": 14.881756168768076
+        },
+        {
+          "avg_actions": 8.5,
+          "avg_utility_model": -8.0,
+          "avg_utility_p0": 8.0,
+          "folds": 3,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 3,
+            "call": 4,
+            "check": 13,
+            "fold": 3,
+            "raise": 3
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 4,
+            "call": 6,
+            "check": 9,
+            "fold": 0,
+            "raise": 6
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 0,
+            "raise": 6
+          },
+          "p0_action_counts": {
+            "bet": 4,
+            "call": 6,
+            "check": 9,
+            "fold": 0,
+            "raise": 6
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 0,
+            "raise": 6
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 4,
+            "check": 13,
+            "fold": 3,
+            "raise": 3
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 3,
+            "raise": 3
+          },
+          "seed": 12092991,
+          "showdowns": 3,
+          "utility_stderr_model": 3.0110906108363245,
+          "utility_stderr_p0": 3.0110906108363245,
+          "utility_stdev_model": 7.37563556583431,
+          "utility_stdev_p0": 7.37563556583431
+        }
+      ],
+      "seed": 12092991,
+      "shard_index": 12,
+      "showdowns": 4,
+      "utility_stderr_model": 2.0234733614368254,
+      "utility_stderr_p0": 4.3467740273039785,
+      "utility_stdev_model": 4.9564772436345015,
+      "utility_stdev_p0": 10.647378394077421
+    },
+    {
+      "avg_actions": 6.333333333333333,
+      "avg_utility_model": 1.0833333333333333,
+      "avg_utility_p0": 1.5833333333333333,
+      "blend_after_opponent_aggressions": 1,
+      "blend_checkpoint": "experiments/holdem_cap2_mccfr_response_p1only_distill_200_kl2_balanced_call4_fold01_raise2_trainselect/holdem_policy.pt",
+      "blend_facing_bet_only": true,
+      "blend_players": [
+        1
+      ],
+      "blend_weight": 1.0,
+      "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "equity_sims": 8,
+      "facing_bet_logit_bias_after_opponent_aggressions": null,
+      "facing_bet_logit_bias_min_raise_prob": null,
+      "facing_bet_logit_biases": {},
+      "folds": 10,
+      "hands": 12,
+      "hands_per_model_player": 6,
+      "model_action_counts": {
+        "bet": 11,
+        "call": 10,
+        "check": 2,
+        "fold": 6,
+        "raise": 9
+      },
+      "model_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 10,
+        "check": 0,
+        "fold": 6,
+        "raise": 9
+      },
+      "model_player": "both",
+      "model_rollout_margin": null,
+      "model_rollout_opponent_equity_sims": null,
+      "model_rollout_opponent_policy": null,
+      "model_rollout_opponent_rollout_margin": null,
+      "model_rollout_opponent_rollout_sims": null,
+      "model_rollout_sims": null,
+      "opponent_action_counts": {
+        "bet": 7,
+        "call": 10,
+        "check": 5,
+        "fold": 4,
+        "raise": 12
+      },
+      "opponent_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 10,
+        "check": 0,
+        "fold": 4,
+        "raise": 12
+      },
+      "opponent_policy": "tight-safe-rollout-pot-odds",
+      "p0_action_counts": {
+        "bet": 5,
+        "call": 9,
+        "check": 1,
+        "fold": 9,
+        "raise": 14
+      },
+      "p0_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 9,
+        "check": 0,
+        "fold": 9,
+        "raise": 14
+      },
+      "p1_action_counts": {
+        "bet": 13,
+        "call": 11,
+        "check": 6,
+        "fold": 1,
+        "raise": 7
+      },
+      "p1_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 11,
+        "check": 0,
+        "fold": 1,
+        "raise": 7
+      },
+      "paired_deals": 6,
+      "player0_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_value_mixed_base774_value400_kl8_sqrt_facing3_temp075_vw05_vscale2_feat4_trainselect/holdem_policy.pt",
+      "player1_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "player_facing_bet_logit_bias_after_opponent_aggressions": 1,
+      "player_facing_bet_logit_bias_min_raise_prob": null,
+      "player_facing_bet_logit_biases": {
+        "1:fold": -0.5,
+        "1:raise": 1.0
+      },
+      "rollout_margin": 1.0,
+      "rollout_sims": 1,
+      "seat_metrics": [
+        {
+          "avg_actions": 6.666666666666667,
+          "avg_utility_model": 2.6666666666666665,
+          "avg_utility_p0": 2.6666666666666665,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 4,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 6
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 6
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 6,
+            "call": 6,
+            "check": 4,
+            "fold": 0,
+            "raise": 4
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 0,
+            "raise": 4
+          },
+          "p0_action_counts": {
+            "bet": 4,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 6
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 5,
+            "raise": 6
+          },
+          "p1_action_counts": {
+            "bet": 6,
+            "call": 6,
+            "check": 4,
+            "fold": 0,
+            "raise": 4
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 6,
+            "check": 0,
+            "fold": 0,
+            "raise": 4
+          },
+          "seed": 13092994,
+          "showdowns": 1,
+          "utility_stderr_model": 6.863753427324668,
+          "utility_stderr_p0": 6.863753427324668,
+          "utility_stdev_model": 16.812693617224657,
+          "utility_stdev_p0": 16.812693617224657
+        },
+        {
+          "avg_actions": 6.0,
+          "avg_utility_model": -0.5,
+          "avg_utility_p0": 0.5,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 7,
+            "call": 5,
+            "check": 2,
+            "fold": 1,
+            "raise": 3
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 1,
+            "raise": 3
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 1,
+            "call": 4,
+            "check": 1,
+            "fold": 4,
+            "raise": 8
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 8
+          },
+          "p0_action_counts": {
+            "bet": 1,
+            "call": 4,
+            "check": 1,
+            "fold": 4,
+            "raise": 8
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 8
+          },
+          "p1_action_counts": {
+            "bet": 7,
+            "call": 5,
+            "check": 2,
+            "fold": 1,
+            "raise": 3
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 5,
+            "check": 0,
+            "fold": 1,
+            "raise": 3
+          },
+          "seed": 13092994,
+          "showdowns": 1,
+          "utility_stderr_model": 4.951430769653017,
+          "utility_stderr_p0": 4.951430769653017,
+          "utility_stdev_model": 12.128478882366082,
+          "utility_stdev_p0": 12.128478882366082
+        }
+      ],
+      "seed": 13092994,
+      "shard_index": 13,
+      "showdowns": 2,
+      "utility_stderr_model": 3.0177714367467336,
+      "utility_stderr_p0": 5.167876202507608,
+      "utility_stdev_model": 7.392000180375178,
+      "utility_stdev_p0": 12.658659750015666
+    },
+    {
+      "avg_actions": 6.0,
+      "avg_utility_model": 1.9166666666666667,
+      "avg_utility_p0": 2.0833333333333335,
+      "blend_after_opponent_aggressions": 1,
+      "blend_checkpoint": "experiments/holdem_cap2_mccfr_response_p1only_distill_200_kl2_balanced_call4_fold01_raise2_trainselect/holdem_policy.pt",
+      "blend_facing_bet_only": true,
+      "blend_players": [
+        1
+      ],
+      "blend_weight": 1.0,
+      "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "equity_sims": 8,
+      "facing_bet_logit_bias_after_opponent_aggressions": null,
+      "facing_bet_logit_bias_min_raise_prob": null,
+      "facing_bet_logit_biases": {},
+      "folds": 9,
+      "hands": 12,
+      "hands_per_model_player": 6,
+      "model_action_counts": {
+        "bet": 9,
+        "call": 4,
+        "check": 6,
+        "fold": 5,
+        "raise": 9
+      },
+      "model_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 4,
+        "check": 0,
+        "fold": 5,
+        "raise": 9
+      },
+      "model_player": "both",
+      "model_rollout_margin": null,
+      "model_rollout_opponent_equity_sims": null,
+      "model_rollout_opponent_policy": null,
+      "model_rollout_opponent_rollout_margin": null,
+      "model_rollout_opponent_rollout_sims": null,
+      "model_rollout_sims": null,
+      "opponent_action_counts": {
+        "bet": 3,
+        "call": 11,
+        "check": 12,
+        "fold": 4,
+        "raise": 9
+      },
+      "opponent_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 11,
+        "check": 0,
+        "fold": 4,
+        "raise": 9
+      },
+      "opponent_policy": "tight-safe-rollout-pot-odds",
+      "p0_action_counts": {
+        "bet": 6,
+        "call": 8,
+        "check": 6,
+        "fold": 8,
+        "raise": 10
+      },
+      "p0_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 8,
+        "check": 0,
+        "fold": 8,
+        "raise": 10
+      },
+      "p1_action_counts": {
+        "bet": 6,
+        "call": 7,
+        "check": 12,
+        "fold": 1,
+        "raise": 8
+      },
+      "p1_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 7,
+        "check": 0,
+        "fold": 1,
+        "raise": 8
+      },
+      "paired_deals": 6,
+      "player0_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_value_mixed_base774_value400_kl8_sqrt_facing3_temp075_vw05_vscale2_feat4_trainselect/holdem_policy.pt",
+      "player1_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "player_facing_bet_logit_bias_after_opponent_aggressions": 1,
+      "player_facing_bet_logit_bias_min_raise_prob": null,
+      "player_facing_bet_logit_biases": {
+        "1:fold": -0.5,
+        "1:raise": 1.0
+      },
+      "rollout_margin": 1.0,
+      "rollout_sims": 1,
+      "seat_metrics": [
+        {
+          "avg_actions": 7.833333333333333,
+          "avg_utility_model": 4.0,
+          "avg_utility_p0": 4.0,
+          "folds": 4,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 6,
+            "call": 4,
+            "check": 3,
+            "fold": 4,
+            "raise": 6
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 6
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 3,
+            "call": 7,
+            "check": 9,
+            "fold": 0,
+            "raise": 5
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 7,
+            "check": 0,
+            "fold": 0,
+            "raise": 5
+          },
+          "p0_action_counts": {
+            "bet": 6,
+            "call": 4,
+            "check": 3,
+            "fold": 4,
+            "raise": 6
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 6
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 7,
+            "check": 9,
+            "fold": 0,
+            "raise": 5
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 7,
+            "check": 0,
+            "fold": 0,
+            "raise": 5
+          },
+          "seed": 14092997,
+          "showdowns": 2,
+          "utility_stderr_model": 6.3456021516217564,
+          "utility_stderr_p0": 6.3456021516217564,
+          "utility_stdev_model": 15.543487382180357,
+          "utility_stdev_p0": 15.543487382180357
+        },
+        {
+          "avg_actions": 4.166666666666667,
+          "avg_utility_model": -0.16666666666666666,
+          "avg_utility_p0": 0.16666666666666666,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 3,
+            "call": 0,
+            "check": 3,
+            "fold": 1,
+            "raise": 3
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 0,
+            "check": 0,
+            "fold": 1,
+            "raise": 3
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 3,
+            "fold": 4,
+            "raise": 4
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 4
+          },
+          "p0_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 3,
+            "fold": 4,
+            "raise": 4
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 4,
+            "raise": 4
+          },
+          "p1_action_counts": {
+            "bet": 3,
+            "call": 0,
+            "check": 3,
+            "fold": 1,
+            "raise": 3
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 0,
+            "check": 0,
+            "fold": 1,
+            "raise": 3
+          },
+          "seed": 14092997,
+          "showdowns": 1,
+          "utility_stderr_model": 2.600213666434186,
+          "utility_stderr_p0": 2.600213666434186,
+          "utility_stdev_model": 6.369196704975178,
+          "utility_stdev_p0": 6.369196704975178
+        }
+      ],
+      "seed": 14092997,
+      "shard_index": 14,
+      "showdowns": 3,
+      "utility_stderr_model": 4.121926464382616,
+      "utility_stderr_p0": 2.554136079207823,
+      "utility_stdev_model": 10.09661659501175,
+      "utility_stdev_p0": 6.256330127692006
+    },
+    {
+      "avg_actions": 5.0,
+      "avg_utility_model": 3.5833333333333335,
+      "avg_utility_p0": 1.75,
+      "blend_after_opponent_aggressions": 1,
+      "blend_checkpoint": "experiments/holdem_cap2_mccfr_response_p1only_distill_200_kl2_balanced_call4_fold01_raise2_trainselect/holdem_policy.pt",
+      "blend_facing_bet_only": true,
+      "blend_players": [
+        1
+      ],
+      "blend_weight": 1.0,
+      "checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "equity_sims": 8,
+      "facing_bet_logit_bias_after_opponent_aggressions": null,
+      "facing_bet_logit_bias_min_raise_prob": null,
+      "facing_bet_logit_biases": {},
+      "folds": 11,
+      "hands": 12,
+      "hands_per_model_player": 6,
+      "model_action_counts": {
+        "bet": 4,
+        "call": 5,
+        "check": 7,
+        "fold": 2,
+        "raise": 9
+      },
+      "model_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 5,
+        "check": 0,
+        "fold": 2,
+        "raise": 9
+      },
+      "model_player": "both",
+      "model_rollout_margin": null,
+      "model_rollout_opponent_equity_sims": null,
+      "model_rollout_opponent_policy": null,
+      "model_rollout_opponent_rollout_margin": null,
+      "model_rollout_opponent_rollout_sims": null,
+      "model_rollout_sims": null,
+      "opponent_action_counts": {
+        "bet": 5,
+        "call": 5,
+        "check": 9,
+        "fold": 9,
+        "raise": 5
+      },
+      "opponent_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 5,
+        "check": 0,
+        "fold": 9,
+        "raise": 5
+      },
+      "opponent_policy": "tight-safe-rollout-pot-odds",
+      "p0_action_counts": {
+        "bet": 4,
+        "call": 6,
+        "check": 6,
+        "fold": 5,
+        "raise": 10
+      },
+      "p0_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 6,
+        "check": 0,
+        "fold": 5,
+        "raise": 10
+      },
+      "p1_action_counts": {
+        "bet": 5,
+        "call": 4,
+        "check": 10,
+        "fold": 6,
+        "raise": 4
+      },
+      "p1_facing_bet_action_counts": {
+        "bet": 0,
+        "call": 4,
+        "check": 0,
+        "fold": 6,
+        "raise": 4
+      },
+      "paired_deals": 6,
+      "player0_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10_action_history_value_mixed_base774_value400_kl8_sqrt_facing3_temp075_vw05_vscale2_feat4_trainselect/holdem_policy.pt",
+      "player1_checkpoint": "experiments/holdem_tight_range_feature_distill_1k_balanced_val10/holdem_policy.pt",
+      "player_facing_bet_logit_bias_after_opponent_aggressions": 1,
+      "player_facing_bet_logit_bias_min_raise_prob": null,
+      "player_facing_bet_logit_biases": {
+        "1:fold": -0.5,
+        "1:raise": 1.0
+      },
+      "rollout_margin": 1.0,
+      "rollout_sims": 1,
+      "seat_metrics": [
+        {
+          "avg_actions": 6.333333333333333,
+          "avg_utility_model": 5.333333333333333,
+          "avg_utility_p0": 5.333333333333333,
+          "folds": 6,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 3,
+            "call": 4,
+            "check": 3,
+            "fold": 1,
+            "raise": 7
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 1,
+            "raise": 7
+          },
+          "model_player": 0,
+          "opponent_action_counts": {
+            "bet": 4,
+            "call": 3,
+            "check": 6,
+            "fold": 5,
+            "raise": 2
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 5,
+            "raise": 2
+          },
+          "p0_action_counts": {
+            "bet": 3,
+            "call": 4,
+            "check": 3,
+            "fold": 1,
+            "raise": 7
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 4,
+            "check": 0,
+            "fold": 1,
+            "raise": 7
+          },
+          "p1_action_counts": {
+            "bet": 4,
+            "call": 3,
+            "check": 6,
+            "fold": 5,
+            "raise": 2
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 3,
+            "check": 0,
+            "fold": 5,
+            "raise": 2
+          },
+          "seed": 15093000,
+          "showdowns": 0,
+          "utility_stderr_model": 2.3475755815545347,
+          "utility_stderr_p0": 2.3475755815545347,
+          "utility_stdev_model": 5.750362307426086,
+          "utility_stdev_p0": 5.750362307426086
+        },
+        {
+          "avg_actions": 3.6666666666666665,
+          "avg_utility_model": 1.8333333333333333,
+          "avg_utility_p0": -1.8333333333333333,
+          "folds": 5,
+          "hands": 6,
+          "model_action_counts": {
+            "bet": 1,
+            "call": 1,
+            "check": 4,
+            "fold": 1,
+            "raise": 2
+          },
+          "model_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 1,
+            "check": 0,
+            "fold": 1,
+            "raise": 2
+          },
+          "model_player": 1,
+          "opponent_action_counts": {
+            "bet": 1,
+            "call": 2,
+            "check": 3,
+            "fold": 4,
+            "raise": 3
+          },
+          "opponent_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 4,
+            "raise": 3
+          },
+          "p0_action_counts": {
+            "bet": 1,
+            "call": 2,
+            "check": 3,
+            "fold": 4,
+            "raise": 3
+          },
+          "p0_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 2,
+            "check": 0,
+            "fold": 4,
+            "raise": 3
+          },
+          "p1_action_counts": {
+            "bet": 1,
+            "call": 1,
+            "check": 4,
+            "fold": 1,
+            "raise": 2
+          },
+          "p1_facing_bet_action_counts": {
+            "bet": 0,
+            "call": 1,
+            "check": 0,
+            "fold": 1,
+            "raise": 2
+          },
+          "seed": 15093000,
+          "showdowns": 1,
+          "utility_stderr_model": 2.1200104821543797,
+          "utility_stderr_p0": 2.1200104821543797,
+          "utility_stdev_model": 5.192943930629973,
+          "utility_stdev_p0": 5.192943930629973
+        }
+      ],
+      "seed": 15093000,
+      "shard_index": 15,
+      "showdowns": 1,
+      "utility_stderr_model": 0.9610468828892331,
+      "utility_stderr_p0": 2.019694696400094,
+      "utility_stdev_model": 2.3540744819709225,
+      "utility_stdev_p0": 4.947221442385614
+    }
+  ],
+  "shards": 16,
+  "showdowns": 42,
+  "utility_stderr_model": 0.5970844567436406,
+  "utility_stderr_p0": 0.8471716163061338,
+  "utility_stdev_model": 5.970844567436407,
+  "utility_stdev_p0": 8.471716163061338
+}
