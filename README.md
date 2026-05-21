@@ -197,8 +197,9 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Hold'em match-evaluation action-count and facing-bet response diagnostics by
   model/opponent role and player seat, with optional progress reporting for
   long checkpoint evaluations.
-- Hold'em neural decision diagnostics by player, facing-bet state, and opponent
-  aggression bucket, including action probabilities and raise logit margins.
+- Hold'em neural decision diagnostics by player, facing-bet/non-facing state,
+  and opponent aggression bucket, including action probabilities and raise
+  logit margins.
 - Optional evaluator-side facing-bet logit calibration for neural Hold'em
   policies, including global and per-player action biases plus
   aggression-count and pre-bias raise-probability gates for response
@@ -390,6 +391,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T19:39:02-07:00 | `56d2e95` | Probed per-seat and range-regularized response composites. | Player-0 facing-only value400 plus player-1 cap-2 blending was flat on h100 safe (`-0.010 +/- 0.641`), and adding range-response labels to the p1 branch failed worse (`-0.595 +/- 0.606`); current best unchanged. |
 | 2026-05-20T19:46:53-07:00 | `d74d136` | Added per-seat blend state restrictions. | Tooling can now make one seat blend broadly and another seat blend only while facing bets; `tests/test_evaluate_holdem_model.py` passed (`31 passed`). |
 | 2026-05-20T19:49:57-07:00 | `4fae5c5` | Tried p0 raise dampening and asymmetric value400 switching. | P0 `raise=-0.25` calibration broke the safe repair (`-0.255 +/- 0.615`), while broad p0 after-one value400 plus p1 response-only blending was only `+0.040 +/- 0.681`; current best unchanged. |
+| 2026-05-20T19:56:04-07:00 | `1ce84d6` | Bucketed neural decision diagnostics by opponent aggression for all Hold'em decisions. | Diagnostic buckets now cover non-facing post-aggression states as well as facing-bet responses; `tests/test_evaluate_holdem_model.py` passed (`32 passed`). |
+| 2026-05-20T20:16:00-07:00 | `1c57c5a` | Compared value400 player-0 decision buckets. | Full KL8 value400 p0 plus p1 response composite reproduced h100 safe `+0.305 +/- 0.597`, while p0 facing-only without a p1 branch failed (`-1.360 +/- 0.530`, p0 `-0.12`); current best unchanged. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1191,6 +1194,19 @@ Current fixed-limit Hold'em gate:
   (`p0 +0.09`, `p1 -0.01`), far below the full value400 player-0 composite's
   `+0.305 +/- 0.597`; the useful p0 adaptation is not captured by this simple
   after-one gate.
+- The expanded neural decision diagnostics now bucket non-facing decisions by
+  opponent-aggression count as well as facing-bet responses. On the same h100
+  safe seed, current best remained at `-1.805 +/- 0.525` (`p0 -0.51`,
+  `p1 -3.10`). Swapping only player 0 to the KL8 value400 checkpoint improved
+  the player-0 seat to `+0.54`, but overall was still `-1.280 +/- 0.624`
+  because player 1 stayed at `-3.10`.
+- The diagnostics narrow the p0 value400 repair: the full KL8 value400 p0 plus
+  p1 cap-2 response composite reproduced `+0.305 +/- 0.597` (`p0 +0.54`,
+  `p1 +0.07`), while p0 value400 restricted to all facing-bet states without a
+  p1 branch failed at `-1.360 +/- 0.530` and left the player-0 seat at
+  `-0.12`. The safe-side p0 gain is therefore not a local facing-only override;
+  future training should regularize the full p0 value400 behavior rather than
+  trying to splice only response states at runtime.
 
 ## Research Roadmap
 
