@@ -167,6 +167,9 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   fallback-gated evaluation, count/reach support modes for
   min-strategy-weight sweeps, and corrected external-sampling average-policy
   updates.
+- Hold'em policy-imitation example generation can use sampled abstract MCCFR
+  checkpoints as hard-label experts, including fallback policy and support
+  threshold controls.
 - Backward-compatible Hold'em hand-summary, made-hand strength, legal-action,
   and pot-odds features for neural policies.
 - Optional Monte Carlo, turn/river exact, and tight range-filtered equity features
@@ -355,6 +358,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T16:06:39-07:00 | `dad765f` | Added reach-support gating for Hold'em MCCFR fallback. | Evaluators can now gate fallback by accumulated average-strategy mass as well as raw update count; focused tests passed (`26 passed`). The 5k reach-support sweep failed the tight exact h500 gate, with best threshold `10000` at `-0.035 +/- 0.145`. |
 | 2026-05-20T16:15:30-07:00 | `2cbb728` | Tried cap-2 corrected Hold'em MCCFR abstraction. | Tight exact h500 improved to `+0.273 +/- 0.134` and cheap safe s1 h100 spiked to `+1.135 +/- 0.384`, but range e4 h500 failed at `-0.167 +/- 0.143`; diagnostic only. |
 | 2026-05-20T16:45:30-07:00 | `83a6961` | Swept cap-2 MCCFR fallback thresholds against range and cheap safe gates. | Range e4 h500 failed at every threshold, best `-0.162 +/- 0.149` at weight `10`; cheap safe s1 h100 peaked at `+1.335 +/- 0.536` at weight `100`, so cap-2 is rejected as a balanced candidate. |
+| 2026-05-20T16:52:18-07:00 | `48107d6` | Added MCCFR checkpoint expert labeling for Hold'em policy imitation. | Focused response datasets can now use sampled abstract MCCFR policies as hard-label experts with fallback thresholds; focused dataset/training tests passed (`75 passed`). |
+| 2026-05-20T17:01:11-07:00 | `95a7258` | Tried cap-2 MCCFR response distillation from current-best safe-rollout states. | The KL8 balanced branch kept exact h100 positive (`+0.485 +/- 0.337`) and range h100 flat (`+0.005 +/- 0.262`), but cheap safe h40 still failed at `-0.275 +/- 0.692`; not a candidate. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1024,6 +1029,16 @@ Current fixed-limit Hold'em gate:
   Meanwhile, the cheap safe s1 h100 sweep peaked at `+1.335 +/- 0.536` at
   `min_strategy_weight=100`. The safe repair is real enough to study, but it
   does not coexist with the range gate in this abstraction.
+- MCCFR checkpoint expert labeling now allows focused neural response datasets
+  to use the cap-2 safe-positive policy as a hard-label teacher. A first
+  200-hand per-seat response probe collected 585 facing-bet labels from states
+  visited by the current best against cheap safe rollout. The labels were
+  call-heavy (`345` calls, `132` folds, `108` raises), but initialized
+  distillation still over-folded. KL4/sqrt failed all small gates, while
+  KL8/balanced kept tight exact h100 positive and range h100 flat but still
+  failed cheap safe h40 (`-0.275 +/- 0.692`, player 1 `-0.600`). This path
+  needs a better player-1 response objective before it can replace the current
+  best.
 
 ## Research Roadmap
 
