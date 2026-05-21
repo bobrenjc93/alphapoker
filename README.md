@@ -393,6 +393,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T19:49:57-07:00 | `4fae5c5` | Tried p0 raise dampening and asymmetric value400 switching. | P0 `raise=-0.25` calibration broke the safe repair (`-0.255 +/- 0.615`), while broad p0 after-one value400 plus p1 response-only blending was only `+0.040 +/- 0.681`; current best unchanged. |
 | 2026-05-20T19:56:04-07:00 | `1ce84d6` | Bucketed neural decision diagnostics by opponent aggression for all Hold'em decisions. | Diagnostic buckets now cover non-facing post-aggression states as well as facing-bet responses; `tests/test_evaluate_holdem_model.py` passed (`32 passed`). |
 | 2026-05-20T20:16:00-07:00 | `1c57c5a` | Compared value400 player-0 decision buckets. | Full KL8 value400 p0 plus p1 response composite reproduced h100 safe `+0.305 +/- 0.597`, while p0 facing-only without a p1 branch failed (`-1.360 +/- 0.530`, p0 `-0.12`); current best unchanged. |
+| 2026-05-20T20:30:20-07:00 | `505af44` | Tried p0 protective exact/range replay on value400. | Adding 513 p0 current-behavior exact/range labels still over-raised cached p0 facing states (`172` vs `96` target), safe dropped to `+0.015 +/- 0.537`, and exact failed at `-0.120 +/- 0.324`; current best unchanged. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1207,6 +1208,15 @@ Current fixed-limit Hold'em gate:
   `-0.12`. The safe-side p0 gain is therefore not a local facing-only override;
   future training should regularize the full p0 value400 behavior rather than
   trying to splice only response states at runtime.
+- A first training-side regularization attempt added 276 p0 current-behavior
+  tight-exact labels and 237 p0 current-behavior tight-range labels to the KL8
+  value400 replay. The branch still over-raised p0 facing states in cache
+  (`172` raises predicted vs `96` target), lost the safe-side p0 repair
+  (`+0.015 +/- 0.537` overall, p0 `-0.04`), and failed tight exact h100
+  (`-0.120 +/- 0.324`, p0 `-0.58`). Simple hard-label protective replay is too
+  blunt; the next p0 repair needs either softer value-aware protection or a
+  state-conditioned objective rather than more conservative current-behavior
+  labels.
 
 ## Research Roadmap
 
