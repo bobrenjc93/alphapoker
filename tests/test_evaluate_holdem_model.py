@@ -5,9 +5,11 @@ torch = pytest.importorskip("torch")
 pytest.importorskip("treys")
 
 from alphapoker.evaluate_holdem_model import (  # noqa: E402
+    ModelDecisionDiagnostics,
     action_logit_biases_from_specs,
     build_parser,
     evaluation_process_context,
+    format_model_decision_diagnostics,
     make_opponent_policy,
     model_policy_from_checkpoint,
     opponent_aggressions_before_current_decision,
@@ -16,7 +18,7 @@ from alphapoker.evaluate_holdem_model import (  # noqa: E402
     run,
     split_hands,
 )
-from alphapoker.holdem import RAISE, deal_fixed_limit_holdem  # noqa: E402
+from alphapoker.holdem import CALL, RAISE, deal_fixed_limit_holdem  # noqa: E402
 from alphapoker.holdem_features import (  # noqa: E402
     HOLDEM_ACTION_HISTORY_FEATURE_DIM,
     HOLDEM_CANONICAL_ACTIONS,
@@ -634,6 +636,29 @@ def test_holdem_model_eval_records_model_decision_diagnostics(tmp_path) -> None:
     assert "avg_top_logit_margin" in all_bucket
     assert "player_0" in diagnostics
     assert "player_1" in diagnostics
+
+
+def test_model_decision_diagnostics_bucket_non_facing_opponent_aggressions(
+    tmp_path,
+) -> None:
+    policy_checkpoint = tmp_path / "policy.pt"
+    write_biased_policy_checkpoint(policy_checkpoint, "bet")
+    diagnostics = ModelDecisionDiagnostics()
+    policy = model_policy_from_checkpoint(
+        policy_checkpoint,
+        decision_diagnostics=diagnostics,
+    )
+    state = deal_fixed_limit_holdem().apply(RAISE).apply(CALL)
+    player = state.current_player()
+
+    assert "call" not in state.legal_actions()
+    assert opponent_aggressions_before_current_decision(state) == 1
+    assert policy(state) == "bet"
+
+    formatted = format_model_decision_diagnostics(diagnostics.as_raw())
+    assert formatted["not_facing_bet_opp_aggr_1"]["count"] == 1
+    assert formatted[f"player_{player}_not_facing_bet_opp_aggr_1"]["count"] == 1
+    assert formatted["opp_aggr_1"]["count"] == 1
 
 
 def test_holdem_model_eval_run_paired_seats_smoke(tmp_path) -> None:

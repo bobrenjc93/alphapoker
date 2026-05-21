@@ -167,18 +167,18 @@ class ModelDecisionDiagnostics:
             mask[HOLDEM_CANONICAL_ACTIONS.index("call")]
             and mask[HOLDEM_CANONICAL_ACTIONS.index("fold")]
         )
+        state_kind = "facing_bet" if facing_bet else "not_facing_bet"
+        opponent_aggressions = opponent_aggressions_before_current_decision(state)
+        capped_aggressions = min(opponent_aggressions, 2)
         bucket_names = ["all", f"player_{player}"]
-        bucket_names.append("facing_bet" if facing_bet else "not_facing_bet")
+        bucket_names.append(state_kind)
+        bucket_names.append(f"player_{player}_{state_kind}")
+        bucket_names.append(f"opp_aggr_{capped_aggressions}")
+        bucket_names.append(f"player_{player}_opp_aggr_{capped_aggressions}")
+        bucket_names.append(f"{state_kind}_opp_aggr_{capped_aggressions}")
         bucket_names.append(
-            f"player_{player}_{'facing_bet' if facing_bet else 'not_facing_bet'}"
+            f"player_{player}_{state_kind}_opp_aggr_{capped_aggressions}"
         )
-        if facing_bet:
-            opponent_aggressions = opponent_aggressions_before_current_decision(state)
-            capped_aggressions = min(opponent_aggressions, 2)
-            bucket_names.append(f"facing_bet_opp_aggr_{capped_aggressions}")
-            bucket_names.append(
-                f"player_{player}_facing_bet_opp_aggr_{capped_aggressions}"
-            )
 
         legal_logits = [
             float(logits[index].detach().cpu())
