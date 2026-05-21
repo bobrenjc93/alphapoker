@@ -376,6 +376,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T18:28:12-07:00 | `60a4214` | Paired value400 player 0 with after-two runtime calibration. | Global plus player-1 after-two raise/fold calibration gave only `+0.090 +/- 0.670` on the same h100 safe seed, with player 0 strong (`+0.75`) but player 1 still negative (`-0.57`); exact/range extension was skipped. |
 | 2026-05-20T18:33:47-07:00 | `880c8b2` | Tried ungated runtime calibration with value400 player 0. | Global `raise=+0.5`, `fold=-0.5` plus player-1 runtime raise/fold bias failed the same h100 safe seed at `-0.185 +/- 0.671`, with both seats slightly negative (`p0 -0.21`, `p1 -0.16`); exact/range extension was skipped. |
 | 2026-05-20T18:42:18-07:00 | `1d1b6ff` | Isolated p1-only runtime calibration with value400 player 0. | Removing the global bias kept value400 player 0 healthy (`+0.33`) but player 1 stayed negative; p1 `raise=+0.5` scored `-0.045 +/- 0.621` and p1 `raise=+1.0` scored `-0.055 +/- 0.656` on the same h100 safe seed, so exact/range extension was skipped. |
+| 2026-05-20T18:51:24-07:00 | `8a89146` | Tried partial p1 response blends in the value400 composite. | A 75% p1 cap-2 blend with strong p1 bias kept h100 safe positive (`+0.195 +/- 0.675`, seats `+0.33/+0.06`) and repaired the earlier exact/range sign failures (`+0.045 +/- 0.323`, `+0.140 +/- 0.313`), but the exact gate is far below the current best and has player 0 negative, so this remains diagnostic. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1129,6 +1130,13 @@ Current fixed-limit Hold'em gate:
   `p1 -0.42`), while p1-only `raise=+1.0`, `fold=-0.5` scored
   `-0.055 +/- 0.656` (`p0 +0.33`, `p1 -0.44`). Player 1 needs a policy-side
   response repair, not just a scalar runtime raise boost.
+- Partial p1 response blending improved the tradeoff but did not produce a
+  new candidate. A 50% cap-2 p1 blend with strong p1 bias made the same h100
+  safe seed only weak-positive (`+0.040 +/- 0.677`) and left player 1 negative
+  (`-0.25`). At 75%, safe matched the full blend (`+0.195 +/- 0.675`, seats
+  `p0 +0.33`, `p1 +0.06`) and the protective h100 exact/range signs recovered
+  (`+0.045 +/- 0.323`, `+0.140 +/- 0.313`), but exact is still far below the
+  current-best gate and player 0 is negative on exact (`-0.29`).
 
 ## Research Roadmap
 
