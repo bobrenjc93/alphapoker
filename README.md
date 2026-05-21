@@ -127,8 +127,9 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   Hold'em policy distillation.
 - Optional dense rollout action-value targets with auxiliary advantage-matching
   loss for Hold'em policy distillation.
-- Optional action-value example weighting, including per-player weighting, for
-  Hold'em policy distillation from cached rollout-value labels.
+- Optional action-value example and auxiliary-loss weighting, including
+  per-player weighting, for Hold'em policy distillation from cached
+  rollout-value labels.
 - Cacheable Hold'em policy-imitation training examples for larger expert runs.
 - Resumable Hold'em policy-imitation shard caching for long example-generation
   runs.
@@ -396,6 +397,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T20:30:20-07:00 | `505af44` | Tried p0 protective exact/range replay on value400. | Adding 513 p0 current-behavior exact/range labels still over-raised cached p0 facing states (`172` vs `96` target), safe dropped to `+0.015 +/- 0.537`, and exact failed at `-0.120 +/- 0.324`; current best unchanged. |
 | 2026-05-20T20:35:10-07:00 | `3aa6eb3` | Added not-facing-only Hold'em blend gates. | Evaluator blends can now target non-facing-bet states globally or per seat; `tests/test_evaluate_holdem_model.py` passed (`33 passed`). |
 | 2026-05-20T20:38:17-07:00 | `dd90be7` | Isolated p0 non-facing value400 switching. | P0 value400 restricted to non-facing-bet states failed the same h100 safe seed at `-1.655 +/- 0.482`, with player 0 at `-0.71` versus `+0.54` for full p0 value400; current best unchanged. |
+| 2026-05-20T20:43:03-07:00 | `cc02a37` | Added separate action-value auxiliary-loss weights. | Training can now weight cached action-value rows for the auxiliary value-ranking loss without also weighting supervised labels or KL anchoring; `tests/test_train_holdem_policy.py` passed (`40 passed`). |
+| 2026-05-20T20:45:46-07:00 | `e2a0566` | Tried value-loss-only p0 protection probes. | Lowering value-row supervised weight while raising auxiliary value loss did not fix cached p0 over-raises: p0 facing-bet raises stayed `173` or worsened to `184` vs `96` target; stopped before live gates. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1225,6 +1228,13 @@ Current fixed-limit Hold'em gate:
   Runtime state splices have now missed the useful p0 behavior in
   facing-only, after-one, and non-facing-only forms; the next attempt should
   model the full p0 trajectory without breaking exact/range protection.
+- Separating auxiliary action-value loss weights from supervised example
+  weights did not rescue the p0 protective replay. With value rows downweighted
+  to `0.5x` for supervised loss and p0 value-loss rows upweighted to `2x`, p0
+  facing-bet raises were still `173` predicted vs `96` target. A stronger
+  split (`0.25x` supervised value rows, `4x` auxiliary value loss) worsened p0
+  facing-bet raises to `184`. The action-value auxiliary itself is reinforcing
+  the p0 over-raise, so this path was stopped at metrics.
 
 ## Research Roadmap
 
