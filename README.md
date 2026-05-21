@@ -361,6 +361,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T16:52:18-07:00 | `48107d6` | Added MCCFR checkpoint expert labeling for Hold'em policy imitation. | Focused response datasets can now use sampled abstract MCCFR policies as hard-label experts with fallback thresholds; focused dataset/training tests passed (`75 passed`). |
 | 2026-05-20T17:01:11-07:00 | `95a7258` | Tried cap-2 MCCFR response distillation from current-best safe-rollout states. | The KL8 balanced branch kept exact h100 positive (`+0.485 +/- 0.337`) and range h100 flat (`+0.005 +/- 0.262`), but cheap safe h40 still failed at `-0.275 +/- 0.692`; not a candidate. |
 | 2026-05-20T17:06:49-07:00 | `81c5eb5` | Tried call-weighted cap-2 MCCFR response distillation. | Call upweighting moved cached responses closer to the cap-2 teacher (`call/fold/raise = 277/199/109` predicted vs `345/132/108` target), but exact h100 fell to `+0.015 +/- 0.387` and cheap safe h40 failed at `-0.7875 +/- 0.629`; not a candidate. |
+| 2026-05-20T17:17:29-07:00 | `e82d291` | Tried player-1-only cap-2 response branches as seat composites. | The best cached p1 branch matched `99/69/26` call/fold/raise vs `110/58/26` target and kept exact h100 positive (`+0.385 +/- 0.317`), but range h100 was flat (`+0.015 +/- 0.165`) and cheap safe h40 still failed at `-1.0625 +/- 0.717`; not a candidate. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1046,6 +1047,13 @@ Current fixed-limit Hold'em gate:
   (`+0.015 +/- 0.387`), modestly positive on range h100
   (`+0.220 +/- 0.218`), and failed cheap safe h40 at
   `-0.7875 +/- 0.629`, with both safe seats negative.
+- Player-1-only cap-2 response branches showed that seat-isolated imitation can
+  improve the cached p1 response mix without repairing live safe play. The best
+  train-selected p1 branch reached `99/69/26` call/fold/raise vs a
+  `110/58/26` target. Used only for player 1 alongside the current best for
+  player 0, it kept tight exact h100 positive (`+0.385 +/- 0.317`) but was
+  flat on range h100 (`+0.015 +/- 0.165`) and still failed cheap safe h40
+  (`-1.0625 +/- 0.717`), mainly from player 0 on that seed (`-1.825`).
 
 ## Research Roadmap
 
