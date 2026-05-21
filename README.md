@@ -375,6 +375,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T18:22:49-07:00 | `4c94cc3` | Tried a milder p1 response bias in the same value400/p1 composite. | Reducing p1 `raise` bias from `+1.0` to `+0.5` lost the safe repair on the same h100 seed (`-0.090 +/- 0.575`, seats `+0.33/-0.51`), so exact/range extension was skipped. |
 | 2026-05-20T18:28:12-07:00 | `60a4214` | Paired value400 player 0 with after-two runtime calibration. | Global plus player-1 after-two raise/fold calibration gave only `+0.090 +/- 0.670` on the same h100 safe seed, with player 0 strong (`+0.75`) but player 1 still negative (`-0.57`); exact/range extension was skipped. |
 | 2026-05-20T18:33:47-07:00 | `880c8b2` | Tried ungated runtime calibration with value400 player 0. | Global `raise=+0.5`, `fold=-0.5` plus player-1 runtime raise/fold bias failed the same h100 safe seed at `-0.185 +/- 0.671`, with both seats slightly negative (`p0 -0.21`, `p1 -0.16`); exact/range extension was skipped. |
+| 2026-05-20T18:42:18-07:00 | `1d1b6ff` | Isolated p1-only runtime calibration with value400 player 0. | Removing the global bias kept value400 player 0 healthy (`+0.33`) but player 1 stayed negative; p1 `raise=+0.5` scored `-0.045 +/- 0.621` and p1 `raise=+1.0` scored `-0.055 +/- 0.656` on the same h100 safe seed, so exact/range extension was skipped. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1122,6 +1123,12 @@ Current fixed-limit Hold'em gate:
   both seats slightly negative on the same h100 safe seed (`p0 -0.21`,
   `p1 -0.16`), for `-0.185 +/- 0.671`; this confirms the cap-2 response blend
   was doing most of the player-1 repair in the stronger composite.
+- Isolating the runtime adjustment to player 1 avoided the player-0 damage but
+  still did not repair the safe gate. With value400 fixed on player 0, p1-only
+  `raise=+0.5`, `fold=-0.5` scored `-0.045 +/- 0.621` (`p0 +0.33`,
+  `p1 -0.42`), while p1-only `raise=+1.0`, `fold=-0.5` scored
+  `-0.055 +/- 0.656` (`p0 +0.33`, `p1 -0.44`). Player 1 needs a policy-side
+  response repair, not just a scalar runtime raise boost.
 
 ## Research Roadmap
 
