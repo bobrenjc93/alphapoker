@@ -373,6 +373,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T18:11:01-07:00 | `c4fae8c` | Enabled inactive blend skipping for seat-specific composites. | Evaluator-side blends now skip incompatible blend checkpoints for model seats excluded by `--blend-player`; focused evaluator tests passed (`30 passed`). |
 | 2026-05-20T18:17:54-07:00 | `a0d6542` | Combined value400 player 0 with the p1 response blend and bias. | The composite made h100 safe weakly positive (`+0.200 +/- 0.613`, seats `+0.33/+0.07`) but failed promotion on protective h100 exact/range probes (`-0.215 +/- 0.466`, `-0.035 +/- 0.336`); current best is unchanged. |
 | 2026-05-20T18:22:49-07:00 | `4c94cc3` | Tried a milder p1 response bias in the same value400/p1 composite. | Reducing p1 `raise` bias from `+1.0` to `+0.5` lost the safe repair on the same h100 seed (`-0.090 +/- 0.575`, seats `+0.33/-0.51`), so exact/range extension was skipped. |
+| 2026-05-20T18:28:12-07:00 | `60a4214` | Paired value400 player 0 with after-two runtime calibration. | Global plus player-1 after-two raise/fold calibration gave only `+0.090 +/- 0.670` on the same h100 safe seed, with player 0 strong (`+0.75`) but player 1 still negative (`-0.57`); exact/range extension was skipped. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1109,6 +1110,12 @@ Current fixed-limit Hold'em gate:
   useful compromise. Player 0 stayed at `+0.33` on the same safe seed, but
   player 1 fell back to `-0.51`, making the overall h100 safe result
   `-0.090 +/- 0.575`; that setting was stopped before exact/range extension.
+- Pairing value400 player 0 with the earlier after-two-aggressions runtime
+  calibration, without the cap-2 response blend, also did not balance the
+  seats. Player 0 improved to `+0.75` on the same h100 safe seed, but player 1
+  stayed negative at `-0.57`, leaving the overall result only
+  `+0.090 +/- 0.670`; this was weaker than the strong p1 response-blend
+  composite and was not extended.
 
 ## Research Roadmap
 
