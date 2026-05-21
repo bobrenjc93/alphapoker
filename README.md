@@ -184,6 +184,9 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   seats and facing-bet response states.
 - Seat-specific Hold'em checkpoint evaluation that can assign different
   checkpoint policies to player 0 and player 1.
+- Seat-specific Hold'em blending can skip inactive blend checkpoints, allowing
+  feature-incompatible player-0 and player-1 composite probes when
+  `--blend-player` excludes one seat.
 - Cross-seat Hold'em neural checkpoint evaluation.
 - Hold'em match-evaluation action-count and facing-bet response diagnostics by
   model/opponent role and player seat, with optional progress reporting for
@@ -367,6 +370,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T17:48:00-07:00 | `c10b2c9` | Added the missing same-seed h100 safe control for the full p1 blend. | Current best scored `-1.805 +/- 0.525` on seed `92955`, so the full p1-facing blend's `-0.900 +/- 0.515` is a real same-seed improvement, mostly from player 1 (`-3.10` to `-1.29`), but still not a safe-rollout repair. |
 | 2026-05-20T18:00:15-07:00 | `0d95d5a` | Added player-1 response-bias probes on top of the p1 blend. | P1 `raise=+0.5`, `fold=-0.5` improved h100 safe to `-0.510 +/- 0.524` with range still positive (`+0.325 +/- 0.227`) and exact near-flat (`-0.090 +/- 0.482`); `raise=+1.0` improved safe to `-0.220 +/- 0.559` but worsened exact to `-0.230 +/- 0.502`, so this is still diagnostic. |
 | 2026-05-20T18:06:01-07:00 | `e3dbd19` | Gated the p1 blend and response bias until after two opponent aggressions. | The same-seed h100 safe point improved over the raw current best (`-0.420 +/- 0.532` vs `-1.805 +/- 0.525`) and over the full p1 blend, but it was weaker than the ungated strong bias (`-0.220 +/- 0.559`); exact/range gates were not promoted. |
+| 2026-05-20T18:11:01-07:00 | `c4fae8c` | Enabled inactive blend skipping for seat-specific composites. | Evaluator-side blends now skip incompatible blend checkpoints for model seats excluded by `--blend-player`; focused evaluator tests passed (`30 passed`). |
+| 2026-05-20T18:17:54-07:00 | `a0d6542` | Combined value400 player 0 with the p1 response blend and bias. | The composite made h100 safe weakly positive (`+0.200 +/- 0.613`, seats `+0.33/+0.07`) but failed promotion on protective h100 exact/range probes (`-0.215 +/- 0.466`, `-0.035 +/- 0.336`); current best is unchanged. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1091,6 +1096,14 @@ Current fixed-limit Hold'em gate:
   but it is weaker than applying the stronger p1 response bias immediately
   (`-0.220 +/- 0.559`). The gate also reduced player-1 facing-bet raises from
   `31` to `11`, so it is diagnostic rather than a promoted policy.
+- Combining the value400 side checkpoint for player 0 with the full p1
+  facing-bet blend plus the stronger p1 response bias finally made the
+  same-seed h100 cheap-safe point weakly positive (`+0.200 +/- 0.613`) with
+  both seats non-negative (`p0 +0.33`, `p1 +0.07`). The tradeoff is still too
+  expensive: tight exact h100 regressed to `-0.215 +/- 0.466`, mainly from
+  player 1 (`-0.590`), and range h100 was flat-negative at
+  `-0.035 +/- 0.336`. Seat-specific composition helps the safe gate but does
+  not yet preserve the exact/range gates.
 
 ## Research Roadmap
 
