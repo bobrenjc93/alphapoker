@@ -378,6 +378,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T18:42:18-07:00 | `1d1b6ff` | Isolated p1-only runtime calibration with value400 player 0. | Removing the global bias kept value400 player 0 healthy (`+0.33`) but player 1 stayed negative; p1 `raise=+0.5` scored `-0.045 +/- 0.621` and p1 `raise=+1.0` scored `-0.055 +/- 0.656` on the same h100 safe seed, so exact/range extension was skipped. |
 | 2026-05-20T18:51:24-07:00 | `8a89146` | Tried partial p1 response blends in the value400 composite. | A 75% p1 cap-2 blend with strong p1 bias kept h100 safe positive (`+0.195 +/- 0.675`, seats `+0.33/+0.06`) and repaired the earlier exact/range sign failures (`+0.045 +/- 0.323`, `+0.140 +/- 0.313`), but the exact gate is far below the current best and has player 0 negative, so this remains diagnostic. |
 | 2026-05-20T18:58:18-07:00 | `030fb58` | Confirmed the 75% response blend on a larger exact gate. | Tight exact e8 h500 regressed to `-0.034 +/- 0.181` with both seats near flat (`p0 +0.012`, `p1 -0.080`), so the 75% blend is rejected before larger range/safe confirmations. |
+| 2026-05-20T19:05:45-07:00 | `73c600a` | Gated the value400/p1 response composite after one opponent aggression. | The after-one gate kept h100 safe positive (`+0.200 +/- 0.613`, seats `+0.33/+0.07`), but h100 exact/range stayed weak (`+0.025 +/- 0.328`, `+0.070 +/- 0.314`) with exact player 0 negative and range player 1 negative; the larger exact failure from the 75% blend made further confirmation unwarranted. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1142,6 +1143,12 @@ Current fixed-limit Hold'em gate:
   larger tight exact e8 result was `-0.034 +/- 0.181`, with player 0 nearly
   flat (`+0.012`) and player 1 slightly negative (`-0.080`), so larger
   range/safe confirmations were skipped.
+- Gating the p1 response blend and p1 bias until after one opponent aggression
+  kept the same safe repair (`+0.200 +/- 0.613`, seats `p0 +0.33`,
+  `p1 +0.07`) but did not fix the protective gates. Tight exact h100 was only
+  `+0.025 +/- 0.328` with player 0 negative (`-0.29`), and range h100 was
+  `+0.070 +/- 0.314` with player 1 negative (`-0.13`), so no larger
+  confirmation was run.
 
 ## Research Roadmap
 
