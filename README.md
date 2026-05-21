@@ -366,6 +366,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T17:42:48-07:00 | `8ce9081` | Swept partial player-1 facing-response blend weights. | On the same h40 cheap-safe seed, 25% scored `-0.625 +/- 0.551`, 50% scored `-0.3625 +/- 0.601`, and 75% scored only `+0.025 +/- 0.628`; every partial blend left player 1 negative, so the full blend's failed h100 confirmation remains decisive. |
 | 2026-05-20T17:48:00-07:00 | `c10b2c9` | Added the missing same-seed h100 safe control for the full p1 blend. | Current best scored `-1.805 +/- 0.525` on seed `92955`, so the full p1-facing blend's `-0.900 +/- 0.515` is a real same-seed improvement, mostly from player 1 (`-3.10` to `-1.29`), but still not a safe-rollout repair. |
 | 2026-05-20T18:00:15-07:00 | `0d95d5a` | Added player-1 response-bias probes on top of the p1 blend. | P1 `raise=+0.5`, `fold=-0.5` improved h100 safe to `-0.510 +/- 0.524` with range still positive (`+0.325 +/- 0.227`) and exact near-flat (`-0.090 +/- 0.482`); `raise=+1.0` improved safe to `-0.220 +/- 0.559` but worsened exact to `-0.230 +/- 0.502`, so this is still diagnostic. |
+| 2026-05-20T18:06:01-07:00 | `e3dbd19` | Gated the p1 blend and response bias until after two opponent aggressions. | The same-seed h100 safe point improved over the raw current best (`-0.420 +/- 0.532` vs `-1.805 +/- 0.525`) and over the full p1 blend, but it was weaker than the ungated strong bias (`-0.220 +/- 0.559`); exact/range gates were not promoted. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1083,6 +1084,13 @@ Current fixed-limit Hold'em gate:
   `+1.0` made player 1 slightly positive on safe (`+0.070`) and improved
   overall safe to `-0.220 +/- 0.559`, but exact regressed to `-0.230 +/- 0.502`.
   This branch is useful but still not a current-best replacement.
+- Gating both the full p1 blend and the stronger p1 response bias until after
+  two visible opponent aggressions made the same-seed h100 safe point
+  `-0.420 +/- 0.532`. That is still a real improvement over the raw current
+  best (`-1.805 +/- 0.525`) and the ungated full blend (`-0.900 +/- 0.515`),
+  but it is weaker than applying the stronger p1 response bias immediately
+  (`-0.220 +/- 0.559`). The gate also reduced player-1 facing-bet raises from
+  `31` to `11`, so it is diagnostic rather than a promoted policy.
 
 ## Research Roadmap
 
