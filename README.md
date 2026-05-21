@@ -379,6 +379,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T18:51:24-07:00 | `8a89146` | Tried partial p1 response blends in the value400 composite. | A 75% p1 cap-2 blend with strong p1 bias kept h100 safe positive (`+0.195 +/- 0.675`, seats `+0.33/+0.06`) and repaired the earlier exact/range sign failures (`+0.045 +/- 0.323`, `+0.140 +/- 0.313`), but the exact gate is far below the current best and has player 0 negative, so this remains diagnostic. |
 | 2026-05-20T18:58:18-07:00 | `030fb58` | Confirmed the 75% response blend on a larger exact gate. | Tight exact e8 h500 regressed to `-0.034 +/- 0.181` with both seats near flat (`p0 +0.012`, `p1 -0.080`), so the 75% blend is rejected before larger range/safe confirmations. |
 | 2026-05-20T19:05:45-07:00 | `73c600a` | Gated the value400/p1 response composite after one opponent aggression. | The after-one gate kept h100 safe positive (`+0.200 +/- 0.613`, seats `+0.33/+0.07`), but h100 exact/range stayed weak (`+0.025 +/- 0.328`, `+0.070 +/- 0.314`) with exact player 0 negative and range player 1 negative; the larger exact failure from the 75% blend made further confirmation unwarranted. |
+| 2026-05-20T19:17:06-07:00 | `f0d7cd8` | Tried KL8 replay anchoring for the value400/p1 response composite. | KL8 player-0 replay improved the same h100 safe seed to `+0.305 +/- 0.597` (`p0 +0.54`, `p1 +0.07`), but protective h100 exact/range were only `+0.085 +/- 0.338` and `-0.015 +/- 0.314`; current best unchanged. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1149,6 +1150,13 @@ Current fixed-limit Hold'em gate:
   `+0.025 +/- 0.328` with player 0 negative (`-0.29`), and range h100 was
   `+0.070 +/- 0.314` with player 1 negative (`-0.13`), so no larger
   confirmation was run.
+- Increasing the value400 player-0 replay anchor to KL8 made the same
+  after-one response composite stronger on the h100 cheap-safe seed
+  (`+0.305 +/- 0.597`, seats `p0 +0.54`, `p1 +0.07`), but it still did not
+  balance the protective gates. Tight exact h100 was only `+0.085 +/- 0.338`
+  with player 0 negative (`-0.17`), and range h100 was flat-negative at
+  `-0.015 +/- 0.314` with player 1 negative (`-0.13`), so this branch is also
+  diagnostic rather than a current-best update.
 
 ## Research Roadmap
 
