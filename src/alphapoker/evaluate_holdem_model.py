@@ -656,6 +656,18 @@ def make_opponent_policy(
     return make_policy(name, rng, equity_sims, rollout_sims, rollout_margin)
 
 
+def active_blend_checkpoint_for_model_player(
+    blend_checkpoint: Path | None,
+    blend_players: tuple[int, ...] | None,
+    model_player: int,
+) -> Path | None:
+    if blend_checkpoint is None:
+        return None
+    if blend_players is not None and model_player not in blend_players:
+        return None
+    return blend_checkpoint
+
+
 def evaluate_model_shard(
     *,
     checkpoint: Path,
@@ -693,6 +705,11 @@ def evaluate_model_shard(
     decision_diagnostics = (
         ModelDecisionDiagnostics() if model_decision_diagnostics else None
     )
+    active_blend_checkpoint = active_blend_checkpoint_for_model_player(
+        blend_checkpoint,
+        blend_players,
+        model_player,
+    )
     metrics = {
         "checkpoint": str(checkpoint),
         "player_checkpoint": str(player_checkpoint),
@@ -702,11 +719,21 @@ def evaluate_model_shard(
             model_policy=model_policy_from_checkpoint(
                 player_checkpoint,
                 feature_seed=eval_seed,
-                blend_checkpoint_path=blend_checkpoint,
+                blend_checkpoint_path=active_blend_checkpoint,
                 blend_weight=blend_weight,
-                blend_after_opponent_aggressions=blend_after_opponent_aggressions,
-                blend_facing_bet_only=blend_facing_bet_only,
-                blend_players=blend_players,
+                blend_after_opponent_aggressions=(
+                    blend_after_opponent_aggressions
+                    if active_blend_checkpoint is not None
+                    else None
+                ),
+                blend_facing_bet_only=(
+                    blend_facing_bet_only
+                    if active_blend_checkpoint is not None
+                    else False
+                ),
+                blend_players=(
+                    blend_players if active_blend_checkpoint is not None else None
+                ),
                 facing_bet_logit_biases=facing_bet_logit_biases,
                 facing_bet_logit_bias_after_opponent_aggressions=(
                     facing_bet_logit_bias_after_opponent_aggressions
@@ -820,15 +847,31 @@ def evaluate_model_paired_shard(
     decision_diagnostics = (
         ModelDecisionDiagnostics() if model_decision_diagnostics else None
     )
-    model_policies = tuple(
-        model_policy_from_checkpoint(
+
+    def make_model_policy(model_player: int) -> HoldemPolicy:
+        active_blend_checkpoint = active_blend_checkpoint_for_model_player(
+            blend_checkpoint,
+            blend_players,
+            model_player,
+        )
+        return model_policy_from_checkpoint(
             player_checkpoints[model_player],
             feature_seed=eval_seed + model_player,
-            blend_checkpoint_path=blend_checkpoint,
+            blend_checkpoint_path=active_blend_checkpoint,
             blend_weight=blend_weight,
-            blend_after_opponent_aggressions=blend_after_opponent_aggressions,
-            blend_facing_bet_only=blend_facing_bet_only,
-            blend_players=blend_players,
+            blend_after_opponent_aggressions=(
+                blend_after_opponent_aggressions
+                if active_blend_checkpoint is not None
+                else None
+            ),
+            blend_facing_bet_only=(
+                blend_facing_bet_only
+                if active_blend_checkpoint is not None
+                else False
+            ),
+            blend_players=(
+                blend_players if active_blend_checkpoint is not None else None
+            ),
             facing_bet_logit_biases=facing_bet_logit_biases,
             facing_bet_logit_bias_after_opponent_aggressions=(
                 facing_bet_logit_bias_after_opponent_aggressions
@@ -851,8 +894,8 @@ def evaluate_model_paired_shard(
             ),
             decision_diagnostics=decision_diagnostics,
         )
-        for model_player in (0, 1)
-    )
+
+    model_policies = tuple(make_model_policy(model_player) for model_player in (0, 1))
     opponent_policies = tuple(
         make_opponent_policy(
             opponent_policy,

@@ -17,7 +17,11 @@ from alphapoker.evaluate_holdem_model import (  # noqa: E402
     split_hands,
 )
 from alphapoker.holdem import RAISE, deal_fixed_limit_holdem  # noqa: E402
-from alphapoker.holdem_features import HOLDEM_CANONICAL_ACTIONS, HOLDEM_FEATURE_DIM  # noqa: E402
+from alphapoker.holdem_features import (  # noqa: E402
+    HOLDEM_ACTION_HISTORY_FEATURE_DIM,
+    HOLDEM_CANONICAL_ACTIONS,
+    HOLDEM_FEATURE_DIM,
+)
 from alphapoker.holdem_model import HoldemEquityNet, HoldemPolicyNet  # noqa: E402
 
 
@@ -26,6 +30,7 @@ def write_biased_policy_checkpoint(
     action: str,
     *,
     input_dim: int = HOLDEM_FEATURE_DIM,
+    action_history_features: bool = False,
 ) -> None:
     model = HoldemPolicyNet(input_dim=input_dim)
     for parameter in model.parameters():
@@ -33,13 +38,13 @@ def write_biased_policy_checkpoint(
     bias = model.net[-1].bias
     assert bias is not None
     bias.data[HOLDEM_CANONICAL_ACTIONS.index(action)] = 10.0
-    torch.save(
-        {
-            "model_state_dict": model.state_dict(),
-            "input_dim": input_dim,
-        },
-        path,
-    )
+    checkpoint = {
+        "model_state_dict": model.state_dict(),
+        "input_dim": input_dim,
+    }
+    if action_history_features:
+        checkpoint["action_history_features"] = True
+    torch.save(checkpoint, path)
 
 
 def test_make_opponent_policy_rejects_unknown() -> None:
@@ -682,6 +687,51 @@ def test_holdem_model_eval_run_paired_seats_smoke(tmp_path) -> None:
     assert sum(metrics["model_action_counts"].values()) == sum(
         sum(seat["model_action_counts"].values()) for seat in metrics["seat_metrics"]
     )
+
+
+def test_holdem_model_eval_skips_inactive_player_blend_checkpoint(tmp_path) -> None:
+    player0_checkpoint = tmp_path / "player0.pt"
+    player1_checkpoint = tmp_path / "player1.pt"
+    blend_checkpoint = tmp_path / "blend.pt"
+    write_biased_policy_checkpoint(
+        player0_checkpoint,
+        "bet",
+        input_dim=HOLDEM_FEATURE_DIM + HOLDEM_ACTION_HISTORY_FEATURE_DIM,
+        action_history_features=True,
+    )
+    write_biased_policy_checkpoint(player1_checkpoint, "bet")
+    write_biased_policy_checkpoint(blend_checkpoint, "raise")
+
+    metrics = run(
+        build_parser().parse_args(
+            [
+                "--checkpoint",
+                str(player1_checkpoint),
+                "--player0-checkpoint",
+                str(player0_checkpoint),
+                "--player1-checkpoint",
+                str(player1_checkpoint),
+                "--blend-checkpoint",
+                str(blend_checkpoint),
+                "--blend-facing-bet-only",
+                "--blend-player",
+                "1",
+                "--hands",
+                "1",
+                "--model-player",
+                "both",
+                "--paired-seats",
+                "--opponent-policy",
+                "random",
+            ]
+        )
+    )
+
+    assert metrics["paired_seats"]
+    assert metrics["player0_checkpoint"] == str(player0_checkpoint)
+    assert metrics["player1_checkpoint"] == str(player1_checkpoint)
+    assert metrics["blend_checkpoint"] == str(blend_checkpoint)
+    assert metrics["blend_players"] == [1]
 
 
 def test_holdem_model_eval_paired_seats_requires_both(tmp_path) -> None:
