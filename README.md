@@ -360,6 +360,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T16:45:30-07:00 | `83a6961` | Swept cap-2 MCCFR fallback thresholds against range and cheap safe gates. | Range e4 h500 failed at every threshold, best `-0.162 +/- 0.149` at weight `10`; cheap safe s1 h100 peaked at `+1.335 +/- 0.536` at weight `100`, so cap-2 is rejected as a balanced candidate. |
 | 2026-05-20T16:52:18-07:00 | `48107d6` | Added MCCFR checkpoint expert labeling for Hold'em policy imitation. | Focused response datasets can now use sampled abstract MCCFR policies as hard-label experts with fallback thresholds; focused dataset/training tests passed (`75 passed`). |
 | 2026-05-20T17:01:11-07:00 | `95a7258` | Tried cap-2 MCCFR response distillation from current-best safe-rollout states. | The KL8 balanced branch kept exact h100 positive (`+0.485 +/- 0.337`) and range h100 flat (`+0.005 +/- 0.262`), but cheap safe h40 still failed at `-0.275 +/- 0.692`; not a candidate. |
+| 2026-05-20T17:06:49-07:00 | `81c5eb5` | Tried call-weighted cap-2 MCCFR response distillation. | Call upweighting moved cached responses closer to the cap-2 teacher (`call/fold/raise = 277/199/109` predicted vs `345/132/108` target), but exact h100 fell to `+0.015 +/- 0.387` and cheap safe h40 failed at `-0.7875 +/- 0.629`; not a candidate. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1039,6 +1040,12 @@ Current fixed-limit Hold'em gate:
   failed cheap safe h40 (`-0.275 +/- 0.692`, player 1 `-0.600`). This path
   needs a better player-1 response objective before it can replace the current
   best.
+- A call-weighted cap-2 response follow-up reduced the global over-fold
+  diagnostic (`277/199/109` predicted call/fold/raise vs `345/132/108` target)
+  but did not improve live play. It was essentially flat on tight exact h100
+  (`+0.015 +/- 0.387`), modestly positive on range h100
+  (`+0.220 +/- 0.218`), and failed cheap safe h40 at
+  `-0.7875 +/- 0.629`, with both safe seats negative.
 
 ## Research Roadmap
 
