@@ -399,6 +399,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T20:38:17-07:00 | `dd90be7` | Isolated p0 non-facing value400 switching. | P0 value400 restricted to non-facing-bet states failed the same h100 safe seed at `-1.655 +/- 0.482`, with player 0 at `-0.71` versus `+0.54` for full p0 value400; current best unchanged. |
 | 2026-05-20T20:43:03-07:00 | `cc02a37` | Added separate action-value auxiliary-loss weights. | Training can now weight cached action-value rows for the auxiliary value-ranking loss without also weighting supervised labels or KL anchoring; `tests/test_train_holdem_policy.py` passed (`40 passed`). |
 | 2026-05-20T20:45:46-07:00 | `e2a0566` | Tried value-loss-only p0 protection probes. | Lowering value-row supervised weight while raising auxiliary value loss did not fix cached p0 over-raises: p0 facing-bet raises stayed `173` or worsened to `184` vs `96` target; stopped before live gates. |
+| 2026-05-20T20:48:27-07:00 | `add3ee3` | Tried p0 facing-target reweighting on the protective cache. | P0 facing call/fold upweights plus raise downweights still left p0 facing raises at `175` and `173` vs `96` target; stopped before live gates. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1235,6 +1236,13 @@ Current fixed-limit Hold'em gate:
   split (`0.25x` supervised value rows, `4x` auxiliary value loss) worsened p0
   facing-bet raises to `184`. The action-value auxiliary itself is reinforcing
   the p0 over-raise, so this path was stopped at metrics.
+- Direct p0 facing-target reweighting on the same protective cache also failed
+  to move the bad response mix enough. Weighting p0 facing `call` and `fold`
+  targets by `2x` while cutting p0 facing `raise` targets to `0.5x` left p0
+  facing raises at `175`; a stronger `4x/4x/0.25x` version still produced
+  `173` raises vs `96` target. The cached failure is resistant to scalar
+  target weights, so the next p0 attempt needs a richer objective or a
+  different teacher mix rather than stronger row weights.
 
 ## Research Roadmap
 
