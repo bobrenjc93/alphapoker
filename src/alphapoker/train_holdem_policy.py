@@ -847,6 +847,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     if player_action_value_weight_overrides and action_value_targets is None:
         raise ValueError("--player-action-value-weight requires cached action_values")
+    action_value_loss_example_weight = float(
+        getattr(args, "action_value_loss_example_weight", 1.0)
+    )
+    if action_value_loss_example_weight <= 0.0:
+        raise ValueError("--action-value-loss-example-weight must be positive")
+    if action_value_loss_example_weight != 1.0 and action_value_targets is None:
+        raise ValueError("--action-value-loss-example-weight requires cached action_values")
+    player_action_value_loss_weight_overrides = player_value_weight_overrides_from_specs(
+        getattr(args, "player_action_value_loss_weight", None)
+    )
+    if player_action_value_loss_weight_overrides and action_value_targets is None:
+        raise ValueError("--player-action-value-loss-weight requires cached action_values")
     validation_fraction = getattr(args, "validation_fraction", 0.0)
     train_indices, validation_indices = _split_train_validation_indices(
         len(examples),
@@ -932,6 +944,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if action_value_target_mask is None:
         action_value_example_weights = torch.ones_like(facing_bet_weights)
         player_action_value_weights = torch.ones_like(facing_bet_weights)
+        action_value_loss_example_weights = torch.ones_like(facing_bet_weights)
+        player_action_value_loss_weights = torch.ones_like(facing_bet_weights)
     else:
         action_value_example_weights = action_value_example_weights_from_mask(
             action_value_target_mask,
@@ -942,6 +956,22 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             action_value_target_mask,
             player_action_value_weight_overrides,
         )
+        action_value_loss_example_weights = action_value_example_weights_from_mask(
+            action_value_target_mask,
+            action_value_loss_example_weight,
+        )
+        player_action_value_loss_weights = player_action_value_weights_from_features_mask(
+            features,
+            action_value_target_mask,
+            player_action_value_loss_weight_overrides,
+        )
+    action_value_loss_weights = (
+        action_value_loss_example_weights * player_action_value_loss_weights
+    )
+    use_action_value_loss_weights = (
+        action_value_loss_example_weight != 1.0
+        or bool(player_action_value_loss_weight_overrides)
+    )
     example_weights = (
         facing_bet_weights
         * player_action_weights
@@ -962,6 +992,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     validation_example_weights = (
         example_weights[validation_indices]
         if use_example_weights and validation_indices
+        else None
+    )
+    train_action_value_loss_weights = (
+        action_value_loss_weights[train_indices]
+        if use_action_value_loss_weights
+        else None
+    )
+    validation_action_value_loss_weights = (
+        action_value_loss_weights[validation_indices]
+        if use_action_value_loss_weights and validation_indices
         else None
     )
     facing_bet_mask = facing_bet_mask_from_masks(masks)
@@ -1047,6 +1087,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         batch_action_value_target_mask=None,
         batch_weights=None,
         batch_kl_weights=None,
+        batch_action_value_loss_weights=None,
     ):
         logits = model(batch_features)
         masked_logits = logits.masked_fill(~batch_masks, -1e9)
@@ -1097,11 +1138,22 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 ((logit_advantages - target_advantages).pow(2) * legal_mask_float).sum(dim=1)
                 / legal_counts
             )
+            value_weights = None
+            if batch_weights is not None:
+                value_weights = batch_weights[batch_action_value_target_mask]
+            if batch_action_value_loss_weights is not None:
+                loss_weights = batch_action_value_loss_weights[
+                    batch_action_value_target_mask
+                ]
+                value_weights = (
+                    loss_weights
+                    if value_weights is None
+                    else value_weights * loss_weights
+                )
             value_losses = value_losses[batch_action_value_target_mask]
-            if batch_weights is None:
+            if value_weights is None:
                 action_value_loss = value_losses.mean()
             else:
-                value_weights = batch_weights[batch_action_value_target_mask]
                 action_value_loss = (
                     (value_losses * value_weights).sum()
                     / value_weights.sum().clamp_min(1e-12)
@@ -1147,6 +1199,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             train_action_value_target_mask,
             train_example_weights,
             train_kl_example_weights,
+            train_action_value_loss_weights,
         )
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
@@ -1162,6 +1215,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 train_action_value_target_mask,
                 train_example_weights,
                 train_kl_example_weights,
+                train_action_value_loss_weights,
             )
             final_loss = float(train_loss.detach().cpu())
             validation_loss_value = None
@@ -1176,6 +1230,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     validation_action_value_target_mask,
                     validation_example_weights,
                     validation_kl_example_weights,
+                    validation_action_value_loss_weights,
                 )
                 validation_loss_value = float(validation_loss.detach().cpu())
                 final_validation_loss = validation_loss_value
@@ -1322,6 +1377,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
         if action_value_target_mask is not None and action_value_example_weight != 1.0
         else 0,
+        "action_value_loss_example_weight": action_value_loss_example_weight,
+        "action_value_loss_example_weighted_examples": int(
+            action_value_target_mask.sum().item()
+        )
+        if (
+            action_value_target_mask is not None
+            and action_value_loss_example_weight != 1.0
+        )
+        else 0,
         "jobs": jobs,
         "epochs": args.epochs,
         "lr": args.lr,
@@ -1369,6 +1433,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             (player_action_value_weights != 1.0).sum().item()
         )
         if player_action_value_weight_overrides
+        else 0,
+        "player_action_value_loss_weight_overrides": {
+            str(player): weight
+            for player, weight in player_action_value_loss_weight_overrides.items()
+        },
+        "player_action_value_loss_weighted_examples": int(
+            (player_action_value_loss_weights != 1.0).sum().item()
+        )
+        if player_action_value_loss_weight_overrides
         else 0,
         "facing_bet_weight": facing_bet_weight,
         "facing_bet_examples": int(facing_bet_mask.sum().item()),
@@ -1488,6 +1561,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--action-value-loss-weight", type=float, default=0.0)
     parser.add_argument("--action-value-target-scale", type=float, default=1.0)
     parser.add_argument("--action-value-example-weight", type=float, default=1.0)
+    parser.add_argument("--action-value-loss-example-weight", type=float, default=1.0)
     parser.add_argument("--behavior-checkpoint", type=Path)
     parser.add_argument("--init-checkpoint", type=Path)
     parser.add_argument("--init-kl-weight", type=float, default=0.0)
@@ -1566,6 +1640,17 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Multiply cached action-value examples for one current player, "
             "for example --player-action-value-weight 1=3.0."
+        ),
+    )
+    parser.add_argument(
+        "--player-action-value-loss-weight",
+        action="append",
+        default=[],
+        metavar="PLAYER=WEIGHT",
+        help=(
+            "Multiply auxiliary action-value loss rows for one current player "
+            "without changing the supervised target loss, for example "
+            "--player-action-value-loss-weight 1=3.0."
         ),
     )
     parser.add_argument("--facing-bet-weight", type=float, default=1.0)

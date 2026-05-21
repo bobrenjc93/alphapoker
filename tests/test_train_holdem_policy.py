@@ -62,6 +62,8 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "2.0",
             "--action-value-example-weight",
             "4.0",
+            "--action-value-loss-example-weight",
+            "5.0",
             "--init-checkpoint",
             "policy.pt",
             "--init-kl-weight",
@@ -97,6 +99,8 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
             "3",
             "--player-action-value-weight",
             "1=2.5",
+            "--player-action-value-loss-weight",
+            "0=3.5",
             "--facing-bet-weight",
             "3.0",
             "--jobs",
@@ -122,6 +126,7 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.action_value_loss_weight == 0.25
     assert args.action_value_target_scale == 2.0
     assert args.action_value_example_weight == 4.0
+    assert args.action_value_loss_example_weight == 5.0
     assert str(args.init_checkpoint) == "policy.pt"
     assert args.init_kl_weight == 0.5
     assert args.init_kl_example_weighting == "uniform"
@@ -135,6 +140,7 @@ def test_train_holdem_policy_parser_accepts_pot_odds_expert() -> None:
     assert args.player_facing_bet_action_weight == ["1:fold=0.5"]
     assert args.player_facing_bet_action_weight_after_opponent_aggressions == 3
     assert args.player_action_value_weight == ["1=2.5"]
+    assert args.player_action_value_loss_weight == ["0=3.5"]
     assert args.facing_bet_weight == 3.0
     assert args.jobs == 4
     assert args.progress
@@ -835,8 +841,12 @@ def test_train_holdem_policy_records_validation_metrics(tmp_path) -> None:
     assert metrics["action_value_loss_weight"] == 0.0
     assert metrics["action_value_example_weight"] == 1.0
     assert metrics["action_value_weighted_examples"] == 0
+    assert metrics["action_value_loss_example_weight"] == 1.0
+    assert metrics["action_value_loss_example_weighted_examples"] == 0
     assert metrics["player_action_value_weight_overrides"] == {}
     assert metrics["player_action_value_weighted_examples"] == 0
+    assert metrics["player_action_value_loss_weight_overrides"] == {}
+    assert metrics["player_action_value_loss_weighted_examples"] == 0
 
 
 def test_train_holdem_policy_appends_extra_cached_examples(tmp_path) -> None:
@@ -1021,6 +1031,10 @@ def test_train_holdem_policy_accepts_action_value_targets(tmp_path) -> None:
             "2.0",
             "--player-action-value-weight",
             "1=3.0",
+            "--action-value-loss-example-weight",
+            "4.0",
+            "--player-action-value-loss-weight",
+            "0=5.0",
             "--epochs",
             "2",
             "--out",
@@ -1034,8 +1048,12 @@ def test_train_holdem_policy_accepts_action_value_targets(tmp_path) -> None:
     assert metrics["action_value_target_scale"] == 2.0
     assert metrics["action_value_example_weight"] == 2.0
     assert metrics["action_value_weighted_examples"] == 6
+    assert metrics["action_value_loss_example_weight"] == 4.0
+    assert metrics["action_value_loss_example_weighted_examples"] == 6
     assert metrics["player_action_value_weight_overrides"] == {"1": 3.0}
     assert metrics["player_action_value_weighted_examples"] == 3
+    assert metrics["player_action_value_loss_weight_overrides"] == {"0": 5.0}
+    assert metrics["player_action_value_loss_weighted_examples"] == 3
 
 
 def test_init_kl_weight_requires_init_checkpoint(tmp_path) -> None:
