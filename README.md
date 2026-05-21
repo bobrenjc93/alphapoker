@@ -191,8 +191,8 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
   checkpoints for player 0 and player 1, enabling seat-specific response
   composites with incompatible feature encoders.
 - Per-seat Hold'em blend checkpoints can independently restrict blending to
-  facing-bet response states, enabling asymmetric composites such as broad
-  player-0 switching plus response-only player-1 switching.
+  facing-bet or non-facing-bet states, enabling asymmetric composites such as
+  broad player-0 switching plus response-only player-1 switching.
 - Cross-seat Hold'em neural checkpoint evaluation.
 - Hold'em match-evaluation action-count and facing-bet response diagnostics by
   model/opponent role and player seat, with optional progress reporting for
@@ -394,6 +394,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T19:56:04-07:00 | `1ce84d6` | Bucketed neural decision diagnostics by opponent aggression for all Hold'em decisions. | Diagnostic buckets now cover non-facing post-aggression states as well as facing-bet responses; `tests/test_evaluate_holdem_model.py` passed (`32 passed`). |
 | 2026-05-20T20:16:00-07:00 | `1c57c5a` | Compared value400 player-0 decision buckets. | Full KL8 value400 p0 plus p1 response composite reproduced h100 safe `+0.305 +/- 0.597`, while p0 facing-only without a p1 branch failed (`-1.360 +/- 0.530`, p0 `-0.12`); current best unchanged. |
 | 2026-05-20T20:30:20-07:00 | `505af44` | Tried p0 protective exact/range replay on value400. | Adding 513 p0 current-behavior exact/range labels still over-raised cached p0 facing states (`172` vs `96` target), safe dropped to `+0.015 +/- 0.537`, and exact failed at `-0.120 +/- 0.324`; current best unchanged. |
+| 2026-05-20T20:35:10-07:00 | `3aa6eb3` | Added not-facing-only Hold'em blend gates. | Evaluator blends can now target non-facing-bet states globally or per seat; `tests/test_evaluate_holdem_model.py` passed (`33 passed`). |
+| 2026-05-20T20:38:17-07:00 | `dd90be7` | Isolated p0 non-facing value400 switching. | P0 value400 restricted to non-facing-bet states failed the same h100 safe seed at `-1.655 +/- 0.482`, with player 0 at `-0.71` versus `+0.54` for full p0 value400; current best unchanged. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1217,6 +1219,12 @@ Current fixed-limit Hold'em gate:
   blunt; the next p0 repair needs either softer value-aware protection or a
   state-conditioned objective rather than more conservative current-behavior
   labels.
+- Restricting the KL8 value400 player-0 switch to non-facing-bet states also
+  failed to isolate the repair. On the same h100 cheap-safe seed it scored
+  `-1.655 +/- 0.482`, with player 0 at `-0.71` and player 1 at `-2.60`.
+  Runtime state splices have now missed the useful p0 behavior in
+  facing-only, after-one, and non-facing-only forms; the next attempt should
+  model the full p0 trajectory without breaking exact/range protection.
 
 ## Research Roadmap
 
