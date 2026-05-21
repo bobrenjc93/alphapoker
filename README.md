@@ -365,6 +365,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T17:26:42-07:00 | `cc3a84e` | Tried a player-1 facing-bet-only cap-2 response blend. | Same-seed h40 cheap safe improved from `-0.4625 +/- 0.8483` to `+0.1375 +/- 0.7157`, but h100 safe failed at `-0.900 +/- 0.515`; exact h100 was worse than control (`-0.265` vs `-0.045`) and range h100 was essentially unchanged (`+0.285` vs `+0.255`). |
 | 2026-05-20T17:42:48-07:00 | `8ce9081` | Swept partial player-1 facing-response blend weights. | On the same h40 cheap-safe seed, 25% scored `-0.625 +/- 0.551`, 50% scored `-0.3625 +/- 0.601`, and 75% scored only `+0.025 +/- 0.628`; every partial blend left player 1 negative, so the full blend's failed h100 confirmation remains decisive. |
 | 2026-05-20T17:48:00-07:00 | `c10b2c9` | Added the missing same-seed h100 safe control for the full p1 blend. | Current best scored `-1.805 +/- 0.525` on seed `92955`, so the full p1-facing blend's `-0.900 +/- 0.515` is a real same-seed improvement, mostly from player 1 (`-3.10` to `-1.29`), but still not a safe-rollout repair. |
+| 2026-05-20T18:00:15-07:00 | `0d95d5a` | Added player-1 response-bias probes on top of the p1 blend. | P1 `raise=+0.5`, `fold=-0.5` improved h100 safe to `-0.510 +/- 0.524` with range still positive (`+0.325 +/- 0.227`) and exact near-flat (`-0.090 +/- 0.482`); `raise=+1.0` improved safe to `-0.220 +/- 0.559` but worsened exact to `-0.230 +/- 0.502`, so this is still diagnostic. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1073,6 +1074,15 @@ Current fixed-limit Hold'em gate:
   Player 1 stayed negative in all three partial probes (`-1.900`, `-1.375`,
   and `-0.600`), so the full blend's failed h100 safe confirmation remains the
   stronger result.
+- Adding a player-1-only response logit bias on top of the full p1 blend
+  confirmed that p1 aggressiveness is the useful lever but exact remains the
+  limiting gate. P1 `raise=+0.5`, `fold=-0.5` moved h100 cheap safe from the
+  full blend's `-0.900 +/- 0.515` to `-0.510 +/- 0.524`, kept range positive at
+  `+0.325 +/- 0.227`, and kept exact close to the same-seed control
+  (`-0.090 +/- 0.482` vs `-0.045 +/- 0.390`). Increasing the raise bias to
+  `+1.0` made player 1 slightly positive on safe (`+0.070`) and improved
+  overall safe to `-0.220 +/- 0.559`, but exact regressed to `-0.230 +/- 0.502`.
+  This branch is useful but still not a current-best replacement.
 
 ## Research Roadmap
 
