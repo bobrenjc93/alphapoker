@@ -78,8 +78,11 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
             "--blend-after-opponent-aggressions",
             "1",
             "--blend-facing-bet-only",
+            "--blend-not-facing-bet-only",
             "--player0-blend-facing-bet-only",
             "--player1-blend-facing-bet-only",
+            "--player0-blend-not-facing-bet-only",
+            "--player1-blend-not-facing-bet-only",
             "--blend-player",
             "1",
             "--facing-bet-logit-bias",
@@ -119,8 +122,11 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
     assert args.blend_weight == 0.25
     assert args.blend_after_opponent_aggressions == 1
     assert args.blend_facing_bet_only
+    assert args.blend_not_facing_bet_only
     assert args.player0_blend_facing_bet_only
     assert args.player1_blend_facing_bet_only
+    assert args.player0_blend_not_facing_bet_only
+    assert args.player1_blend_not_facing_bet_only
     assert args.blend_player == [1]
     assert args.facing_bet_logit_bias == ["call=0.5"]
     assert args.facing_bet_logit_bias_after_opponent_aggressions == 2
@@ -369,6 +375,29 @@ def test_model_policy_can_blend_only_while_facing_bet(tmp_path) -> None:
 
     assert policy(non_facing_state) == primary_action
     assert policy(facing_state) == blend_action
+
+
+def test_model_policy_can_blend_only_while_not_facing_bet(tmp_path) -> None:
+    state = deal_fixed_limit_holdem()
+    facing_state = state.apply(RAISE)
+    non_facing_state = facing_state.apply(CALL)
+    primary_action = facing_state.legal_actions()[0]
+    blend_action = non_facing_state.legal_actions()[-1]
+    primary_checkpoint = tmp_path / "primary.pt"
+    blend_checkpoint = tmp_path / "blend.pt"
+    write_biased_policy_checkpoint(primary_checkpoint, primary_action)
+    write_biased_policy_checkpoint(blend_checkpoint, blend_action)
+
+    policy = model_policy_from_checkpoint(
+        primary_checkpoint,
+        blend_checkpoint_path=blend_checkpoint,
+        blend_weight=1.0,
+        blend_not_facing_bet_only=True,
+    )
+
+    assert CALL not in non_facing_state.legal_actions()
+    assert policy(facing_state) == primary_action
+    assert policy(non_facing_state) == blend_action
 
 
 def test_model_policy_can_blend_only_for_selected_player(tmp_path) -> None:
@@ -802,6 +831,7 @@ def test_holdem_model_eval_uses_player_specific_blend_checkpoints(tmp_path) -> N
                 str(player0_blend_checkpoint),
                 "--player1-blend-checkpoint",
                 str(player1_blend_checkpoint),
+                "--player0-blend-not-facing-bet-only",
                 "--player1-blend-facing-bet-only",
                 "--hands",
                 "1",
@@ -817,6 +847,8 @@ def test_holdem_model_eval_uses_player_specific_blend_checkpoints(tmp_path) -> N
     assert metrics["player1_blend_checkpoint"] == str(player1_blend_checkpoint)
     assert not metrics["player0_blend_facing_bet_only"]
     assert metrics["player1_blend_facing_bet_only"]
+    assert metrics["player0_blend_not_facing_bet_only"]
+    assert not metrics["player1_blend_not_facing_bet_only"]
     assert metrics["blend_checkpoint"] is None
     active_by_player = {
         seat["model_player"]: seat["active_blend_checkpoint"]
