@@ -190,6 +190,9 @@ uv run --extra train --extra holdem python -m alphapoker.train_holdem_policy \
 - Evaluator-side Hold'em checkpoint blending can use different blend
   checkpoints for player 0 and player 1, enabling seat-specific response
   composites with incompatible feature encoders.
+- Per-seat Hold'em blend checkpoints can independently restrict blending to
+  facing-bet response states, enabling asymmetric composites such as broad
+  player-0 switching plus response-only player-1 switching.
 - Cross-seat Hold'em neural checkpoint evaluation.
 - Hold'em match-evaluation action-count and facing-bet response diagnostics by
   model/opponent role and player seat, with optional progress reporting for
@@ -385,6 +388,8 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T19:17:06-07:00 | `f0d7cd8` | Tried KL8 replay anchoring for the value400/p1 response composite. | KL8 player-0 replay improved the same h100 safe seed to `+0.305 +/- 0.597` (`p0 +0.54`, `p1 +0.07`), but protective h100 exact/range were only `+0.085 +/- 0.338` and `-0.015 +/- 0.314`; current best unchanged. |
 | 2026-05-20T19:32:00-07:00 | `8ef1d07` | Added per-seat blend checkpoints to the Hold'em evaluator. | Tooling can now blend different player-0 and player-1 checkpoints in one evaluation; `tests/test_evaluate_holdem_model.py` passed (`31 passed`). |
 | 2026-05-20T19:39:02-07:00 | `56d2e95` | Probed per-seat and range-regularized response composites. | Player-0 facing-only value400 plus player-1 cap-2 blending was flat on h100 safe (`-0.010 +/- 0.641`), and adding range-response labels to the p1 branch failed worse (`-0.595 +/- 0.606`); current best unchanged. |
+| 2026-05-20T19:46:53-07:00 | `d74d136` | Added per-seat blend state restrictions. | Tooling can now make one seat blend broadly and another seat blend only while facing bets; `tests/test_evaluate_holdem_model.py` passed (`31 passed`). |
+| 2026-05-20T19:49:57-07:00 | `4fae5c5` | Tried p0 raise dampening and asymmetric value400 switching. | P0 `raise=-0.25` calibration broke the safe repair (`-0.255 +/- 0.615`), while broad p0 after-one value400 plus p1 response-only blending was only `+0.040 +/- 0.681`; current best unchanged. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1175,6 +1180,17 @@ Current fixed-limit Hold'em gate:
   player-0 composite it failed the h100 cheap-safe seed at
   `-0.595 +/- 0.606` (`p0 -0.24`, `p1 -0.95`), so tiny range-response
   regularization is not enough.
+- Dampening player-0 facing-bet raises in the full KL8/value400 composite
+  confirmed that the player-0 aggression is part of the safe-side repair, not
+  just noise. A mild p0 `raise=-0.25` runtime bias cut the same h100 safe seed
+  to `-0.255 +/- 0.615` with player 0 at `-0.50`, so simple p0 raise
+  suppression is rejected.
+- Letting player 0 switch broadly to value400 after one opponent aggression
+  while keeping player 1's cap-2 branch restricted to facing-bet responses was
+  also too weak. The same h100 safe seed reached only `+0.040 +/- 0.681`
+  (`p0 +0.09`, `p1 -0.01`), far below the full value400 player-0 composite's
+  `+0.305 +/- 0.597`; the useful p0 adaptation is not captured by this simple
+  after-one gate.
 
 ## Research Roadmap
 
