@@ -356,6 +356,8 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
         "blend_checkpoint",
         "player0_blend_checkpoint",
         "player1_blend_checkpoint",
+        "player0_blend_facing_bet_only",
+        "player1_blend_facing_bet_only",
         "active_blend_checkpoint",
         "blend_weight",
         "blend_after_opponent_aggressions",
@@ -690,6 +692,7 @@ def evaluate_model_shard(
     blend_weight: float,
     blend_after_opponent_aggressions: int | None,
     blend_facing_bet_only: bool,
+    player_blend_facing_bet_only: tuple[bool, bool],
     blend_players: tuple[int, ...] | None,
     facing_bet_logit_biases: dict[str, float],
     facing_bet_logit_bias_after_opponent_aggressions: int | None,
@@ -737,6 +740,7 @@ def evaluate_model_shard(
                 ),
                 blend_facing_bet_only=(
                     blend_facing_bet_only
+                    or player_blend_facing_bet_only[model_player]
                     if active_blend_checkpoint is not None
                     else False
                 ),
@@ -793,6 +797,8 @@ def evaluate_model_shard(
             if player_blend_checkpoints[1] is not None
             else None
         ),
+        "player0_blend_facing_bet_only": player_blend_facing_bet_only[0],
+        "player1_blend_facing_bet_only": player_blend_facing_bet_only[1],
         "active_blend_checkpoint": (
             str(active_blend_checkpoint) if active_blend_checkpoint is not None else None
         ),
@@ -854,6 +860,7 @@ def evaluate_model_paired_shard(
     blend_weight: float,
     blend_after_opponent_aggressions: int | None,
     blend_facing_bet_only: bool,
+    player_blend_facing_bet_only: tuple[bool, bool],
     blend_players: tuple[int, ...] | None,
     facing_bet_logit_biases: dict[str, float],
     facing_bet_logit_bias_after_opponent_aggressions: int | None,
@@ -894,6 +901,7 @@ def evaluate_model_paired_shard(
             ),
             blend_facing_bet_only=(
                 blend_facing_bet_only
+                or player_blend_facing_bet_only[model_player]
                 if active_blend_checkpoint is not None
                 else False
             ),
@@ -959,6 +967,8 @@ def evaluate_model_paired_shard(
             if player_blend_checkpoints[1] is not None
             else None
         ),
+        "player0_blend_facing_bet_only": player_blend_facing_bet_only[0],
+        "player1_blend_facing_bet_only": player_blend_facing_bet_only[1],
         "blend_weight": (
             blend_weight
             if blend_checkpoint is not None or any(player_blend_checkpoints)
@@ -1040,6 +1050,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     blend_facing_bet_only = bool(getattr(args, "blend_facing_bet_only", False))
     if blend_facing_bet_only and not has_any_blend_checkpoint:
         raise ValueError("--blend-facing-bet-only requires a blend checkpoint")
+    player_blend_facing_bet_only = (
+        bool(getattr(args, "player0_blend_facing_bet_only", False)),
+        bool(getattr(args, "player1_blend_facing_bet_only", False)),
+    )
+    if any(player_blend_facing_bet_only) and not has_any_blend_checkpoint:
+        raise ValueError("--playerN-blend-facing-bet-only requires a blend checkpoint")
     blend_players = tuple(getattr(args, "blend_player", []) or [])
     if blend_players and not has_any_blend_checkpoint:
         raise ValueError("--blend-player requires a blend checkpoint")
@@ -1151,6 +1167,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "blend_weight": blend_weight,
                 "blend_after_opponent_aggressions": blend_after_opponent_aggressions,
                 "blend_facing_bet_only": blend_facing_bet_only,
+                "player_blend_facing_bet_only": player_blend_facing_bet_only,
                 "blend_players": blend_players_or_none,
                 "facing_bet_logit_biases": facing_bet_logit_biases,
                 "facing_bet_logit_bias_after_opponent_aggressions": (
@@ -1235,6 +1252,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "blend_weight": blend_weight,
             "blend_after_opponent_aggressions": blend_after_opponent_aggressions,
             "blend_facing_bet_only": blend_facing_bet_only,
+            "player_blend_facing_bet_only": player_blend_facing_bet_only,
             "blend_players": blend_players_or_none,
             "facing_bet_logit_biases": facing_bet_logit_biases,
             "facing_bet_logit_bias_after_opponent_aggressions": (
@@ -1330,6 +1348,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--blend-facing-bet-only",
         action="store_true",
         help="Apply checkpoint blending only while the model is facing a bet or raise.",
+    )
+    parser.add_argument(
+        "--player0-blend-facing-bet-only",
+        action="store_true",
+        help="Restrict player 0's active blend checkpoint to facing-bet states.",
+    )
+    parser.add_argument(
+        "--player1-blend-facing-bet-only",
+        action="store_true",
+        help="Restrict player 1's active blend checkpoint to facing-bet states.",
     )
     parser.add_argument(
         "--blend-player",

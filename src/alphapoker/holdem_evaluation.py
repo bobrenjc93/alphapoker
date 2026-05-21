@@ -276,6 +276,8 @@ def aggregate_policy_match_shards(metrics: list[dict[str, Any]]) -> dict[str, An
         "blend_checkpoint",
         "player0_blend_checkpoint",
         "player1_blend_checkpoint",
+        "player0_blend_facing_bet_only",
+        "player1_blend_facing_bet_only",
         "active_blend_checkpoint",
         "blend_weight",
         "blend_after_opponent_aggressions",

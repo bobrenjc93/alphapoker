@@ -76,6 +76,8 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
             "--blend-after-opponent-aggressions",
             "1",
             "--blend-facing-bet-only",
+            "--player0-blend-facing-bet-only",
+            "--player1-blend-facing-bet-only",
             "--blend-player",
             "1",
             "--facing-bet-logit-bias",
@@ -115,6 +117,8 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
     assert args.blend_weight == 0.25
     assert args.blend_after_opponent_aggressions == 1
     assert args.blend_facing_bet_only
+    assert args.player0_blend_facing_bet_only
+    assert args.player1_blend_facing_bet_only
     assert args.blend_player == [1]
     assert args.facing_bet_logit_bias == ["call=0.5"]
     assert args.facing_bet_logit_bias_after_opponent_aggressions == 2
@@ -773,7 +777,7 @@ def test_holdem_model_eval_uses_player_specific_blend_checkpoints(tmp_path) -> N
                 str(player0_blend_checkpoint),
                 "--player1-blend-checkpoint",
                 str(player1_blend_checkpoint),
-                "--blend-facing-bet-only",
+                "--player1-blend-facing-bet-only",
                 "--hands",
                 "1",
                 "--model-player",
@@ -786,6 +790,8 @@ def test_holdem_model_eval_uses_player_specific_blend_checkpoints(tmp_path) -> N
 
     assert metrics["player0_blend_checkpoint"] == str(player0_blend_checkpoint)
     assert metrics["player1_blend_checkpoint"] == str(player1_blend_checkpoint)
+    assert not metrics["player0_blend_facing_bet_only"]
+    assert metrics["player1_blend_facing_bet_only"]
     assert metrics["blend_checkpoint"] is None
     active_by_player = {
         seat["model_player"]: seat["active_blend_checkpoint"]
