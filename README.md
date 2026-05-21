@@ -372,6 +372,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T18:06:01-07:00 | `e3dbd19` | Gated the p1 blend and response bias until after two opponent aggressions. | The same-seed h100 safe point improved over the raw current best (`-0.420 +/- 0.532` vs `-1.805 +/- 0.525`) and over the full p1 blend, but it was weaker than the ungated strong bias (`-0.220 +/- 0.559`); exact/range gates were not promoted. |
 | 2026-05-20T18:11:01-07:00 | `c4fae8c` | Enabled inactive blend skipping for seat-specific composites. | Evaluator-side blends now skip incompatible blend checkpoints for model seats excluded by `--blend-player`; focused evaluator tests passed (`30 passed`). |
 | 2026-05-20T18:17:54-07:00 | `a0d6542` | Combined value400 player 0 with the p1 response blend and bias. | The composite made h100 safe weakly positive (`+0.200 +/- 0.613`, seats `+0.33/+0.07`) but failed promotion on protective h100 exact/range probes (`-0.215 +/- 0.466`, `-0.035 +/- 0.336`); current best is unchanged. |
+| 2026-05-20T18:22:49-07:00 | `4c94cc3` | Tried a milder p1 response bias in the same value400/p1 composite. | Reducing p1 `raise` bias from `+1.0` to `+0.5` lost the safe repair on the same h100 seed (`-0.090 +/- 0.575`, seats `+0.33/-0.51`), so exact/range extension was skipped. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1104,6 +1105,10 @@ Current fixed-limit Hold'em gate:
   player 1 (`-0.590`), and range h100 was flat-negative at
   `-0.035 +/- 0.336`. Seat-specific composition helps the safe gate but does
   not yet preserve the exact/range gates.
+- Reducing that composite's p1 raise bias from `+1.0` to `+0.5` was not a
+  useful compromise. Player 0 stayed at `+0.33` on the same safe seed, but
+  player 1 fell back to `-0.51`, making the overall h100 safe result
+  `-0.090 +/- 0.575`; that setting was stopped before exact/range extension.
 
 ## Research Roadmap
 
