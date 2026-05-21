@@ -354,6 +354,9 @@ def aggregate_model_player_metrics(metrics: list[dict[str, Any]]) -> dict[str, A
         "rollout_sims",
         "rollout_margin",
         "blend_checkpoint",
+        "player0_blend_checkpoint",
+        "player1_blend_checkpoint",
+        "active_blend_checkpoint",
         "blend_weight",
         "blend_after_opponent_aggressions",
         "blend_facing_bet_only",
@@ -658,12 +661,16 @@ def make_opponent_policy(
 
 def active_blend_checkpoint_for_model_player(
     blend_checkpoint: Path | None,
+    player_blend_checkpoints: tuple[Path | None, Path | None],
     blend_players: tuple[int, ...] | None,
     model_player: int,
 ) -> Path | None:
-    if blend_checkpoint is None:
-        return None
     if blend_players is not None and model_player not in blend_players:
+        return None
+    player_blend_checkpoint = player_blend_checkpoints[model_player]
+    if player_blend_checkpoint is not None:
+        return player_blend_checkpoint
+    if blend_checkpoint is None:
         return None
     return blend_checkpoint
 
@@ -679,6 +686,7 @@ def evaluate_model_shard(
     rollout_sims: int | None,
     rollout_margin: float,
     blend_checkpoint: Path | None,
+    player_blend_checkpoints: tuple[Path | None, Path | None],
     blend_weight: float,
     blend_after_opponent_aggressions: int | None,
     blend_facing_bet_only: bool,
@@ -707,6 +715,7 @@ def evaluate_model_shard(
     )
     active_blend_checkpoint = active_blend_checkpoint_for_model_player(
         blend_checkpoint,
+        player_blend_checkpoints,
         blend_players,
         model_player,
     )
@@ -774,7 +783,24 @@ def evaluate_model_shard(
         "rollout_sims": rollout_sims,
         "rollout_margin": rollout_margin,
         "blend_checkpoint": str(blend_checkpoint) if blend_checkpoint is not None else None,
-        "blend_weight": blend_weight if blend_checkpoint is not None else None,
+        "player0_blend_checkpoint": (
+            str(player_blend_checkpoints[0])
+            if player_blend_checkpoints[0] is not None
+            else None
+        ),
+        "player1_blend_checkpoint": (
+            str(player_blend_checkpoints[1])
+            if player_blend_checkpoints[1] is not None
+            else None
+        ),
+        "active_blend_checkpoint": (
+            str(active_blend_checkpoint) if active_blend_checkpoint is not None else None
+        ),
+        "blend_weight": (
+            blend_weight
+            if blend_checkpoint is not None or any(player_blend_checkpoints)
+            else None
+        ),
         "blend_after_opponent_aggressions": blend_after_opponent_aggressions,
         "blend_facing_bet_only": blend_facing_bet_only,
         "blend_players": list(blend_players) if blend_players is not None else None,
@@ -824,6 +850,7 @@ def evaluate_model_paired_shard(
     rollout_sims: int | None,
     rollout_margin: float,
     blend_checkpoint: Path | None,
+    player_blend_checkpoints: tuple[Path | None, Path | None],
     blend_weight: float,
     blend_after_opponent_aggressions: int | None,
     blend_facing_bet_only: bool,
@@ -851,6 +878,7 @@ def evaluate_model_paired_shard(
     def make_model_policy(model_player: int) -> HoldemPolicy:
         active_blend_checkpoint = active_blend_checkpoint_for_model_player(
             blend_checkpoint,
+            player_blend_checkpoints,
             blend_players,
             model_player,
         )
@@ -921,7 +949,21 @@ def evaluate_model_paired_shard(
         "rollout_sims": rollout_sims,
         "rollout_margin": rollout_margin,
         "blend_checkpoint": str(blend_checkpoint) if blend_checkpoint is not None else None,
-        "blend_weight": blend_weight if blend_checkpoint is not None else None,
+        "player0_blend_checkpoint": (
+            str(player_blend_checkpoints[0])
+            if player_blend_checkpoints[0] is not None
+            else None
+        ),
+        "player1_blend_checkpoint": (
+            str(player_blend_checkpoints[1])
+            if player_blend_checkpoints[1] is not None
+            else None
+        ),
+        "blend_weight": (
+            blend_weight
+            if blend_checkpoint is not None or any(player_blend_checkpoints)
+            else None
+        ),
         "blend_after_opponent_aggressions": blend_after_opponent_aggressions,
         "blend_facing_bet_only": blend_facing_bet_only,
         "blend_players": list(blend_players) if blend_players is not None else None,
@@ -977,6 +1019,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     progress = bool(getattr(args, "progress", False))
     rollout_margin = float(getattr(args, "rollout_margin", 1.0))
     blend_checkpoint = getattr(args, "blend_checkpoint", None)
+    player_blend_checkpoints = (
+        getattr(args, "player0_blend_checkpoint", None),
+        getattr(args, "player1_blend_checkpoint", None),
+    )
+    has_any_blend_checkpoint = blend_checkpoint is not None or any(
+        player_blend_checkpoints
+    )
     blend_weight = float(getattr(args, "blend_weight", 0.5))
     if not 0.0 <= blend_weight <= 1.0:
         raise ValueError("--blend-weight must be between 0.0 and 1.0")
@@ -984,14 +1033,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if blend_after_opponent_aggressions is not None:
         if blend_after_opponent_aggressions < 1:
             raise ValueError("--blend-after-opponent-aggressions must be positive")
-        if blend_checkpoint is None:
-            raise ValueError("--blend-after-opponent-aggressions requires --blend-checkpoint")
+        if not has_any_blend_checkpoint:
+            raise ValueError(
+                "--blend-after-opponent-aggressions requires a blend checkpoint"
+            )
     blend_facing_bet_only = bool(getattr(args, "blend_facing_bet_only", False))
-    if blend_facing_bet_only and blend_checkpoint is None:
-        raise ValueError("--blend-facing-bet-only requires --blend-checkpoint")
+    if blend_facing_bet_only and not has_any_blend_checkpoint:
+        raise ValueError("--blend-facing-bet-only requires a blend checkpoint")
     blend_players = tuple(getattr(args, "blend_player", []) or [])
-    if blend_players and blend_checkpoint is None:
-        raise ValueError("--blend-player requires --blend-checkpoint")
+    if blend_players and not has_any_blend_checkpoint:
+        raise ValueError("--blend-player requires a blend checkpoint")
     if any(player not in (0, 1) for player in blend_players):
         raise ValueError("--blend-player values must be 0 or 1")
     blend_players_or_none = blend_players or None
@@ -1096,6 +1147,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "rollout_sims": args.rollout_sims,
                 "rollout_margin": rollout_margin,
                 "blend_checkpoint": blend_checkpoint,
+                "player_blend_checkpoints": player_blend_checkpoints,
                 "blend_weight": blend_weight,
                 "blend_after_opponent_aggressions": blend_after_opponent_aggressions,
                 "blend_facing_bet_only": blend_facing_bet_only,
@@ -1179,6 +1231,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "rollout_sims": args.rollout_sims,
             "rollout_margin": rollout_margin,
             "blend_checkpoint": blend_checkpoint,
+            "player_blend_checkpoints": player_blend_checkpoints,
             "blend_weight": blend_weight,
             "blend_after_opponent_aggressions": blend_after_opponent_aggressions,
             "blend_facing_bet_only": blend_facing_bet_only,
@@ -1261,6 +1314,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--player0-checkpoint", type=Path)
     parser.add_argument("--player1-checkpoint", type=Path)
     parser.add_argument("--blend-checkpoint", type=Path)
+    parser.add_argument(
+        "--player0-blend-checkpoint",
+        type=Path,
+        help="Blend checkpoint to use only when the model is playing as player 0.",
+    )
+    parser.add_argument(
+        "--player1-blend-checkpoint",
+        type=Path,
+        help="Blend checkpoint to use only when the model is playing as player 1.",
+    )
     parser.add_argument("--blend-weight", type=float, default=0.5)
     parser.add_argument("--blend-after-opponent-aggressions", type=int)
     parser.add_argument(

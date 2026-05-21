@@ -67,6 +67,10 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
             "model.pt",
             "--blend-checkpoint",
             "blend.pt",
+            "--player0-blend-checkpoint",
+            "p0_blend.pt",
+            "--player1-blend-checkpoint",
+            "p1_blend.pt",
             "--blend-weight",
             "0.25",
             "--blend-after-opponent-aggressions",
@@ -106,6 +110,8 @@ def test_holdem_model_eval_parser_accepts_model_player() -> None:
 
     assert args.model_player == (1,)
     assert str(args.blend_checkpoint) == "blend.pt"
+    assert str(args.player0_blend_checkpoint) == "p0_blend.pt"
+    assert str(args.player1_blend_checkpoint) == "p1_blend.pt"
     assert args.blend_weight == 0.25
     assert args.blend_after_opponent_aggressions == 1
     assert args.blend_facing_bet_only
@@ -732,6 +738,63 @@ def test_holdem_model_eval_skips_inactive_player_blend_checkpoint(tmp_path) -> N
     assert metrics["player1_checkpoint"] == str(player1_checkpoint)
     assert metrics["blend_checkpoint"] == str(blend_checkpoint)
     assert metrics["blend_players"] == [1]
+
+
+def test_holdem_model_eval_uses_player_specific_blend_checkpoints(tmp_path) -> None:
+    player0_checkpoint = tmp_path / "player0.pt"
+    player1_checkpoint = tmp_path / "player1.pt"
+    player0_blend_checkpoint = tmp_path / "player0_blend.pt"
+    player1_blend_checkpoint = tmp_path / "player1_blend.pt"
+    write_biased_policy_checkpoint(
+        player0_checkpoint,
+        "bet",
+        input_dim=HOLDEM_FEATURE_DIM + HOLDEM_ACTION_HISTORY_FEATURE_DIM,
+        action_history_features=True,
+    )
+    write_biased_policy_checkpoint(player1_checkpoint, "bet")
+    write_biased_policy_checkpoint(
+        player0_blend_checkpoint,
+        "raise",
+        input_dim=HOLDEM_FEATURE_DIM + HOLDEM_ACTION_HISTORY_FEATURE_DIM,
+        action_history_features=True,
+    )
+    write_biased_policy_checkpoint(player1_blend_checkpoint, "raise")
+
+    metrics = run(
+        build_parser().parse_args(
+            [
+                "--checkpoint",
+                str(player1_checkpoint),
+                "--player0-checkpoint",
+                str(player0_checkpoint),
+                "--player1-checkpoint",
+                str(player1_checkpoint),
+                "--player0-blend-checkpoint",
+                str(player0_blend_checkpoint),
+                "--player1-blend-checkpoint",
+                str(player1_blend_checkpoint),
+                "--blend-facing-bet-only",
+                "--hands",
+                "1",
+                "--model-player",
+                "both",
+                "--opponent-policy",
+                "random",
+            ]
+        )
+    )
+
+    assert metrics["player0_blend_checkpoint"] == str(player0_blend_checkpoint)
+    assert metrics["player1_blend_checkpoint"] == str(player1_blend_checkpoint)
+    assert metrics["blend_checkpoint"] is None
+    active_by_player = {
+        seat["model_player"]: seat["active_blend_checkpoint"]
+        for seat in metrics["seat_metrics"]
+    }
+    assert active_by_player == {
+        0: str(player0_blend_checkpoint),
+        1: str(player1_blend_checkpoint),
+    }
 
 
 def test_holdem_model_eval_paired_seats_requires_both(tmp_path) -> None:
