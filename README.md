@@ -363,6 +363,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T17:06:49-07:00 | `81c5eb5` | Tried call-weighted cap-2 MCCFR response distillation. | Call upweighting moved cached responses closer to the cap-2 teacher (`call/fold/raise = 277/199/109` predicted vs `345/132/108` target), but exact h100 fell to `+0.015 +/- 0.387` and cheap safe h40 failed at `-0.7875 +/- 0.629`; not a candidate. |
 | 2026-05-20T17:17:29-07:00 | `e82d291` | Tried player-1-only cap-2 response branches as seat composites. | The best cached p1 branch matched `99/69/26` call/fold/raise vs `110/58/26` target and kept exact h100 positive (`+0.385 +/- 0.317`), but range h100 was flat (`+0.015 +/- 0.165`) and cheap safe h40 still failed at `-1.0625 +/- 0.717`; not a candidate. |
 | 2026-05-20T17:26:42-07:00 | `cc3a84e` | Tried a player-1 facing-bet-only cap-2 response blend. | Same-seed h40 cheap safe improved from `-0.4625 +/- 0.8483` to `+0.1375 +/- 0.7157`, but h100 safe failed at `-0.900 +/- 0.515`; exact h100 was worse than control (`-0.265` vs `-0.045`) and range h100 was essentially unchanged (`+0.285` vs `+0.255`). |
+| 2026-05-20T17:42:48-07:00 | `8ce9081` | Swept partial player-1 facing-response blend weights. | On the same h40 cheap-safe seed, 25% scored `-0.625 +/- 0.551`, 50% scored `-0.3625 +/- 0.601`, and 75% scored only `+0.025 +/- 0.628`; every partial blend left player 1 negative, so the full blend's failed h100 confirmation remains decisive. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1062,6 +1063,12 @@ Current fixed-limit Hold'em gate:
   was worse than the same-seed current-best control (`-0.265` vs `-0.045`), and
   range h100 was only a tiny point-estimate improvement (`+0.285` vs `+0.255`).
   The current best remains the 1k balanced tight-range feature distillation.
+- Partial versions of that player-1 facing-bet blend did not reveal a safer
+  dose. On the same h40 cheap-safe seed, weights `0.25`, `0.50`, and `0.75`
+  scored `-0.625 +/- 0.551`, `-0.3625 +/- 0.601`, and `+0.025 +/- 0.628`.
+  Player 1 stayed negative in all three partial probes (`-1.900`, `-1.375`,
+  and `-0.600`), so the full blend's failed h100 safe confirmation remains the
+  stronger result.
 
 ## Research Roadmap
 
