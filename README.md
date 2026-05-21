@@ -364,6 +364,7 @@ rather than lowering the line because they did not replace the current best.
 | 2026-05-20T17:17:29-07:00 | `e82d291` | Tried player-1-only cap-2 response branches as seat composites. | The best cached p1 branch matched `99/69/26` call/fold/raise vs `110/58/26` target and kept exact h100 positive (`+0.385 +/- 0.317`), but range h100 was flat (`+0.015 +/- 0.165`) and cheap safe h40 still failed at `-1.0625 +/- 0.717`; not a candidate. |
 | 2026-05-20T17:26:42-07:00 | `cc3a84e` | Tried a player-1 facing-bet-only cap-2 response blend. | Same-seed h40 cheap safe improved from `-0.4625 +/- 0.8483` to `+0.1375 +/- 0.7157`, but h100 safe failed at `-0.900 +/- 0.515`; exact h100 was worse than control (`-0.265` vs `-0.045`) and range h100 was essentially unchanged (`+0.285` vs `+0.255`). |
 | 2026-05-20T17:42:48-07:00 | `8ce9081` | Swept partial player-1 facing-response blend weights. | On the same h40 cheap-safe seed, 25% scored `-0.625 +/- 0.551`, 50% scored `-0.3625 +/- 0.601`, and 75% scored only `+0.025 +/- 0.628`; every partial blend left player 1 negative, so the full blend's failed h100 confirmation remains decisive. |
+| 2026-05-20T17:48:00-07:00 | `c10b2c9` | Added the missing same-seed h100 safe control for the full p1 blend. | Current best scored `-1.805 +/- 0.525` on seed `92955`, so the full p1-facing blend's `-0.900 +/- 0.515` is a real same-seed improvement, mostly from player 1 (`-3.10` to `-1.29`), but still not a safe-rollout repair. |
 
 Current fixed-limit Hold'em gate:
 
@@ -1058,11 +1059,14 @@ Current fixed-limit Hold'em gate:
   (`-1.0625 +/- 0.717`), mainly from player 0 on that seed (`-1.825`).
 - Restricting that best player-1 branch to facing-bet states improved the
   same-seed h40 cheap safe smoke test from `-0.4625 +/- 0.8483` to
-  `+0.1375 +/- 0.7157`, with the gain coming from player 1. The signal did not
-  survive confirmation: h100 cheap safe was `-0.900 +/- 0.515`, tight exact h100
-  was worse than the same-seed current-best control (`-0.265` vs `-0.045`), and
-  range h100 was only a tiny point-estimate improvement (`+0.285` vs `+0.255`).
-  The current best remains the 1k balanced tight-range feature distillation.
+  `+0.1375 +/- 0.7157`, with the gain coming from player 1. The h100 safe point
+  remained negative at `-0.900 +/- 0.515`, but a same-seed current-best control
+  was worse at `-1.805 +/- 0.525`; player 1 improved from `-3.10` to `-1.29`.
+  That confirms the branch is a real safe-side diagnostic, but it is not enough
+  for promotion because tight exact h100 was worse than the same-seed control
+  (`-0.265` vs `-0.045`) and range h100 was only a tiny point-estimate
+  improvement (`+0.285` vs `+0.255`). The current best remains the 1k balanced
+  tight-range feature distillation.
 - Partial versions of that player-1 facing-bet blend did not reveal a safer
   dose. On the same h40 cheap-safe seed, weights `0.25`, `0.50`, and `0.75`
   scored `-0.625 +/- 0.551`, `-0.3625 +/- 0.601`, and `+0.025 +/- 0.628`.
